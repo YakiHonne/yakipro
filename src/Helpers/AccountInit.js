@@ -1,0 +1,223 @@
+import { ndkInstance } from "@/Helpers/NDKInstance";
+import {
+  NDKNip07Signer,
+  NDKNip46Signer,
+  NDKPrivateKeySigner,
+  NDKRelayAuthPolicies,
+} from "@nostr-dev-kit/ndk";
+import {
+  setUserKeys,
+  setUserMetadata,
+  setUserFollowings,
+  setUserRelays,
+  setUserBlossomServers,
+} from "@/Store/Slices/UserData";
+import { store } from "@/Store/Store";
+import {
+  login as apiLogin,
+  logout as apiLogout,
+  checkUserConnected,
+} from "@/Endpoionts/Auth";
+import { setIsConnected } from "@/Store/Slices/User";
+import {
+  clearUserRelaysCache,
+  setUserRelaysCache,
+} from "@/Cache/userRelaysCache";
+
+const ACCOUNTS_KEY = "yaki-accounts";
+const AUTH_KEY = "_nostruserkeys";
+
+/**
+ * Applies the appropriate NDK signer based on saved keys.
+ */
+export const applySignerToNDK = async (keys) => {
+  try {
+    if (keys.ext) {
+      ndkInstance.signer = new NDKNip07Signer(undefined, ndkInstance);
+    } else if (keys.sec) {
+      ndkInstance.signer = new NDKPrivateKeySigner(keys.sec);
+    } else if (keys.bunker) {
+      const localSigner = new NDKPrivateKeySigner(keys.localKeys.sec);
+      const signer = new NDKNip46Signer(ndkInstance, keys.bunker, localSigner);
+      ndkInstance.signer = signer;
+      await signer.blockUntilReady();
+    }
+
+    // Set auth policy after signer is ready
+    ndkInstance.relayAuthDefaultPolicy = NDKRelayAuthPolicies.signIn({
+      ndk: ndkInstance,
+    });
+  } catch (err) {
+    console.error("[AccountInit] applySignerToNDK error:", err);
+  }
+};
+
+/**
+ * Saves or updates an account in the local list of connected accounts.
+ */
+export const saveAccountLocally = (pubkey, keys, metadata = null) => {
+  try {
+    const accountsRaw = localStorage.getItem(ACCOUNTS_KEY);
+    let accounts = accountsRaw ? JSON.parse(accountsRaw) : [];
+
+    // Remove existing entry for this pubkey if it exists
+    accounts = accounts.filter((acc) => acc.pubkey !== pubkey);
+
+    // Add new entry at the beginning
+    accounts.unshift({
+      pubkey,
+      keys,
+      metadata,
+      lastActive: Date.now(),
+    });
+
+    // Limit to last 10 accounts
+    accounts = accounts.slice(0, 10);
+
+    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+  } catch (err) {
+    console.error("[AccountInit] Failed to save account locally:", err);
+  }
+};
+
+/**
+ * Fetches user metadata and followings from Nostr.
+ */
+export const fetchUserMetadata = async (pubkey) => {
+  try {
+    const user = ndkInstance.getUser({ pubkey });
+    try {
+      await user?.fetchProfile();
+    } catch (err) {}
+
+    const metadata = user?.profile || {};
+    store.dispatch(setUserMetadata(metadata));
+
+    // Also fetch Kind 3 (contact list) to get followings
+    const followEvent = await ndkInstance.fetchEvent({
+      kinds: [3],
+      authors: [pubkey],
+    });
+
+    if (followEvent) {
+      const followings = followEvent.tags
+        .filter((t) => t[0] === "p")
+        .map((t) => t[1]);
+      store.dispatch(setUserFollowings(followings));
+    }
+
+    // Fetch Kind 10002 (relay list)
+    const relayEvent = await ndkInstance.fetchEvent({
+      kinds: [10002],
+      authors: [pubkey],
+    });
+
+    if (relayEvent) {
+      const relays = relayEvent.tags
+        .filter((t) => t[0] === "r")
+        .map((t) => ({
+          url: t[1],
+          read: t[2] === "read" || !t[2],
+          write: t[2] === "write" || !t[2],
+        }));
+      store.dispatch(setUserRelays(relays));
+      setUserRelaysCache(relays);
+    }
+
+    return metadata;
+  } catch (err) {
+    console.error("[AccountInit] Failed to fetch metadata:", err);
+    return null;
+  }
+};
+
+const fetchBlossomServers = (pubkey) => {
+  try {
+    const sub = ndkInstance.subscribe(
+      [{ kinds: [10063], authors: [pubkey] }],
+      { cacheUsage: "CACHE_FIRST", closeOnEose: true },
+    );
+    sub.on("event", (ev) => {
+      const raw = ev.rawEvent ? ev.rawEvent() : ev;
+      const servers = (raw.tags || [])
+        .filter((t) => t[0] === "server" && /^https?:\/\//.test(t[1]))
+        .map((t) => t[1]);
+      if (servers.length > 0) {
+        store.dispatch(setUserBlossomServers(servers));
+      }
+    });
+  } catch (err) {
+    console.error("[AccountInit] fetchBlossomServers error:", err);
+  }
+};
+
+/**
+ * Initializes the application by checking for a connected account.
+ */
+export const initAppAccount = async () => {
+  try {
+    const authRaw = localStorage.getItem(AUTH_KEY);
+    if (!authRaw) return;
+
+    const keys = JSON.parse(authRaw);
+    if (!keys || !keys.pub) return;
+
+    // Apply signer to NDK
+    await applySignerToNDK(keys);
+
+    // Set keys in store
+    store.dispatch(setUserKeys(keys));
+
+    // Fetch and update metadata
+    const metadata = await fetchUserMetadata(keys.pub);
+
+    // Update local accounts list with latest metadata
+    saveAccountLocally(keys.pub, keys, metadata);
+
+    // Fetch blossom servers (kind 10063)
+    fetchBlossomServers(keys.pub);
+
+    // Backend connection check
+    checkUserConnected()
+      .then((res) => {
+        if (res) {
+          store.dispatch(setIsConnected(true));
+        } else {
+          apiLogin({ publicKey: keys.pub, userKeys: keys }).then((loginRes) => {
+            if (loginRes && loginRes.success) {
+              store.dispatch(setIsConnected(true));
+            }
+          });
+        }
+      })
+      .catch((err) => {
+        apiLogin({ publicKey: keys.pub, userKeys: keys }).then((loginRes) => {
+          if (loginRes && loginRes.success) {
+            store.dispatch(setIsConnected(true));
+          }
+        });
+      });
+  } catch (err) {
+    console.error("[AccountInit] initAppAccount error:", err);
+  }
+};
+
+/**
+ * Logs out the current user.
+ */
+export const logoutUser = () => {
+  try {
+    localStorage.removeItem(AUTH_KEY);
+    store.dispatch(setUserKeys(null));
+    store.dispatch(setUserMetadata(null));
+    store.dispatch(setUserFollowings([]));
+    store.dispatch(setUserRelays([]));
+    store.dispatch(setUserBlossomServers([]));
+    store.dispatch(setIsConnected(false));
+    clearUserRelaysCache();
+    apiLogout();
+    ndkInstance.signer = undefined;
+  } catch (err) {
+    console.error("[AccountInit] Logout error:", err);
+  }
+};

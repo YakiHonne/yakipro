@@ -1,0 +1,59 @@
+@media only screen and (min-width: 1900px) {
+  html { font-size: 18px; }
+}
+
+/* Mobile & Tablet Overrides */
+@media only screen and (max-width: 768px) {
+  .m-scaled-75    { transform: scale(0.75) !important; }
+  .m-fx-col       { flex-direction: column !important; }
+  .m-fx-start-h   { justify-content: flex-start !important; }
+  .m-fx-center    { justify-content: center !important; align-items: center !important; }
+  .m-fx-start-v   { align-items: flex-start !important; }
+
+  .m-box-pad-h, .box-pad-h, .box-pad-h-m, .box-pad-h-l, .box-pad-h-xl {
+    padding-left: 0.5rem !important; padding-right: 0.5rem !important;
+  }
+  .m-box-pad-v, .box-pad-v, .box-pad-v-m, .box-pad-v-l, .box-pad-v-xl {
+    padding-top: 0.5rem !important; padding-bottom: 0.5rem !important;
+  }
+
+  .m-hide          { display: none !important; }
+  .d-hide          { display: flex !important; }
+  html             { font-size: 14px; }
+  h1               { font-size: 1.5rem !important; }
+
+  .m-icon-small div  { min-width: 32px !important; min-height: 32px !important; width: 32px !important; height: 32px !important; }
+  .m-icon-micro div  { min-width: 24px !important; min-height: 24px !important; width: 24px !important; height: 24px !important; }
+  .m-stat-title      { font-size: 0.85rem !important; }
+  .m-gap-v-s         { row-gap: 4px !important; }
+  .m-gap-h-s         { column-gap: 4px !important; }
+  h2                 { font-size: 1.35rem !important; }
+  h3                 { font-size: 1.25rem !important; }
+  h4                 { font-size: 1.15rem !important; }
+
+  .min-width-800,
+  .min-width-600,
+  .min-width-500,
+  .min-width-400,
+  .min-width-300 { min-width: unset !important; width: 100% !important; }
+
+  .m-w-100         { width: 100% !important; }
+  .middle-section  { width: 100% !important; }
+  .m-no-border     { border: none !important; }
+  .m-no-border-left  { border-left: none !important; }
+  .m-no-border-right { border-right: none !important; }
+  .m-fx-wrap       { flex-wrap: wrap !important; }
+  .m-fx-gap-v-m    { row-gap: 8px !important; }
+  .m-fx-gap-v-l    { row-gap: 16px !important; }
+  .m-bottom-margin-nav { margin-bottom: 80px !important; }
+}
+
+/* Tablet Overrides */
+@media only screen and (min-width: 769px) and (max-width: 1024px) {
+  .middle-section { width: 100% !important; }
+}
+
+/* Desktop Only Display Helpers */
+@media only screen and (min-width: 769px) {
+  .d-hide { display: none !important; }
+}

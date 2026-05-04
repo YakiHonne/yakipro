@@ -1,0 +1,502 @@
+/* ── Editor shell ────────────────────────────────────────────────────── */
+.tiptap-shell {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 12px;
+  /* clip keeps rounded corners without breaking sticky */
+  overflow: clip;
+  background: var(--color-primary-bg);
+}
+
+/* ── Sticky toolbar ──────────────────────────────────────────────────── */
+.tiptap-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1px;
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--color-surface-border);
+  position: sticky;
+  top: -20px;
+  /* high enough to sit above all editor content */
+  z-index: 100;
+  background: var(--color-primary-bg);
+  border-radius: 12px 12px 0 0;
+  row-gap: 4px;
+}
+
+.tiptap-toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--color-divider);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* ── Toolbar button ──────────────────────────────────────────────────── */
+.tiptap-tb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.tiptap-tb:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.tiptap-tb.is-active {
+  background: var(--color-primary-accent);
+  color: #fff;
+}
+
+.tiptap-tb.is-active:hover {
+  background: var(--color-primary-accent-hover);
+  color: #fff;
+}
+
+.tiptap-tb:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+
+
+/* ── Link input row ──────────────────────────────────────────────────── */
+.tiptap-link-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 2px 2px;
+}
+
+.tiptap-link-input {
+  flex: 1;
+  height: 30px;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 0.82rem;
+  background: var(--color-primary-bg-side);
+  color: var(--color-text);
+  outline: none;
+  min-width: 0;
+}
+
+.tiptap-link-input:focus {
+  border-color: var(--color-primary-accent);
+}
+
+/* ── Insert dropdown ─────────────────────────────────────────────────── */
+.tiptap-insert-wrap {
+  position: relative;
+}
+
+.tiptap-insert-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--color-divider);
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text);
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+
+.tiptap-insert-btn:hover,
+.tiptap-insert-btn.is-open {
+  background: var(--color-surface-hover);
+}
+
+.tiptap-insert-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 170px;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px var(--color-shadow-strong);
+  padding: 4px;
+  z-index: 200;
+}
+
+.tiptap-insert-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.tiptap-insert-item:hover {
+  background: var(--color-surface-hover);
+}
+
+/* ── ProseMirror content ─────────────────────────────────────────────── */
+.tiptap-content {
+  padding: 1.5rem 2rem 3rem;
+  outline: none;
+  min-height: 520px;
+  font-size: 1.05rem;
+  line-height: 1.75;
+  word-break: break-word;
+  caret-color: var(--color-primary-accent);
+  color: var(--color-text);
+  background: var(--color-primary-bg);
+  border-radius: 0 0 12px 12px;
+}
+
+.tiptap-content p {
+  margin: 0 0 0.55rem;
+}
+
+.tiptap-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 1.8rem 0 0.6rem;
+}
+
+.tiptap-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1.4rem 0 0.5rem;
+}
+
+.tiptap-content h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 1.2rem 0 0.4rem;
+}
+
+.tiptap-content h4,
+.tiptap-content h5,
+.tiptap-content h6 {
+  font-weight: 600;
+  margin: 1rem 0 0.3rem;
+}
+
+.tiptap-content ul {
+  list-style: disc;
+  padding-left: 1.6rem;
+  margin: 0.5rem 0;
+}
+
+.tiptap-content ol {
+  list-style: decimal;
+  padding-left: 1.6rem;
+  margin: 0.5rem 0;
+}
+
+.tiptap-content li {
+  margin: 0.25rem 0;
+}
+
+.tiptap-content li>p {
+  margin: 0;
+}
+
+.tiptap-content blockquote {
+  border-left: 3px solid var(--color-primary-accent);
+  padding: 0.4rem 0 0.4rem 1rem;
+  margin: 0.8rem 0;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.tiptap-content code {
+  background: var(--color-primary-bg-side2);
+  padding: 0.12em 0.45em;
+  border-radius: 4px;
+  font-family: ui-monospace, "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.875em;
+  color: var(--color-text);
+}
+
+.tiptap-content pre {
+  background: var(--color-primary-bg-side);
+  border: 1px solid var(--color-divider);
+  border-radius: 8px;
+  padding: 1.25rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+.tiptap-content pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+  white-space: pre;
+}
+
+/* ── Syntax Highlighting (GitHub-inspired) ────────────────────────────── */
+.hljs-comment,
+.hljs-quote {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag {
+  color: #d73a49;
+}
+
+.hljs-string,
+.hljs-doctag,
+.hljs-regexp,
+.hljs-variable.template-variable,
+.hljs-template-variable {
+  color: #032f62;
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-name,
+.hljs-attr,
+.hljs-attribute {
+  color: #6f42c1;
+}
+
+.hljs-variable,
+.hljs-template-variable,
+.hljs-number,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-link {
+  color: #e36209;
+}
+
+.hljs-built_in,
+.hljs-bullet,
+.hljs-formula,
+.hljs-subst {
+  color: #005cc5;
+}
+
+.hljs-section,
+.hljs-selector-id,
+.hljs-title.class_ {
+  color: #6f42c1;
+  font-weight: bold;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
+/* Dark theme overrides */
+[data-theme="dark"] .hljs-comment,
+[data-theme="dark"] .hljs-quote {
+  color: #8b949e;
+}
+
+[data-theme="dark"] .hljs-keyword,
+[data-theme="dark"] .hljs-selector-tag {
+  color: #ff7b72;
+}
+
+[data-theme="dark"] .hljs-string,
+[data-theme="dark"] .hljs-doctag,
+[data-theme="dark"] .hljs-regexp,
+[data-theme="dark"] .hljs-variable.template-variable,
+[data-theme="dark"] .hljs-template-variable {
+  color: #a5d6ff;
+}
+
+[data-theme="dark"] .hljs-title,
+[data-theme="dark"] .hljs-title.function_,
+[data-theme="dark"] .hljs-name,
+[data-theme="dark"] .hljs-attr,
+[data-theme="dark"] .hljs-attribute {
+  color: #d2a8ff;
+}
+
+[data-theme="dark"] .hljs-variable,
+[data-theme="dark"] .hljs-template-variable,
+[data-theme="dark"] .hljs-number,
+[data-theme="dark"] .hljs-literal,
+[data-theme="dark"] .hljs-type,
+[data-theme="dark"] .hljs-params,
+[data-theme="dark"] .hljs-link {
+  color: #ffa657;
+}
+
+[data-theme="dark"] .hljs-built_in,
+[data-theme="dark"] .hljs-bullet,
+[data-theme="dark"] .hljs-formula,
+[data-theme="dark"] .hljs-subst {
+  color: #79c0ff;
+}
+
+[data-theme="dark"] .hljs-section,
+[data-theme="dark"] .hljs-selector-id,
+[data-theme="dark"] .hljs-title.class_ {
+  color: #d2a8ff;
+}
+
+/* ── Math Formulas (KaTeX) ─────────────────────────────────────────── */
+.math {
+  display: block;
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  background: var(--color-primary-bg-side);
+  border-radius: 8px;
+  border: 1px solid var(--color-divider);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  min-height: 3rem;
+  position: relative;
+}
+
+.math:hover {
+  border-color: var(--color-primary-accent);
+  background: var(--color-surface-hover);
+}
+
+.math.math-selected {
+  outline: 2px solid var(--color-primary-accent);
+  border-color: transparent;
+  background: var(--color-surface);
+}
+
+.math-content {
+  font-family: ui-monospace, monospace;
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  display: block;
+  width: 100%;
+}
+
+.math-content-empty::before {
+  content: "Enter LaTeX formula...";
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* Ensure KaTeX rendered output is visible */
+.math .katex-display {
+  margin: 0;
+  padding: 0;
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.tiptap-content img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 0.6rem 0;
+  display: block;
+}
+
+.tiptap-content img.ProseMirror-selectednode {
+  outline: 2px solid var(--color-primary-accent);
+  outline-offset: 2px;
+}
+
+.tiptap-content hr {
+  border: none;
+  border-top: 2px solid var(--color-divider);
+  margin: 1.5rem 0;
+}
+
+.tiptap-content a {
+  color: var(--color-primary-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tiptap-content mark {
+  background-color: rgba(247, 88, 22, 0.2);
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+.tiptap-content sup {
+  font-size: 0.72em;
+  vertical-align: super;
+}
+
+.tiptap-content sub {
+  font-size: 0.72em;
+  vertical-align: sub;
+}
+
+/* ── Placeholder ─────────────────────────────────────────────────────── */
+.tiptap-content p.is-empty:only-child::before {
+  color: var(--color-placeholder-text);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* ── Selection ───────────────────────────────────────────────────────── */
+.tiptap-content ::selection {
+  background: rgba(247, 88, 22, 0.18);
+}
+
+/* ── Legacy compat ───────────────────────────────────────────────────── */
+.tiptap-editor-wrap .ProseMirror {
+  outline: none;
+}
+
+.tiptap-bubble-menu,
+.tiptap-floating-menu {
+  display: none;
+}
+
+/* ── Nostr entity embed ───────────────────────────────────────────────── */
+[data-nostr-entity] {
+  display: block;
+  margin: 1rem 0;
+  cursor: default;
+  user-select: none;
+}
+
+/* When the node is selected in the editor */
+.ProseMirror-selectednode [data-nostr-entity],
+.ProseMirror .nostr-entity-selected {
+  outline: 2px solid var(--color-primary-accent);
+  border-radius: 10px;
+}

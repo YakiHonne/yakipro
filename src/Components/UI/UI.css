@@ -1,0 +1,154 @@
+/* YakiV5 stylized UI components - Refined for exact parity */
+
+:root {
+  --v5-c1: var(--color-primary-accent);
+  --v5-c1-side: var(--color-primary-bg-side);
+  --v5-pale-gray: var(--color-divider);
+  --v5-dim-gray: var(--color-divider);
+  --v5-very-dim-gray: var(--color-primary-bg-side2);
+  --v5-border-radius: var(--radius-md);
+  --v5-height: 40px;
+  --v5-padding: 0 var(--space-md);
+}
+
+/* Color Utilities */
+.orange-c {
+  color: var(--v5-c1) !important;
+}
+
+.gray-c {
+  color: #909090 !important;
+}
+
+.white-c {
+  color: #ffffff !important;
+}
+
+/* Base Button */
+.btn {
+  font-family: inherit;
+  font-size: 1rem;
+  padding: var(--v5-padding);
+  height: var(--v5-height);
+  border-radius: var(--v5-border-radius);
+  cursor: pointer;
+  transition: 0.2s ease-in;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.btn::first-letter {
+  text-transform: capitalize;
+}
+
+.btn:disabled {
+  background-color: var(--v5-dim-gray) !important;
+  color: #909090 !important;
+  cursor: not-allowed;
+  border: none !important;
+}
+
+.btn-s {
+  font-size: 0.75rem;
+  padding: 0 16px;
+  height: 28px;
+  border-radius: var(--v5-border-radius);
+}
+
+.btn-normal {
+  background-color: var(--v5-c1);
+  color: white;
+}
+
+.btn-red {
+  background-color: var(--color-red-main);
+  color: white;
+}
+
+.btn-normal:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.btn-gst {
+  background-color: transparent;
+  border: 1px solid var(--v5-c1);
+  color: var(--v5-c1);
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.btn-gst:hover:not(:disabled) {
+  background-color: var(--v5-c1);
+  color: white;
+}
+
+.btn-gray {
+  background-color: var(--v5-dim-gray);
+  color: var(--color-primary-text);
+}
+
+.btn-gray:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+/* Input Fields */
+.if {
+  font-family: inherit;
+  font-size: 1rem;
+  padding: var(--v5-padding);
+  height: var(--v5-height);
+  border-radius: var(--v5-border-radius);
+  background: transparent;
+  border: 1px solid var(--color-divider);
+  color: var(--color-primary-text);
+  width: 100%;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.if:focus {
+  outline: 2px solid var(--color-primary-text);
+  border-color: transparent;
+}
+
+/* Container Style from YakiV5 */
+.sc-s-18 {
+  overflow: hidden;
+  border-radius: var(--v5-border-radius);
+  border: 1px solid var(--v5-pale-gray);
+  background-color: var(--color-primary-bg);
+}
+
+/* Search Field */
+.search-if {
+  width: 300px;
+  border: 1px solid var(--v5-pale-gray);
+  border-radius: var(--v5-border-radius);
+  height: var(--v5-height);
+  display: flex;
+  align-items: center;
+  padding: var(--v5-padding);
+}
+
+/* Options item */
+.options-item {
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 8px;
+  border-radius: 8px;
+  transition: background-color 0.1s ease-in;
+}
+
+.options-item:hover {
+  background-color: var(--v5-very-dim-gray);
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "code-review-graph": {
+      "command": "/Users/moos/Library/Python/3.11/bin/code-review-graph",
+      "args": ["serve", "--repo", "/Users/moos/Workspace/YakiPro"]
+    }
+  }
+}
