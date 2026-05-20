@@ -70,6 +70,17 @@
   color: white;
 }
 
+.btn-red-gst {
+  background-color: transparent;
+  border: 1px solid var(--color-red-main);
+  color: var(--color-red-main);
+}
+
+.btn-red-gst:hover:not(:disabled) {
+  background-color: var(--color-red-main);
+  color: white;
+}
+
 .btn-normal:hover:not(:disabled) {
   opacity: 0.8;
 }

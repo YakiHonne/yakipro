@@ -1,0 +1,293 @@
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { askArticleAI } from "@/Endpoionts/ArticleAI";
+import Button from "@/Components/UI/Button";
+import aiChatDb from "@/lib/aiChatDb";
+
+let msgIdCounter = 0;
+const nextId = () => ++msgIdCounter;
+
+const SESSION_ID = "article-editor";
+
+// ─── Persist helpers ──────────────────────────────────────────────────────────
+
+async function loadSession() {
+  try {
+    const row = await aiChatDb.sessions.get(SESSION_ID);
+    return row?.messages ?? [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveSession(messages) {
+  try {
+    await aiChatDb.sessions.put({
+      sessionId: SESSION_ID,
+      messages,
+      updatedAt: Date.now(),
+    });
+  } catch {}
+}
+
+async function clearSession() {
+  try {
+    await aiChatDb.sessions.delete(SESSION_ID);
+  } catch {}
+}
+
+// ─── Message bubble components ────────────────────────────────────────────────
+
+function UserBubble({ text }) {
+  return (
+    <div className="ai-msg-user">
+      <span>{text}</span>
+    </div>
+  );
+}
+
+function AISkeleton() {
+  return (
+    <div className="ai-msg-ai">
+      <div className="ai-skeleton" />
+      <div className="ai-skeleton" style={{ width: "70%", marginTop: 6 }} />
+    </div>
+  );
+}
+
+function AIBubble({ msg }) {
+  return (
+    <div className="ai-msg-ai">
+      <div className="ai-msg-ai-header">
+        <span className="ai-spark">✦</span>
+        <span className="ai-msg-ai-text">{msg.text}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main panel ───────────────────────────────────────────────────────────────
+
+export default function ArticleAIPanel({
+  isOpen,
+  onClose,
+  getMarkdown,
+  onDiffReady,
+  isAILoading,
+  setIsAILoading,
+  prefillMessage,
+}) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [sessionLoaded, setSessionLoaded] = useState(false);
+  const bottomRef = useRef(null);
+  const textareaRef = useRef(null);
+  const closeTimerRef = useRef(null);
+  const prefillTimerRef = useRef(null);
+  const sendRef = useRef(null);
+
+  // Load persisted session on mount
+  useEffect(() => {
+    loadSession().then((saved) => {
+      if (saved.length > 0) {
+        // Restore counter so new IDs don't collide with saved ones
+        const maxId = saved.reduce((m, msg) => Math.max(m, msg.id ?? 0), 0);
+        if (maxId >= msgIdCounter) msgIdCounter = maxId + 1;
+        setMessages(saved);
+      }
+      setSessionLoaded(true);
+    });
+    return () => {
+      clearTimeout(closeTimerRef.current);
+      clearTimeout(prefillTimerRef.current);
+    };
+  }, []);
+
+  // Persist whenever messages change (skip until initial load is done)
+  useEffect(() => {
+    if (!sessionLoaded) return;
+    saveSession(messages);
+  }, [messages, sessionLoaded]);
+
+  // Auto-submit prefill when panel opens with a prefill message
+  useEffect(() => {
+    if (!isOpen || !prefillMessage) return;
+    setInput(prefillMessage);
+    clearTimeout(prefillTimerRef.current);
+    prefillTimerRef.current = setTimeout(() => {
+      // handleSend reads `input` via closure — set directly and trigger via ref
+      setInput((current) => {
+        if (current.trim()) {
+          // Trigger send on next tick so state is committed
+          setTimeout(() => {
+            // Call handleSend indirectly by dispatching a synthetic submit
+            sendRef.current?.();
+          }, 0);
+        }
+        return current;
+      });
+    }, 300);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, prefillMessage]);
+
+  // Scroll to bottom whenever messages change or loading state changes
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isAILoading]);
+
+  // Auto-grow textarea
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight, 104) + "px";
+  }, [input]);
+
+  const handleSend = useCallback(async () => {
+    const text = input.trim();
+    if (!text || isAILoading) return;
+
+    const userMsg = { id: nextId(), role: "user", text };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setIsAILoading(true);
+
+    try {
+      const article = getMarkdown();
+      const { explanation, content } = await askArticleAI(text, article);
+
+      const aiMsg = { id: nextId(), role: "ai", text: explanation };
+      setMessages((prev) => [...prev, aiMsg]);
+
+      if (content) {
+        closeTimerRef.current = setTimeout(() => {
+          onClose();
+          onDiffReady(content);
+        }, 700);
+      }
+    } catch (err) {
+      const aiMsg = {
+        id: nextId(),
+        role: "ai",
+        text: err.message || "Something went wrong. Please try again.",
+      };
+      setMessages((prev) => [...prev, aiMsg]);
+    } finally {
+      setIsAILoading(false);
+    }
+  }, [input, isAILoading, getMarkdown, onClose, onDiffReady, setIsAILoading]);
+
+  // Keep ref current so the prefill timer can call it
+  sendRef.current = handleSend;
+
+  const handleClear = useCallback(() => {
+    setMessages([]);
+    clearSession();
+  }, []);
+
+  const handleKeyDown = (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="ai-panel-backdrop"
+        style={{
+          opacity: isOpen ? 1 : 0,
+          pointerEvents: isOpen ? "all" : "none",
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+      >
+        {/* Slide-in panel */}
+        <div
+          className="ai-panel"
+          style={{ transform: isOpen ? "translateY(0)" : "translateY(100%)" }}
+          aria-hidden={!isOpen}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div
+            className="close pos-absolute pos-right-16 pos-top-16"
+            onClick={onClose}
+          >
+            <div></div>
+          </div>
+
+          {/* Header */}
+          <div className="fit-container fx-centered box-pad-v-s">
+            <h3>Ask YakiAI</h3>
+          </div>
+
+          {/* Messages */}
+          <div className="ai-panel-messages">
+            {messages.length === 0 && !isAILoading && (
+              <div className="ai-empty-state">
+                <span className="ai-spark" style={{ fontSize: "1.5rem" }}>
+                  ✦
+                </span>
+                <p>
+                  Ask me to improve your article, rewrite a section, add an
+                  introduction, adjust tone, or anything else.
+                </p>
+              </div>
+            )}
+
+            {messages.map((msg) =>
+              msg.role === "user" ? (
+                <UserBubble key={msg.id} text={msg.text} />
+              ) : (
+                <AIBubble key={msg.id} msg={msg} />
+              ),
+            )}
+
+            {isAILoading && <AISkeleton />}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input area */}
+          <div className="ai-panel-input-area">
+            <textarea
+              ref={textareaRef}
+              className="ai-textarea no-scrollbar"
+              placeholder="Ask anything… (⌘↵ to send)"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isAILoading}
+              rows={1}
+            />
+            <button
+              className="ai-send-btn"
+              onClick={handleSend}
+              disabled={isAILoading || !input.trim()}
+              aria-label="Send"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M2 21l21-9L2 3v7l15 2-15 2z" />
+              </svg>
+            </button>
+            <Button
+              label=""
+              type="gray"
+              size="m"
+              leftIcon="trash"
+              disabled={messages.length === 0 || isAILoading}
+              onClick={handleClear}
+            />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

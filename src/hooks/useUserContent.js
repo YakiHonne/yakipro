@@ -53,7 +53,6 @@ export default function useUserContent(selectedTab) {
     try {
       const { data } = await getSubData({ filter, timeout: 100 });
 
-      console.log(filter);
       if (!data || data.length === 0) {
         setHasMore(false);
         return;

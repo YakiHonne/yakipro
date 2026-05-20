@@ -3,10 +3,28 @@ import { useDispatch, useSelector } from "react-redux";
 import { clearToast } from "@/Store/Slices/Extras";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
+import Icon from "@/Components/Icon";
 
 function ToastContent({ toast, styles }) {
   return (
     <div className="fx-centered fx-gap-h-l">
+      {toast.icon && (
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            background: styles.bg,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+          className="fx-centered"
+        >
+          <Icon name={toast.icon} size={18} isColored={false} />
+        </div>
+      )}
       <p style={{ color: "var(--color-primary-text)" }}>{toast.desc}</p>
     </div>
   );

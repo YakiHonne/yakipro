@@ -5,9 +5,10 @@ import { InitEvent } from "@/Helpers/Encryptions";
 import { setToast } from "@/Store/Slices/Extras";
 import { getRelayMetadata } from "@/Cache/relayMetadataCache";
 
-// In-memory cache for Gateway Access and Follow Lists
+// In-memory cache for Gateway Access, Follow Lists, and Direct Subscribers
 let gatewayAccessCache = {};
 let gatewayFollowListCache = {};
+let gatewayDirectSubscribersCache = {};
 
 /**
  * useGatewayAccess - Hook to manage gateway-specific access and follow lists.
@@ -18,11 +19,12 @@ export default function useGatewayAccess(gatewayPubkey) {
   const userKeys = useSelector((state) => state.userKeys);
   const [accessEvent, setAccessEvent] = useState(null);
   const [followList, setFollowList] = useState(null);
+  const [directSubscribers, setDirectSubscribers] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const aTagValue =
     gatewayPubkey && userKeys?.pub
-      ? `3000:${gatewayPubkey}:${userKeys.pub}`
+      ? `30000:${gatewayPubkey}:${userKeys.pub}`
       : null;
 
   const userRelays = useSelector((state) => state.userRelays);
@@ -81,6 +83,9 @@ export default function useGatewayAccess(gatewayPubkey) {
     const cacheKey = `${gatewayPubkey}:${userKeys.pub}`;
     if (gatewayFollowListCache[cacheKey]) {
       setFollowList(gatewayFollowListCache[cacheKey]);
+      if (gatewayDirectSubscribersCache[cacheKey]) {
+        setDirectSubscribers(gatewayDirectSubscribersCache[cacheKey]);
+      }
       return;
     }
 
@@ -98,18 +103,33 @@ export default function useGatewayAccess(gatewayPubkey) {
             authors: [gatewayPubkey],
             "#d": [userKeys.pub],
           },
+          {
+            kinds: [1163],
+            authors: [userKeys.pub],
+          },
         ],
         relayUrls: premiumRelays,
+        cacheUsage: "ONLY_RELAY",
       });
 
       if (res.data.length > 0) {
-        const event = res.data[0];
+        const event = res.data.find((_) => _.kind === 30000);
+        const eventSub = res.data.filter((_) => _.kind === 1163);
         const pTags = event.tags
           .filter((tag) => tag[0] === "p")
           .map((tag) => tag[1]);
-        saveUsers(pTags);
+        const pTagsSub = eventSub
+          .map((e) =>
+            e.tags
+              .filter((tag) => tag[0] === "p")
+              .map((tag) => ({ id: e.id, pubkey: tag[1] })),
+          )
+          .flat();
+        saveUsers([...new Set([...pTags, ...pTagsSub.map((s) => s.pubkey)])]);
         setFollowList(pTags);
+        setDirectSubscribers(pTagsSub);
         gatewayFollowListCache[cacheKey] = pTags;
+        gatewayDirectSubscribersCache[cacheKey] = pTagsSub;
       }
     } catch (err) {
       console.error("[useGatewayAccess] Error fetching follow list:", err);
@@ -180,10 +200,108 @@ export default function useGatewayAccess(gatewayPubkey) {
     fetchGatewayFollowList,
   ]);
 
+  /**
+   * Removes a subscriber from the directSubscribers list and updates the cache.
+   * Publishes a deletion event to revoke relay access for that pubkey.
+   */
+  const removeDirectSubscriber = useCallback(
+    async (id) => {
+      if (!gatewayPubkey || !userKeys?.pub) return;
+
+      const cacheKey = `${gatewayPubkey}:${userKeys.pub}`;
+      const updated = (directSubscribers || []).filter((s) => s.id !== id);
+
+      try {
+        const premiumRelays = getPremiumRelays();
+        if (premiumRelays.length === 0) return;
+
+        const eventContent = {
+          kind: 5,
+          content: "",
+          tags: [["e", id]],
+        };
+
+        const signedEvent = await InitEvent(eventContent);
+        if (!signedEvent) return;
+
+        let status = await publishEvent(signedEvent, premiumRelays);
+        if (status) {
+          setDirectSubscribers(updated);
+          gatewayDirectSubscribersCache[cacheKey] = updated;
+          dispatch(setToast({ type: 1, desc: "Subscriber removed" }));
+        } else {
+          dispatch(setToast({ type: 2, desc: "Failed to remove subscriber" }));
+        }
+      } catch (err) {
+        console.error("[useGatewayAccess] Error removing subscriber:", err);
+        // Rollback optimistic update on failure
+        setDirectSubscribers(directSubscribers);
+        gatewayDirectSubscribersCache[cacheKey] = directSubscribers;
+        dispatch(setToast({ type: 2, desc: "Failed to remove subscriber" }));
+      }
+    },
+    [
+      gatewayPubkey,
+      userKeys?.pub,
+      directSubscribers,
+      getPremiumRelays,
+      dispatch,
+    ],
+  );
+
+  /**
+   * Adds a subscriber by pubkey, publishes a Kind 1163 event for them,
+   * and immediately prepends them to the directSubscribers list.
+   */
+  const addDirectSubscriber = useCallback(
+    async (subscriberPubkey) => {
+      if (!gatewayPubkey || !userKeys?.pub) return null;
+
+      const cacheKey = `${gatewayPubkey}:${userKeys.pub}`;
+      const premiumRelays = getPremiumRelays();
+      if (premiumRelays.length === 0) {
+        dispatch(setToast({ type: 2, desc: "No premium relays available" }));
+        return null;
+      }
+
+      const eventContent = {
+        kind: 1163,
+        content: "",
+        tags: [["p", subscriberPubkey]],
+      };
+
+      const signedEvent = await InitEvent(eventContent);
+      if (!signedEvent) return null;
+
+      const success = await publishEvent(signedEvent, premiumRelays);
+      if (!success) {
+        dispatch(setToast({ type: 2, desc: "Failed to add subscriber" }));
+        return null;
+      }
+
+      const newEntry = { id: signedEvent.id, pubkey: subscriberPubkey };
+      const updated = [newEntry, ...(directSubscribers || [])];
+      setDirectSubscribers(updated);
+      gatewayDirectSubscribersCache[cacheKey] = updated;
+      dispatch(setToast({ type: 1, desc: "Subscriber added" }));
+      return newEntry;
+    },
+    [
+      gatewayPubkey,
+      userKeys?.pub,
+      directSubscribers,
+      getPremiumRelays,
+      dispatch,
+    ],
+  );
+
   return {
     accessEvent,
     followList,
+    directSubscribers,
     isLoading,
     publishGatewayAccess,
+    removeDirectSubscriber,
+    addDirectSubscriber,
   };
 }

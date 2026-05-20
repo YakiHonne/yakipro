@@ -35,7 +35,7 @@ export function SelectTabs({
 
   return (
     <div
-      className="fx-scattered border-all round-corner-m box-pad-v-s"
+      className="fx-scattered border-all round-corner-m box-pad-v-s bg-divider-v2-c"
       style={{
         gap: 0,
         position: "relative",
@@ -56,27 +56,29 @@ export function SelectTabs({
           {button.display_name}
         </div>
       ))}
-      <div
-        ref={sliderRef}
-        className="button-slider fit-height"
-        style={{
-          position: "absolute",
-          left: 0,
-          bottom: 0,
-          zIndex: 0,
-          transition: ".2s ease-in-out",
-          padding: small ? ".2rem 0" : ".45rem 0",
-        }}
-      >
+      {selectedTab !== -1 && (
         <div
-          className="fit-container fit-height sc-s-18"
+          ref={sliderRef}
+          className="button-slider fit-height"
           style={{
-            backgroundColor: "var(--color-divider)",
-            border: "none",
-            boxShadow: "0px 2px 5px rgba(0,0,0,.3)",
+            position: "absolute",
+            left: 0,
+            bottom: 0,
+            zIndex: 0,
+            transition: ".2s ease-in-out",
+            padding: small ? ".2rem 0" : ".45rem 0",
           }}
-        ></div>
-      </div>
+        >
+          <div
+            className="fit-container fit-height sc-s-18"
+            style={{
+              backgroundColor: "var(--color-divider)",
+              border: "none",
+              boxShadow: "0px 2px 5px rgba(0,0,0,.3)",
+            }}
+          ></div>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,7 +7,14 @@ import NoteCard from "./NoteCard";
 
 export default function Content() {
   const [selectedTab, setSelectedTab] = useState(0);
-  const { events, loading, hasMore, sentinelRef } = useUserContent(selectedTab);
+  const { events, loading, hasMore, sentinelRef, refresh } = useUserContent(selectedTab);
+  const [deletedIds, setDeletedIds] = useState(new Set());
+
+  const handleDelete = (id) => {
+    setDeletedIds((prev) => new Set([...prev, id]));
+  };
+
+  const visible = events.filter((e) => !deletedIds.has(e.id));
 
   return (
     <div
@@ -24,27 +31,23 @@ export default function Content() {
       />
 
       <div className="fit-container fx-col fx-start-v" style={{ gap: "12px" }}>
-        {events.length === 0 && !loading && (
-          <p
-            className="p-secondary-c"
-            style={{ textAlign: "center", padding: "32px 0" }}
-          >
+        {visible.length === 0 && !loading && (
+          <p className="p-secondary-c" style={{ textAlign: "center", padding: "32px 0" }}>
             No {selectedTab === 0 ? "notes" : "articles"} found.
           </p>
         )}
 
-        {events.map((event) =>
+        {visible.map((event) =>
           selectedTab === 0 ? (
-            <NoteCard key={event.id} event={event} />
+            <NoteCard key={event.id} event={event} onDelete={handleDelete} />
           ) : (
-            <ArticleCard key={event.id} event={event} />
+            <ArticleCard key={event.id} event={event} onDelete={handleDelete} />
           ),
         )}
 
-        {/* infinite scroll sentinel */}
         <div ref={sentinelRef} className="fx-centered box-pad-v fit-container">
           {loading && <Spinner />}
-          {!loading && !hasMore && events.length > 0 && (
+          {!loading && !hasMore && visible.length > 0 && (
             <span className="p-secondary-c" style={{ fontSize: "0.85rem" }}>
               All content loaded
             </span>

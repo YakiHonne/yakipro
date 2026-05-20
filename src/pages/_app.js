@@ -1,4 +1,6 @@
 import "@/styles/themes.css";
+import "@/PagesComponents/Landing/landing.css";
+import "@/PagesComponents/Login/login.css";
 import "@/styles/globals.css";
 import "@/styles/animation.css";
 import "@/styles/breakpoints.css";
@@ -19,7 +21,7 @@ import ReduxProvider from "@/Store/ReduxProvider";
 import Publishing from "@/Components/Publishing";
 import ToastMessages from "@/Components/ToastMessages";
 
-const NO_LAYOUT_PAGES = new Set(["/login", "/404"]);
+const NO_LAYOUT_PAGES = new Set(["/login", "/404", "/", "/pricing"]);
 
 function App({ Component, pageProps }) {
   const router = useRouter();

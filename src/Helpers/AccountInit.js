@@ -18,11 +18,13 @@ import {
   logout as apiLogout,
   checkUserConnected,
 } from "@/Endpoionts/Auth";
-import { setIsConnected } from "@/Store/Slices/User";
+import { setIsConnected, setLoadingConnectedUser, setNostrUser } from "@/Store/Slices/User";
 import {
   clearUserRelaysCache,
   setUserRelaysCache,
 } from "@/Cache/userRelaysCache";
+import { setSubscriptionStatus, clearSubscriptionStatus } from "@/Store/Slices/Subscription";
+import { getSubscriptionStatus } from "@/Endpoionts/subscription";
 
 const ACCOUNTS_KEY = "yaki-accounts";
 const AUTH_KEY = "_nostruserkeys";
@@ -157,10 +159,16 @@ const fetchBlossomServers = (pubkey) => {
 export const initAppAccount = async () => {
   try {
     const authRaw = localStorage.getItem(AUTH_KEY);
-    if (!authRaw) return;
+    if (!authRaw) {
+      store.dispatch(setLoadingConnectedUser(false));
+      return;
+    }
 
     const keys = JSON.parse(authRaw);
-    if (!keys || !keys.pub) return;
+    if (!keys || !keys.pub) {
+      store.dispatch(setLoadingConnectedUser(false));
+      return;
+    }
 
     // Apply signer to NDK
     await applySignerToNDK(keys);
@@ -177,28 +185,39 @@ export const initAppAccount = async () => {
     // Fetch blossom servers (kind 10063)
     fetchBlossomServers(keys.pub);
 
-    // Backend connection check
-    checkUserConnected()
-      .then((res) => {
-        if (res) {
+    // Backend connection check — resolve loading once we know connection status
+    try {
+      const res = await checkUserConnected();
+      if (res && res !== false) {
+        store.dispatch(setNostrUser(res));
+        store.dispatch(setIsConnected(true));
+      } else {
+        const loginRes = await apiLogin({ publicKey: keys.pub, userKeys: keys });
+        if (loginRes && loginRes !== false) {
+          store.dispatch(setNostrUser(loginRes));
           store.dispatch(setIsConnected(true));
-        } else {
-          apiLogin({ publicKey: keys.pub, userKeys: keys }).then((loginRes) => {
-            if (loginRes && loginRes.success) {
-              store.dispatch(setIsConnected(true));
-            }
-          });
         }
-      })
-      .catch((err) => {
-        apiLogin({ publicKey: keys.pub, userKeys: keys }).then((loginRes) => {
-          if (loginRes && loginRes.success) {
-            store.dispatch(setIsConnected(true));
-          }
-        });
-      });
+      }
+    } catch {
+      try {
+        const loginRes = await apiLogin({ publicKey: keys.pub, userKeys: keys });
+        if (loginRes && loginRes !== false) {
+          store.dispatch(setNostrUser(loginRes));
+          store.dispatch(setIsConnected(true));
+        }
+      } catch (err) {
+        console.error("[AccountInit] backend login error:", err);
+      }
+    } finally {
+      store.dispatch(setLoadingConnectedUser(false));
+      // Fetch subscription status after login — fail-open (don't block the user)
+      getSubscriptionStatus()
+        .then((data) => store.dispatch(setSubscriptionStatus(data)))
+        .catch(() => store.dispatch(setSubscriptionStatus(null)));
+    }
   } catch (err) {
     console.error("[AccountInit] initAppAccount error:", err);
+    store.dispatch(setLoadingConnectedUser(false));
   }
 };
 
@@ -214,6 +233,7 @@ export const logoutUser = () => {
     store.dispatch(setUserRelays([]));
     store.dispatch(setUserBlossomServers([]));
     store.dispatch(setIsConnected(false));
+    store.dispatch(clearSubscriptionStatus());
     clearUserRelaysCache();
     apiLogout();
     ndkInstance.signer = undefined;

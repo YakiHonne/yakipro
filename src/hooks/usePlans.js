@@ -57,8 +57,9 @@ export default function usePlans() {
         ],
       }),
     ]);
-    let f = apiPlans.find((_) => _.provider === "stripe-fiat");
-    let c = apiPlans.find((_) => _.provider === "stripe-crypto");
+    const plansList = Array.isArray(apiPlans) ? apiPlans : [];
+    let f = plansList.find((_) => _.provider === "stripe-fiat");
+    let c = plansList.find((_) => _.provider === "stripe-crypto");
     let tags = nostrPlans.data.length > 0 ? nostrPlans.data[0].tags : [];
     let l = extractLightningPlans(tags);
 

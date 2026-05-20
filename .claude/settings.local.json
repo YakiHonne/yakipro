@@ -1,5 +1,17 @@
 {
   "permissions": {
-    "allow": ["Bash(pnpm next *)", "Bash(pnpm add *)"]
+    "allow": [
+      "Bash(pnpm next *)",
+      "Bash(pnpm add *)",
+      "Bash(npm install *)",
+      "Bash(npx next *)",
+      "WebFetch(domain:github.com)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3000/login)",
+      "Bash(curl -s http://localhost:3700/login)"
+    ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-code-plugins": true
   }
 }

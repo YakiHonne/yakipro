@@ -19,6 +19,14 @@ import NostrEntityExtension from "@/Extensions/NostrEntityExtension";
 import { useSelector } from "react-redux";
 import { FileUpload } from "@/Helpers/FileUpload";
 import ArticlePublishModalV2 from "./ArticlePublishModalV2";
+import ArticleAIPanel from "./ArticleAIPanel";
+import AIDiffViewer from "./AIDiffViewer";
+import SecondReaderPanel from "./SecondReaderPanel";
+import { AIDiffExtension } from "@/Extensions/AIDiffExtension";
+import useLastEditedParagraph from "@/hooks/useLastEditedParagraph";
+import Button from "@/Components/UI/Button";
+import { SelectTabs } from "@/Components/SelectTabs";
+import PremiumFeatureGate from "@/Components/PremiumFeatureGate";
 
 // ─── Draft helpers (per-user key) ────────────────────────────────────
 const draftKey = (pub) => `yp-article-draft-v2-${pub || "anon"}`;
@@ -708,18 +716,38 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
 const lowlight = createLowlight(all);
 
 // ─── Main component ───────────────────────────────────────────────────
-export default function ArticleEditorV2() {
+export default function ArticleEditorV2({ editEvent = null }) {
   const userKeys = useSelector((state) => state.userKeys);
+  const subscription = useSelector((state) => state.subscription);
+  const isPremiumPlan = subscription?.status?.plan === "premium" && subscription?.status?.active;
   const pub = userKeys?.pub ?? "anon";
 
-  // Capture initial draft once (stable across re-renders)
+  // In edit mode, skip local draft entirely
   const initialDraft = useRef(null);
-  if (initialDraft.current === null) initialDraft.current = getDraft(pub);
+  if (initialDraft.current === null)
+    initialDraft.current = editEvent ? {} : getDraft(pub);
   const draft = initialDraft.current;
+
+  // Pre-populate metadata from the event being edited
+  const editMeta = editEvent
+    ? {
+        title: editEvent.tags?.find((t) => t[0] === "title")?.[1] ?? "",
+        summary: editEvent.tags?.find((t) => t[0] === "summary")?.[1] ?? "",
+        image: editEvent.tags?.find((t) => t[0] === "image")?.[1] ?? "",
+        identifier: editEvent.tags?.find((t) => t[0] === "d")?.[1] ?? "",
+        publishedAt: editEvent.created_at,
+      }
+    : null;
 
   const [imetas, setImetas] = useState([]);
   const [showPublishModal, setShowPublishModal] = useState(false);
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [showSecondReader, setShowSecondReader] = useState(false);
+  const [showAIGate, setShowAIGate] = useState(false);
+  const [aiChatPrefill, setAiChatPrefill] = useState("");
+  const [diffHunks, setDiffHunks] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isAILoading, setIsAILoading] = useState(false);
   // "idle" | "saving" | "saved"
   const [saveStatus, setSaveStatus] = useState("idle");
   // Show restore banner when a non-empty draft was found on mount
@@ -728,6 +756,7 @@ export default function ArticleEditorV2() {
   );
   const saveTimer = useRef(null);
   const savedTimer = useRef(null);
+  const srSuppressInvalidationRef = useRef(false);
 
   // Debounced persist — waits 1 s after last change before writing
   const scheduleSave = useCallback(
@@ -771,31 +800,48 @@ export default function ArticleEditorV2() {
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Superscript,
       Subscript,
+      AIDiffExtension.configure({
+        onDiffStart: (hunks) =>
+          setDiffHunks(hunks.map((h) => ({ ...h, status: null }))),
+        onHunkUpdate: (hunks) => setDiffHunks([...hunks]),
+        onDiffEnd: (finalMarkdown) => {
+          setDiffHunks(null);
+          // Suppress Second Reader invalidation — the diff was user-approved,
+          // not a fresh edit that would make existing reactions stale.
+          srSuppressInvalidationRef.current = true;
+          setTimeout(() => editor?.commands.setContent(finalMarkdown), 0);
+        },
+      }),
     ],
     editorProps: { attributes: { class: "tiptap-content" } },
     content: "",
   });
 
-  // Restore draft content into editor once it's ready
+  // Load existing article in edit mode, otherwise restore from draft.
+  // Deferred to avoid flushSync-inside-render errors from Tiptap.
   useEffect(() => {
-    if (!editor || !draft.content) return;
-    editor.commands.setContent(draft.content);
-  }, [editor]);
+    if (!editor) return;
+    const content = editEvent ? (editEvent.content || "") : (draft.content || "");
+    if (!content) return;
+    setTimeout(() => {
+      editor.commands.setContent(content);
+    }, 0);
+  }, [editor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-dismiss restore banner after 4 s
   useEffect(() => {
     if (!showRestored) return;
-    const t = setTimeout(() => setShowRestored(false), 4000);
+    const t = setTimeout(() => setShowRestored(false), 700);
     return () => clearTimeout(t);
   }, [showRestored]);
 
-  // Debounced save on editor content change
+  // Debounced save on editor content change (disabled in edit mode)
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || editEvent) return;
     const fn = () => scheduleSave("", editor.storage.markdown.getMarkdown());
     editor.on("update", fn);
     return () => editor.off("update", fn);
-  }, [editor, scheduleSave]);
+  }, [editor, scheduleSave, editEvent]);
 
   // Cleanup timers on unmount
   useEffect(
@@ -845,7 +891,59 @@ export default function ArticleEditorV2() {
   }, [uploadImage]);
 
   const getMarkdown = () => editor?.storage.markdown.getMarkdown() ?? "";
-  const canPublish = !!getMarkdown().trim();
+  const [hasContent, setHasContent] = useState(!!(draft.content || editEvent?.content));
+  useEffect(() => {
+    if (!editor) return;
+    const fn = () => setHasContent(!!editor.storage.markdown.getMarkdown().trim());
+    editor.on("update", fn);
+    return () => editor.off("update", fn);
+  }, [editor]);
+  const canPublish = hasContent;
+
+  const lastEditedParagraph = useLastEditedParagraph(editor, 9000);
+
+  const getParagraphs = useCallback(() => {
+    if (!editor) return [];
+    const paragraphs = [];
+    editor.state.doc.forEach((node) => {
+      paragraphs.push(node.textContent);
+    });
+    return paragraphs;
+  }, [editor]);
+
+  const handleParagraphFocus = useCallback(
+    (index) => {
+      if (!editor) return;
+      let pos = 0;
+      editor.state.doc.forEach((node, offset, i) => {
+        if (i === index) pos = offset;
+      });
+      editor
+        .chain()
+        .focus()
+        .setTextSelection(pos + 1)
+        .run();
+      editor.view.dom.children[index]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    },
+    [editor],
+  );
+
+  const handleOpenAIChat = useCallback((prefillMessage) => {
+    setAiChatPrefill(prefillMessage);
+    setShowAIPanel(true);
+    setShowSecondReader(false);
+  }, []);
+
+  const handleDiffReady = useCallback(
+    (proposedContent) => {
+      const originalMarkdown = getMarkdown();
+      editor?.commands.startDiff(proposedContent, originalMarkdown);
+    },
+    [editor, getMarkdown],
+  );
 
   const handleClear = () => {
     editor?.commands.setContent("");
@@ -859,91 +957,99 @@ export default function ArticleEditorV2() {
     <>
       {showPublishModal && (
         <ArticlePublishModalV2
-          exit={() => {
-            setShowPublishModal(false);
-            clearDraft(pub);
-            editor?.commands.setContent("");
-            setImetas([]);
-            setSaveStatus("idle");
-          }}
-          initialTitle={draft.title || ""}
+          exit={() => setShowPublishModal(false)}
+          initialTitle={editMeta?.title || draft.title || ""}
+          initialSummary={editMeta?.summary || ""}
+          initialCoverUrl={editMeta?.image || ""}
           postContent={getMarkdown()}
           imetas={imetas}
+          editId={editMeta?.identifier || ""}
+          editPublishedAt={editMeta?.publishedAt}
         />
       )}
 
       <div className="fit-container fx-col" style={{ gap: "1rem" }}>
         {/* Draft restored banner */}
-        {showRestored && (
-          <div
-            className="fit-container fx-scattered fx-centered slide-right"
-            style={{
-              padding: "8px 14px",
-              borderRadius: "8px",
-              border: "1px solid var(--color-surface-border)",
-
-              fontSize: "0.82rem",
-              gap: "8px",
-            }}
-          >
-            <span style={{ color: "var(--color-text-secondary)" }}>
-              ✦ Draft restored from your last session
-            </span>
-
-            <button
-              style={{
-                border: "none",
-                background: "transparent",
-                cursor: "pointer",
-                color: "var(--color-text-muted)",
-                fontSize: "1rem",
-                lineHeight: 1,
-                padding: "0 2px",
-              }}
-              onClick={() => setShowRestored(false)}
-            >
-              ×
-            </button>
-          </div>
-        )}
 
         {/* Top bar */}
         <div
           className="fit-container fx-scattered fx-wrap"
           style={{ gap: "8px" }}
         >
-          <div className="fx-centered" style={{ gap: "10px" }}>
-            {getMarkdown() && (
-              <button className="btn btn-gst btn-small" onClick={handleClear}>
-                Clear
-              </button>
-            )}
-            {/* Save status indicator */}
-            {saveStatus === "saving" && (
-              <span
-                style={{
-                  fontSize: "0.78rem",
-                  color: "var(--color-text-muted)",
-                }}
-              >
-                Saving…
-              </span>
-            )}
-            {saveStatus === "saved" && (
-              <span
-                style={{ fontSize: "0.78rem", color: "var(--color-success)" }}
-              >
-                ✓ Saved
-              </span>
-            )}
+          <SelectTabs
+            selectedTab={showSecondReader ? 0 : showAIPanel ? 1 : -1}
+            tabs={["✦ Second Reader", "✦ Ask AI"]}
+            setSelectedTab={(value) => {
+              if (!isPremiumPlan) {
+                setShowAIGate(true);
+                return;
+              }
+              if (value === 0 && !showSecondReader) {
+                setShowSecondReader(true);
+                setShowAIPanel(false);
+              } else if (value === 0 && showSecondReader) {
+                setShowSecondReader(false);
+              } else if (value === 1 && !showAIPanel) {
+                setShowAIPanel(true);
+                setShowSecondReader(false);
+              } else if (value === 1 && showAIPanel) {
+                setShowAIPanel(false);
+              }
+            }}
+          />
+
+          <div className="fx-centered" style={{ gap: "8px" }}>
+            <div className="fx-centered" style={{ gap: "10px" }}>
+              {showRestored && (
+                <Button
+                  type="secondary"
+                  label="Restoring session"
+                  loading={true}
+                  onClick={() => setShowRestored(false)}
+                />
+              )}
+
+              {getMarkdown() && (
+                <>
+                  <Button
+                    rightIcon={"trash"}
+                    size="m"
+                    type="gray"
+                    loading={saveStatus === "saving"}
+                    onClick={handleClear}
+                  />
+                  {/* <p className="p-secondary-c">|</p> */}
+                </>
+              )}
+            </div>
+            {/* <Button
+              label={"✦ Second Reader"}
+              onClick={() => {
+                setShowSecondReader(!showSecondReader);
+                setShowAIPanel(false);
+              }}
+              size="m"
+              type="gst"
+            />
+            <Button
+              label={"✦ Ask AI"}
+              onClick={() => {
+                setShowAIPanel(!showAIPanel);
+                setShowSecondReader(false);
+              }}
+              size="m"
+              type="gst"
+              loading={isAILoading}
+            /> */}
+
+            <Button
+              label={"Publish article"}
+              size="m"
+              type="primary"
+              onClick={() => setShowPublishModal(true)}
+              disabled={!canPublish}
+            />
           </div>
-          <button
-            className={`btn btn-small ${canPublish ? "btn-normal" : "btn-disabled"}`}
-            disabled={!canPublish}
-            onClick={() => setShowPublishModal(true)}
-          >
-            Publish article
-          </button>
         </div>
 
         {/* Editor shell with sticky toolbar */}
@@ -953,9 +1059,47 @@ export default function ArticleEditorV2() {
             onImageUpload={triggerImageUpload}
             isUploading={isUploading}
           />
-          <EditorContent editor={editor} />
+          {diffHunks ? (
+            <AIDiffViewer
+              hunks={diffHunks}
+              onAccept={(id) => editor?.commands.acceptHunk(id)}
+              onReject={(id) => editor?.commands.rejectHunk(id)}
+            />
+          ) : (
+            <EditorContent editor={editor} />
+          )}
         </div>
       </div>
+
+      <ArticleAIPanel
+        isOpen={showAIPanel}
+        onClose={() => {
+          setShowAIPanel(false);
+          setAiChatPrefill("");
+        }}
+        getMarkdown={getMarkdown}
+        editor={editor}
+        onDiffReady={handleDiffReady}
+        isAILoading={isAILoading}
+        setIsAILoading={setIsAILoading}
+        prefillMessage={aiChatPrefill}
+      />
+
+      <SecondReaderPanel
+        isOpen={showSecondReader}
+        onClose={() => setShowSecondReader(false)}
+        editor={editor}
+        getMarkdown={getMarkdown}
+        getParagraphs={getParagraphs}
+        onParagraphFocus={handleParagraphFocus}
+        onOpenAIChat={handleOpenAIChat}
+        lastEditedParagraph={lastEditedParagraph}
+        suppressInvalidationRef={srSuppressInvalidationRef}
+      />
+
+      {showAIGate && (
+        <PremiumFeatureGate feature="ai" onClose={() => setShowAIGate(false)} />
+      )}
     </>
   );
 }

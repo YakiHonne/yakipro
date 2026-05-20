@@ -18,12 +18,15 @@ import {
 } from "./Slices/Extras";
 
 import { PublishersReducer } from "./Slices/Publishers";
-import { NostrUserReducer, IsConnectedReducer } from "./Slices/User";
+import { NostrUserReducer, IsConnectedReducer, LoadingConnectedUserReducer } from "./Slices/User";
+import { AnalyticsReducer } from "./analyticsSlice";
+import { SubscriptionReducer } from "./Slices/Subscription";
 
 export const store = configureStore({
   reducer: {
     nostrUser: NostrUserReducer,
     isConnected: IsConnectedReducer,
+    loadingConnectedUser: LoadingConnectedUserReducer,
     // User
     userKeys: UserKeysReducer,
     userMetadata: UserMetadataReducer,
@@ -39,5 +42,9 @@ export const store = configureStore({
     nostrAuthors: NostrAuthorsReducer,
     // Publishers
     publishers: PublishersReducer,
+    // Analytics
+    analytics: AnalyticsReducer,
+    // Subscription
+    subscription: SubscriptionReducer,
   },
 });

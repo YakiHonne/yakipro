@@ -245,4 +245,14 @@ const getIcon = (name) => {
   return iconsUrls[name];
 };
 
-export { getIcon };
+const illustrationsBaseURL = "https://yakihonne.s3.ap-east-1.amazonaws.com/media/images";
+
+const illustrationsUrls = {
+  "not-connected": `${illustrationsBaseURL}/nostr-not-connected.png`,
+  "empty-feed": `${illustrationsBaseURL}/empty-feed.png`,
+  "no-content": `${illustrationsBaseURL}/no-content.png`,
+  "coming-soon": `${illustrationsBaseURL}/coming-soon.png`,
+  "404": `${illustrationsBaseURL}/404.png`,
+};
+
+export { getIcon, illustrationsUrls };

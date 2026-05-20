@@ -14,6 +14,7 @@
 
     /* Divider */
     --color-divider: #D1D5DB;
+    --color-divider-v2: #E2E6EB;
 
     /* Accent colors */
     --color-primary-accent: #F75816;
@@ -69,6 +70,7 @@
 
     /* Divider */
     --color-divider: #262C3A;
+    --color-divider-v2: #0f1116;
 
     /* Accent colors */
     --color-primary-accent: #F75816;

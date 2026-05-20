@@ -74,3 +74,19 @@ export const changeStatus = async ({ method }) => {
     return false;
   }
 };
+
+export const getSubscriptionLink = async ({ plan, price_id }) => {
+  try {
+    const data = await axiosInstance.post("/api/v1/subscription-link", {
+      plan,
+      price_id,
+    });
+    let url = data.data.url;
+    if (url) {
+      window.open(url);
+    }
+  } catch (err) {
+    console.log(err);
+    return false;
+  }
+};

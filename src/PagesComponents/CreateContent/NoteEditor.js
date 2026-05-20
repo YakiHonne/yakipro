@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setToPublish, setToast } from "@/Store/Slices/Publishers";
+import EnergyMapperGraph from "./EnergyMapperGraph";
+import { analyzeNoteEnergy } from "@/Endpoionts/EnergyMapperAI";
 import {
   extractNip19,
   filterImetas,
@@ -20,6 +22,7 @@ import Button from "@/Components/UI/Button";
 import { InitEvent } from "@/Helpers/Encryptions";
 import { publishEvent } from "@/Helpers/Helpers";
 import { getRelayMetadata } from "@/Cache/relayMetadataCache";
+import PremiumFeatureGate from "@/Components/PremiumFeatureGate";
 
 const CLIENT_TAG = [
   "client",
@@ -41,6 +44,8 @@ export default function NoteEditor() {
   const dispatch = useDispatch();
   const userKeys = useSelector((state) => state.userKeys);
   const userRelays = useSelector((state) => state.userRelays);
+  const subscription = useSelector((state) => state.subscription);
+  const isPremiumPlan = subscription?.status?.plan === "premium" && subscription?.status?.active;
 
   const [note, setNote] = useState(() => getNoteDraft());
   const [imetas, setImetas] = useState([]);
@@ -50,6 +55,10 @@ export default function NoteEditor() {
   const [showGifs, setShowGifs] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [scheduledAt, setScheduledAt] = useState(undefined);
+  const [energyData, setEnergyData] = useState(null);
+  const [energyLoading, setEnergyLoading] = useState(false);
+  const [showEnergyMap, setShowEnergyMap] = useState(false);
+  const [showEnergyGate, setShowEnergyGate] = useState(false);
   const textareaRef = useRef(null);
 
   useEffect(() => {
@@ -154,6 +163,22 @@ export default function NoteEditor() {
     const success = await publishEvent(eventInitEx, relaysToPublish);
   };
 
+  const handleEnergyMap = async () => {
+    const text = note;
+    if (!text || !text.trim()) return;
+    setShowEnergyMap(true);
+    setEnergyLoading(true);
+    setEnergyData(null);
+    try {
+      const result = await analyzeNoteEnergy(text);
+      setEnergyData(result);
+    } catch (err) {
+      console.error("Energy map failed:", err);
+    } finally {
+      setEnergyLoading(false);
+    }
+  };
+
   const handleKeyDown = useCallback(
     (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
@@ -170,14 +195,25 @@ export default function NoteEditor() {
       style={{ overflow: "visible" }}
     >
       <div
-        className="fit-container fx-centered fx-start-h box-pad-h-m box-pad-v-s"
+        className="fit-container fx-scattered box-pad-h-m box-pad-v-s"
         style={{ borderBottom: "1px solid var(--pale-gray)" }}
       >
         <SelectTabs
           tabs={["Write", "Preview"]}
           selectedTab={selectedTab}
           setSelectedTab={setSelectedTab}
-          small
+          // small
+        />
+        <Button
+          size="m"
+          label={"✦ Energy mapper"}
+          type="gray"
+          loading={energyLoading}
+          onClick={() => {
+            if (!isPremiumPlan) { setShowEnergyGate(true); return; }
+            handleEnergyMap();
+          }}
+          disabled={energyLoading || !note.trim()}
         />
       </div>
       <div
@@ -196,6 +232,22 @@ export default function NoteEditor() {
           <NotePreview content={note} />
         )}
       </div>
+
+      {showEnergyMap && (
+        <div
+          className="fit-container box-pad-h-m"
+          style={{ paddingBottom: "8px" }}
+        >
+          <EnergyMapperGraph
+            data={energyData}
+            isLoading={energyLoading}
+            onClose={() => {
+              setShowEnergyMap(false);
+              setEnergyData(null);
+            }}
+          />
+        </div>
+      )}
 
       {scheduledAt && (
         <div
@@ -316,6 +368,10 @@ export default function NoteEditor() {
             setShowDatePicker(false);
           }}
         />
+      )}
+
+      {showEnergyGate && (
+        <PremiumFeatureGate feature="ai" onClose={() => setShowEnergyGate(false)} />
       )}
     </div>
   );

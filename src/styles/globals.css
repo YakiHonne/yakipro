@@ -190,7 +190,9 @@ ul {
   box-shadow: 0px 10px 30px -5px rgba(0, 0, 0, 0.15);
 }
 
-.close {
+.close,
+.reduce,
+.enlarge {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -198,7 +200,9 @@ ul {
   transition: opacity 0.2s;
 }
 
-.close div {
+.close div,
+.reduce div,
+.enlarge div {
   position: relative;
   width: 24px;
   height: 24px;
@@ -216,7 +220,23 @@ ul {
   font-weight: bold;
 }
 
-.close:hover {
+.reduce div::after {
+  content: "\2212";
+  font-size: 12px;
+  color: var(--color-primary-text);
+  font-weight: bold;
+}
+
+.enlarge div::after {
+  content: "\002B";
+  font-size: 16px;
+  color: var(--color-primary-text);
+  font-weight: bold;
+}
+
+.close:hover,
+.reduce:hover,
+.enlarge:hover {
   opacity: 0.7;
 }
 
@@ -698,6 +718,10 @@ p {
   background-color: var(--color-primary-bg-side2);
 }
 
+.bg-divider-v2-c {
+  background-color: var(--color-divider-v2);
+}
+
 /* Option styles */
 .optionr {
   cursor: pointer;
@@ -762,6 +786,22 @@ p {
 
 .pos-right-0 {
   right: 0;
+}
+
+.pos-top-16 {
+  top: 16px;
+}
+
+.pos-bottom-16 {
+  bottom: 16px;
+}
+
+.pos-left-16 {
+  left: 16px;
+}
+
+.pos-right-16 {
+  right: 16px;
 }
 
 /* Forms */
@@ -1117,4 +1157,443 @@ ul {
 
 .toggle-orange {
   background-color: var(--color-orange-main);
+}
+
+/* ── Energy Mapper Graph ─────────────────────────── */
+.energy-graph-wrap {
+  margin-top: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-surface-border);
+  background: var(--color-divider-v2);
+  overflow: visible;
+  animation: energy-slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes energy-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.energy-graph-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-surface-border);
+  gap: 12px;
+}
+
+.energy-graph-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #10b981;
+  white-space: nowrap;
+}
+
+.energy-graph-summary {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  flex: 1;
+  text-align: center;
+}
+
+.energy-graph-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.energy-graph-chart {
+  padding: 4px 0 4px;
+  animation: energy-fade-in 0.3s ease 0.15s both;
+}
+
+.energy-graph-chart .MuiAreaElement-root {
+  fill-opacity: 0.25;
+}
+
+@keyframes energy-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.energy-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 14px 14px;
+  scrollbar-width: none;
+}
+
+.energy-chips-row::-webkit-scrollbar {
+  display: none;
+}
+
+.energy-chip {
+  flex-shrink: 0;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  padding: 5px 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: default;
+  position: relative;
+  overflow: visible;
+}
+
+.energy-chip-label {
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 0.68rem;
+  display: block;
+}
+
+/* Detail popup — absolutely positioned so it never affects sibling layout */
+.energy-chip-detail {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.72rem;
+  color: var(--color-text-secondary);
+  white-space: normal;
+  line-height: 1.5;
+  min-width: 200px;
+  max-width: 260px;
+  box-shadow: 0 4px 16px var(--color-shadow);
+  pointer-events: none;
+}
+
+.energy-chip:hover .energy-chip-detail {
+  display: block;
+}
+
+.energy-chip-badge {
+  position: absolute;
+  top: -10px;
+  right: -6px;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* Skeleton shimmer */
+.energy-skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg,
+      var(--color-surface-hover) 25%,
+      var(--color-surface-border) 50%,
+      var(--color-surface-hover) 75%);
+  background-size: 200% 100%;
+  animation: energy-shimmer 1.4s ease infinite;
+}
+
+@keyframes energy-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.energy-skeleton-chart {
+  height: 120px;
+  margin: 12px 14px 4px;
+}
+
+.energy-skeleton-chips {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px 14px;
+}
+
+.energy-skeleton-chip {
+  height: 28px;
+  width: 48px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+/* Tooltip */
+.energy-tooltip {
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  max-width: 220px;
+  font-size: 0.75rem;
+}
+
+.energy-tooltip-label {
+  font-weight: 700;
+  color: #10b981;
+  margin-bottom: 4px;
+  text-transform: capitalize;
+}
+
+.energy-tooltip-text {
+  color: var(--color-text);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.energy-tooltip-reason {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ── Yaki Points page ─────────────────────────────────────────────────────── */
+
+.yp-card {
+  width: 100%;
+
+  border: 1px solid var(--color-divider);
+  border-radius: 16px;
+  overflow: visible;
+}
+
+.progress-circle {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: fit-content;
+}
+
+.progress-circle .label {
+  width: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  text-align: center;
+  transform: translateX(-50%) translateY(-50%);
+}
+
+.round-icon-tooltip {
+  position: relative;
+  cursor: pointer;
+}
+
+.round-icon-tooltip::after {
+  display: none;
+  position: absolute;
+  min-width: max-content;
+  top: 105%;
+  left: 50%;
+  transform: translateX(-50%);
+  content: attr(data-tooltip);
+  background-color: var(--color-primary-bg-side2);
+  border-radius: 999px;
+  font-size: .75rem;
+  color: var(--color-primary-text);
+  padding: 0 10px;
+  text-align: center;
+  z-index: 10;
+}
+
+.round-icon-tooltip:hover::after {
+  display: block;
+}
+
+.yp-chart-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  overflow: visible;
+}
+
+.yp-chart-col .yp-chart-tooltip {
+  display: none;
+}
+
+.yp-chart-col:hover .yp-chart-bar {
+  border-color: var(--color-green-main);
+}
+
+.yp-chart-col:hover .yp-chart-tooltip {
+  display: flex;
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: 10px;
+  padding: 6px 10px;
+  min-width: max-content;
+  z-index: 100;
+  row-gap: 0;
+}
+
+.yp-chart-col.tooltip-right .yp-chart-tooltip {
+  left: auto;
+  right: 0;
+}
+
+/* ── Legacy btn / if classes (used across the app) ───────────────────────── */
+
+.btn {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1rem;
+  padding: 0 1.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: .2s ease-in;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.btn-small {
+  font-family: var(--font-inter), sans-serif;
+  font-size: .75rem;
+  padding: 0 1.25rem;
+  height: 2rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: .2s ease-in;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.btn-normal {
+  background-color: var(--color-primary-accent);
+  border: none;
+  color: #fff;
+}
+
+.btn-normal:hover {
+  opacity: .85;
+}
+
+.btn-gst {
+  background-color: transparent;
+  border: 1px solid var(--color-primary-accent);
+  color: var(--color-primary-accent);
+}
+
+.btn-gst:hover {
+  background-color: var(--color-primary-accent);
+  color: #fff;
+}
+
+.btn-gst-red {
+  background-color: transparent;
+  border: 1px solid var(--color-red-main);
+  color: var(--color-red-main);
+}
+
+.btn-gst-red:hover {
+  background-color: var(--color-red-main);
+  color: #fff;
+}
+
+.btn-red {
+  background-color: var(--color-red-main);
+  border: none;
+  color: #fff;
+}
+
+.btn-red:hover {
+  opacity: .85;
+}
+
+.btn-gray {
+  background-color: var(--color-primary-bg-side2);
+  border: none;
+  color: var(--color-primary-text);
+}
+
+.btn-gray:hover {
+  opacity: .85;
+}
+
+.btn-disabled {
+  background-color: var(--color-primary-bg-side2);
+  border: none;
+  color: var(--color-secondary-text);
+  cursor: not-allowed;
+}
+
+.btn-disabled:hover {
+  opacity: .8;
+}
+
+.btn-text-gray {
+  background-color: transparent;
+  border: none;
+  color: var(--color-secondary-text);
+  text-decoration: underline;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-inter), sans-serif;
+  transition: .2s ease-in;
+}
+
+.btn-text-gray:hover {
+  color: var(--color-primary-accent);
+}
+
+/* ── Input field (if) ────────────────────────────────────────────────────── */
+
+.if {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1rem;
+  padding: 0 1.25rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  background: none;
+  border: 1px solid var(--color-divider);
+  color: var(--color-primary-text);
+  outline: none;
+  transition: border-color .2s;
+}
+
+.if:focus {
+  border-color: var(--color-primary-accent);
+}
+
+.if-disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.if.fit-container {
+  width: 100%;
+  box-sizing: border-box;
 }

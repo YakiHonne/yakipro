@@ -25,8 +25,21 @@ const isConnectedSlice = createSlice({
   },
 });
 
+// Tracks whether the app is still resolving the user's connection status on boot
+const loadingConnectedUserSlice = createSlice({
+  name: "loadingConnectedUser",
+  initialState: true,
+  reducers: {
+    setLoadingConnectedUser(state, action) {
+      return action.payload;
+    },
+  },
+});
+
 export const { setNostrUser, clearNostrUser } = nostrUserSlice.actions;
 export const { setIsConnected } = isConnectedSlice.actions;
+export const { setLoadingConnectedUser } = loadingConnectedUserSlice.actions;
 
 export const NostrUserReducer = nostrUserSlice.reducer;
 export const IsConnectedReducer = isConnectedSlice.reducer;
+export const LoadingConnectedUserReducer = loadingConnectedUserSlice.reducer;

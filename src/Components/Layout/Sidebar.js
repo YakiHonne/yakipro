@@ -26,7 +26,7 @@ export default function Sidebar() {
       displayName: "Dashboard",
       activeIcon: "home-bold",
       isButton: false,
-      path: "/",
+      path: "/dashboard",
     },
     {
       icon: "curation",
@@ -55,6 +55,20 @@ export default function Sidebar() {
       activeIcon: "media-bold",
       isButton: false,
       path: "/media",
+    },
+    {
+      icon: "star",
+      displayName: "Yaki Points",
+      activeIcon: "star-bold",
+      isButton: false,
+      path: "/yaki-points",
+    },
+    {
+      icon: "setting",
+      displayName: "Settings",
+      activeIcon: "setting",
+      isButton: false,
+      path: "/settings",
     },
     {
       icon: "plus",
@@ -107,7 +121,7 @@ export default function Sidebar() {
                 onClick={() => router.push("/")}
               />
               <div className="round-corner border-all box-pad-h-xs p-primary-c ">
-                stage
+                pro
               </div>
             </div>
           </div>

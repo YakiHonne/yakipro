@@ -48,6 +48,8 @@ const ImgIcon = () => (
 export default function ArticlePublishModalV2({
   exit,
   initialTitle = "",
+  initialSummary = "",
+  initialCoverUrl = "",
   postContent,
   imetas = [],
   editId = "",
@@ -58,8 +60,8 @@ export default function ArticlePublishModalV2({
   const userRelays = useSelector((state) => state.userRelays);
 
   const [title, setTitle] = useState(initialTitle);
-  const [summary, setSummary] = useState("");
-  const [coverUrl, setCoverUrl] = useState("");
+  const [summary, setSummary] = useState(initialSummary);
+  const [coverUrl, setCoverUrl] = useState(initialCoverUrl);
   const [tagsInput, setTagsInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCoverUploading, setIsCoverUploading] = useState(false);
