@@ -11,6 +11,7 @@ export default function Select({
   full = false,
   className = "",
   style = {},
+  isColoredIcons = false
 }) {
   const selectedOption = useMemo(() => {
     if (!value) return null;
@@ -26,7 +27,7 @@ export default function Select({
       style={{ cursor: "pointer", padding: "10px 16px" }}
     >
       <div className="fx-centered fx-start-h fx-gap-h">
-        {option.iconLeft && <Icon name={option.iconLeft} size={16} />}
+        {option.iconLeft && <Icon name={option.iconLeft} size={16} isColored={isColoredIcons} />}
         <p
           className={` ${value === option.value ? "orange-c" : "gray-c"}`}
           style={{ margin: 0 }}
@@ -34,16 +35,15 @@ export default function Select({
           {option.display_name}
         </p>
       </div>
-      {option.iconRight && <Icon name={option.iconRight} size={16} />}
+      {option.iconRight && <Icon name={option.iconRight} size={16} isColored={isColoredIcons} />}
     </div>
   ));
 
   return (
     <DropDown options={optionsList} full={full} disabled={disabled}>
       <div
-        className={`if fx-gap-h-l fx-scattered pointer ${
-          disabled ? "if-disabled" : "bg-hover"
-        } ${className}`}
+        className={`if fx-gap-h-l fx-scattered pointer ${disabled ? "if-disabled" : "bg-hover"
+          } ${className}`}
         style={{
           width: full ? "100%" : "auto",
           ...style,

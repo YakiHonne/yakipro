@@ -4,41 +4,41 @@ import { getSubData } from "@/Helpers/Helpers";
 
 const PAGE_SIZE = 20;
 
-const KIND_MAP = {
-  0: 1, // Notes tab
-  1: 30023, // Articles tab
-};
+// Returns a fresh cache entry for a key that hasn't been seen before
+const emptyEntry = () => ({
+  events: [],
+  hasMore: true,
+  until: undefined,
+  fetching: false,
+});
 
-export default function useUserContent(selectedTab) {
+// articleKind lets the caller switch between 30023 (published) and 30024 (drafts).
+// Already-fetched keys are cached so switching back never hits the network again.
+export default function useUserContent(selectedTab, articleKind = 30023) {
   const userKeys = useSelector((state) => state.userKeys);
 
-  const [events, setEvents] = useState([]);
+  const kind = selectedTab === 0 ? 1 : articleKind;
+  const key = `${selectedTab}-${kind}`;
+
+  // Persistent per-key cache; lives for the component's lifetime
+  const cacheRef = useRef({});
+  const getEntry = (k) => {
+    if (!cacheRef.current[k]) cacheRef.current[k] = emptyEntry();
+    return cacheRef.current[k];
+  };
+
+  // Bump triggers a re-render so the UI picks up the latest cache entry
+  const [, bump] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
 
-  const untilRef = useRef(undefined);
-  const isFetchingRef = useRef(false);
-  const currentTabRef = useRef(selectedTab);
-
-  const kind = KIND_MAP[selectedTab];
-
-  const reset = useCallback(() => {
-    setEvents([]);
-    setHasMore(true);
-    untilRef.current = undefined;
-  }, []);
-
-  useEffect(() => {
-    if (currentTabRef.current !== selectedTab) {
-      currentTabRef.current = selectedTab;
-      reset();
-    }
-  }, [selectedTab, reset]);
+  // Read active key's data for rendering
+  const entry = getEntry(key);
 
   const fetchPage = useCallback(async () => {
-    if (!userKeys?.pub || isFetchingRef.current || !hasMore) return;
+    const e = getEntry(key);
+    if (!userKeys?.pub || e.fetching || !e.hasMore) return;
 
-    isFetchingRef.current = true;
+    e.fetching = true;
     setLoading(true);
 
     const filter = [
@@ -46,7 +46,7 @@ export default function useUserContent(selectedTab) {
         kinds: [kind],
         authors: [userKeys.pub],
         limit: PAGE_SIZE,
-        ...(untilRef.current ? { until: untilRef.current } : {}),
+        ...(e.until ? { until: e.until } : {}),
       },
     ];
 
@@ -54,53 +54,72 @@ export default function useUserContent(selectedTab) {
       const { data } = await getSubData({ filter, timeout: 100 });
 
       if (!data || data.length === 0) {
-        setHasMore(false);
+        e.hasMore = false;
+        bump((n) => n + 1);
         return;
       }
-      const deduped = data.filter(
-        (e) => !events.some((existing) => existing.id === e.id),
+
+      const deduped = data.filter((d) => !e.events.some((ex) => ex.id === d.id));
+      const merged = [...e.events, ...deduped];
+      const oldest = merged.reduce(
+        (min, ev) => (ev.created_at < min ? ev.created_at : min),
+        Infinity
       );
 
-      setEvents((prev) => {
-        const merged = [...prev, ...deduped];
-        const oldest = merged.reduce(
-          (min, e) => (e.created_at < min ? e.created_at : min),
-          Infinity,
-        );
-        untilRef.current = oldest - 1;
-        return merged;
-      });
-
-      if (data.length < PAGE_SIZE) setHasMore(false);
+      e.events = merged;
+      e.until = oldest - 1;
+      e.hasMore = data.length >= PAGE_SIZE;
+      bump((n) => n + 1);
     } catch (err) {
       console.error("[useUserContent] error:", err);
     } finally {
+      e.fetching = false;
       setLoading(false);
-      isFetchingRef.current = false;
     }
-  }, [userKeys?.pub, kind, hasMore]);
+  }, [userKeys?.pub, kind, key]); // new fetchPage when key changes
 
-  // Initial fetch when pubkey or tab changes
+  // Fetch on mount / key change — skipped entirely if this key already has data
   useEffect(() => {
-    if (userKeys?.pub) fetchPage();
-  }, [userKeys?.pub, kind]);
+    const e = getEntry(key);
+    if (userKeys?.pub && e.events.length === 0 && e.hasMore) {
+      fetchPage();
+    }
+  }, [userKeys?.pub, key]); // intentionally excludes fetchPage to avoid double-fire
 
-  // Sentinel ref for IntersectionObserver
+  // Sentinel IntersectionObserver for infinite scroll
   const sentinelRef = useRef(null);
 
   useEffect(() => {
     if (!sentinelRef.current) return;
-
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && hasMore && !loading) fetchPage();
+      ([obs]) => {
+        if (obs.isIntersecting && entry.hasMore && !loading) fetchPage();
       },
-      { threshold: 0.1 },
+      { threshold: 0.1 }
     );
-
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [fetchPage, hasMore, loading]);
+  }, [fetchPage, entry.hasMore, loading]);
 
-  return { events, loading, hasMore, sentinelRef, refresh: reset };
+  // Clears the cache for the current key and re-fetches from scratch
+  const refresh = useCallback(() => {
+    cacheRef.current[key] = emptyEntry();
+    bump((n) => n + 1);
+  }, [key]);
+
+  // Re-fetch after refresh clears the entry
+  useEffect(() => {
+    const e = getEntry(key);
+    if (userKeys?.pub && e.events.length === 0 && e.hasMore && !e.fetching) {
+      fetchPage();
+    }
+  }, [entry.events.length]); // fires when refresh zeroes the list
+
+  return {
+    events: entry.events,
+    loading,
+    hasMore: entry.hasMore,
+    sentinelRef,
+    refresh,
+  };
 }

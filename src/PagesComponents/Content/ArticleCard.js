@@ -81,6 +81,8 @@ export default function ArticleCard({ event, onDelete }) {
     dispatch(setToast({ type: 1, desc: "Article link added to note editor" }));
   };
 
+  const isDraft = event.kind === 30024;
+
   const handleEdit = () => router.push(`/edit-content/${naddr}`);
 
   const handleDelete = async () => {
@@ -93,79 +95,86 @@ export default function ArticleCard({ event, onDelete }) {
       });
       if (!signed) return;
       await publishEvent(signed);
-      dispatch(setToast({ type: 1, desc: "Article deleted" }));
+      dispatch(setToast({ type: 1, desc: isDraft ? "Draft deleted" : "Article deleted" }));
       onDelete?.(event.id);
     } catch {
-      dispatch(setToast({ type: 2, desc: "Failed to delete article" }));
+      dispatch(setToast({ type: 2, desc: isDraft ? "Failed to delete draft" : "Failed to delete article" }));
     }
   };
 
-  const menuOptions = [
-    <OptionItem
-      key="copy-id"
-      icon="copy"
-      label="Copy ID"
-      onClick={(e) => {
-        e.stopPropagation();
-        copy(naddr, "ID");
-      }}
-    />,
-    <OptionItem
-      key="copy-cnt"
-      icon="copy"
-      label="Copy content"
-      onClick={(e) => {
-        e.stopPropagation();
-        copy(event.content, "Content");
-      }}
-    />,
-    <OptionItem
-      key="copy-link"
-      icon="link"
-      label="Copy link"
-      onClick={(e) => {
-        e.stopPropagation();
-        copy(link, "Link");
-      }}
-    />,
-    <OptionItem
-      key="raw"
-      icon="code"
-      label="Show raw event"
-      onClick={(e) => {
-        e.stopPropagation();
-        setShowRaw(true);
-      }}
-    />,
-    <OptionItem
-      key="note"
-      icon="add-note"
-      label="Post in a note"
-      onClick={(e) => {
-        e.stopPropagation();
-        handlePostInNote();
-      }}
-    />,
-    <OptionItem
-      key="edit"
-      icon="edit"
-      label="Edit article"
-      onClick={(e) => {
-        e.stopPropagation();
-        handleEdit();
-      }}
-    />,
-    <OptionItem
-      key="delete"
-      icon="trash"
-      label="Delete article"
-      danger
-      onClick={(e) => {
-        e.stopPropagation();
-        setShowDelete(true);
-      }}
-    />,
-  ];
+  const menuOptions = isDraft
+    ? [
+        <OptionItem
+          key="copy-cnt"
+          icon="copy"
+          label="Copy content"
+          onClick={(e) => { e.stopPropagation(); copy(event.content, "Content"); }}
+        />,
+        <OptionItem
+          key="raw"
+          icon="code"
+          label="Show raw event"
+          onClick={(e) => { e.stopPropagation(); setShowRaw(true); }}
+        />,
+        <OptionItem
+          key="edit"
+          icon="edit"
+          label="Edit draft"
+          onClick={(e) => { e.stopPropagation(); handleEdit(); }}
+        />,
+        <OptionItem
+          key="delete"
+          icon="trash"
+          label="Delete draft"
+          danger
+          onClick={(e) => { e.stopPropagation(); setShowDelete(true); }}
+        />,
+      ]
+    : [
+        <OptionItem
+          key="copy-id"
+          icon="copy"
+          label="Copy ID"
+          onClick={(e) => { e.stopPropagation(); copy(naddr, "ID"); }}
+        />,
+        <OptionItem
+          key="copy-cnt"
+          icon="copy"
+          label="Copy content"
+          onClick={(e) => { e.stopPropagation(); copy(event.content, "Content"); }}
+        />,
+        <OptionItem
+          key="copy-link"
+          icon="link"
+          label="Copy link"
+          onClick={(e) => { e.stopPropagation(); copy(link, "Link"); }}
+        />,
+        <OptionItem
+          key="raw"
+          icon="code"
+          label="Show raw event"
+          onClick={(e) => { e.stopPropagation(); setShowRaw(true); }}
+        />,
+        <OptionItem
+          key="note"
+          icon="add-note"
+          label="Post in a note"
+          onClick={(e) => { e.stopPropagation(); handlePostInNote(); }}
+        />,
+        <OptionItem
+          key="edit"
+          icon="edit"
+          label="Edit article"
+          onClick={(e) => { e.stopPropagation(); handleEdit(); }}
+        />,
+        <OptionItem
+          key="delete"
+          icon="trash"
+          label="Delete article"
+          danger
+          onClick={(e) => { e.stopPropagation(); setShowDelete(true); }}
+        />,
+      ];
 
   return (
     <>
@@ -174,8 +183,12 @@ export default function ArticleCard({ event, onDelete }) {
       )}
       {showDelete && (
         <DeleteWarning
-          title="Delete article?"
-          description="This will publish a deletion event. The article may still appear on some relays."
+          title={isDraft ? "Delete draft?" : "Delete article?"}
+          description={
+            isDraft
+              ? "This will publish a deletion event. The draft may still appear on some relays."
+              : "This will publish a deletion event. The article may still appear on some relays."
+          }
           exit={() => setShowDelete(false)}
           handleDelete={handleDelete}
           actionButtonLabel="Delete"

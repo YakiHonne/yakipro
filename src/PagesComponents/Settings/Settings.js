@@ -3,6 +3,8 @@ import { useSelector } from "react-redux";
 import dynamic from "next/dynamic";
 import { Tabs } from "@/Components/UI/Tabs";
 import KeysSection from "./KeysSection";
+import Nip05Section from "./Nip05Section";
+import PreferencesSection from "./PreferencesSection";
 import PagePlaceholder from "@/Components/PlaceholderScreens/PagePlaceholder";
 import { pphValues } from "@/Content/PagesPlaceholdersValues";
 import { SelectTabs } from "@/Components/SelectTabs";
@@ -11,8 +13,8 @@ const SubscriptionSection = dynamic(() => import("./SubscriptionSection"), {
   ssr: false,
 });
 
-const TAB_KEYS = ["keys", "subscription"];
-const TAB_LABELS = ["Keys", "Subscription"];
+const TAB_KEYS = ["general", "subscription"];
+const TAB_LABELS = ["General", "Subscription"];
 
 export default function Settings() {
   const userKeys = useSelector((state) => state.userKeys);
@@ -65,7 +67,7 @@ export default function Settings() {
             >
               <h2>Settings</h2>
               <p className="p-secondary-c">
-                Manage your account keys and subscription.
+                Manage your account settings and subscription.
               </p>
             </div>
 
@@ -79,7 +81,40 @@ export default function Settings() {
             </div>
 
             {/* Tab panels */}
-            {selectedTab === 0 && <KeysSection />}
+            {selectedTab === 0 && (
+              <div
+                className="fx-centered fx-col fit-container"
+                style={{ rowGap: "32px" }}
+              >
+                <div
+                  className="fx-centered fx-col fit-container"
+                  style={{ rowGap: "16px" }}
+                >
+                  <div className="fit-container border-bottom" style={{ paddingBottom: "8px" }}>
+                    <h4>Keys</h4>
+                  </div>
+                  <KeysSection />
+                </div>
+                <div
+                  className="fx-centered fx-col fit-container"
+                  style={{ rowGap: "16px" }}
+                >
+                  <div className="fit-container border-bottom" style={{ paddingBottom: "8px" }}>
+                    <h4>NIP05</h4>
+                  </div>
+                  <Nip05Section />
+                </div>
+                <div
+                  className="fx-centered fx-col fit-container"
+                  style={{ rowGap: "16px" }}
+                >
+                  <div className="fit-container border-bottom" style={{ paddingBottom: "8px" }}>
+                    <h4>Preferences</h4>
+                  </div>
+                  <PreferencesSection />
+                </div>
+              </div>
+            )}
             {selectedTab === 1 && <SubscriptionSection />}
           </div>
         </div>
