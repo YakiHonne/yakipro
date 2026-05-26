@@ -83,7 +83,7 @@ export default function usePlans() {
 
   const finishSetup = async () => {
     setLoading(true);
-    const data = await enableStripe();
+    const data = await enableStripe({ country: "" });
     if (data) {
       window.open(data, "_blank");
     }
