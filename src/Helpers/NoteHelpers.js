@@ -131,6 +131,5 @@ export function updateNoteDraft(content) {
     }
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(drafts));
   } catch {
-    // silently fail
   }
 }

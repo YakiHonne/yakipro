@@ -21,7 +21,6 @@ export default function TrialBanner() {
 
   const { in_trial, trial_ends_at, access_blocked } = subscription.status;
 
-  // Only show for active trials — blocked users are handled by IsPremium
   if (!in_trial || access_blocked) return null;
 
   const daysLeft = Math.max(
@@ -31,17 +30,19 @@ export default function TrialBanner() {
 
   return (
     <div
+      className="bg-dropdown"
       style={{
-        width: "100%",
-        backgroundColor: "rgba(255,167,38,0.12)",
-        borderBottom: "1px solid var(--color-primary-accent)",
-        padding: "8px 20px",
+        position: "fixed",
+        left: "50%",
+        bottom: "24px",
+        transform: "translateX(-50%)",
+        width: "min(92%, 720px)",
+        padding: "10px 20px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         gap: "12px",
-        flexShrink: 0,
-        zIndex: 100,
+        zIndex: 500,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>

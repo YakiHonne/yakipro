@@ -4,8 +4,6 @@ import { ndkInstance } from "@/Helpers/NDKInstance";
 import { getParsedAuthor } from "@/Helpers/Encryptions";
 import { eventCache, authorCache } from "@/Helpers/previewCache";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
 function cacheKey(addr) {
   return addr.replace(/[,.:;@?!]+/g, "").trim();
 }
@@ -93,8 +91,6 @@ function parseRawEvent(rawEvent) {
   };
 }
 
-// ─── Author fetching (with cache) ─────────────────────────────────────────────
-
 function fetchAuthor(pubkey, onResult) {
   if (!pubkey) return;
   if (authorCache.has(pubkey)) {
@@ -114,8 +110,6 @@ function fetchAuthor(pubkey, onResult) {
   const timer = setTimeout(() => sub.stop(), 4000);
   sub.on("close", () => clearTimeout(timer));
 }
-
-// ─── UI atoms ─────────────────────────────────────────────────────────────────
 
 const S = {
   card: {
@@ -218,8 +212,6 @@ function FallbackPill({ addr, href }) {
   );
 }
 
-// ─── Card variants ────────────────────────────────────────────────────────────
-
 function UserCard({ event, href }) {
   const name = event.display_name || event.name || event.pubkey?.slice(0, 12);
   return (
@@ -287,8 +279,6 @@ function ArticleCard({ event, author, href }) {
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
 function Nip19Preview({ addr }) {
   const key = cacheKey(addr);
   const [event, setEvent] = useState(() => eventCache.get(key) || null);
@@ -299,7 +289,6 @@ function Nip19Preview({ addr }) {
   const [loading, setLoading] = useState(!eventCache.has(key));
   const [meta, setMeta] = useState(null);
 
-  // Fetch event if not cached
   useEffect(() => {
     if (eventCache.has(key)) {
       const cached = eventCache.get(key);
@@ -313,7 +302,6 @@ function Nip19Preview({ addr }) {
     if (!parsed) { setLoading(false); return; }
     setMeta({ href: parsed.href, type: parsed.type });
 
-    // Pre-fetch author from hint if available
     if (parsed.pubkey) fetchAuthor(parsed.pubkey, setAuthor);
 
     const sub = ndkInstance.subscribe(parsed.filter, {
@@ -331,7 +319,6 @@ function Nip19Preview({ addr }) {
       setEvent(parsed_);
       setLoading(false);
 
-      // Fetch / cache author
       const pubkey = raw.pubkey;
       if (pubkey) {
         if (authorCache.has(pubkey)) {
@@ -350,7 +337,6 @@ function Nip19Preview({ addr }) {
     return () => { sub.stop(); clearTimeout(timer); };
   }, [key]);
 
-  // Determine link href
   const href = meta?.href || (() => {
     const parsed = buildFilter(addr);
     return parsed?.href || `/${addr}`;

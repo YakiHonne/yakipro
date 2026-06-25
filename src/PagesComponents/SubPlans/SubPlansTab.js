@@ -19,9 +19,8 @@ import { getEventTags, publishEvent } from "@/Helpers/Helpers";
 import { InitEvent } from "@/Helpers/Encryptions";
 import { useDispatch } from "react-redux";
 import { setToast } from "@/Store/Slices/Extras";
-import IsUserOnline from "@/Components/IsUserOnline";
-import Link from "next/link";
-export default function SubPlans() {
+
+export default function SubPlansTab() {
   const { t } = useTranslation();
   const {
     plans,
@@ -192,139 +191,110 @@ export default function SubPlans() {
   };
 
   return (
-    <IsUserOnline>
+    <>
       {showEnableStripe && (
         <EnableStripe exit={() => setShowEnableStripe(false)} />
       )}
-      <div
-        className="fit-container box-pad-h-m box-pad-v-m fx-gap-v-m fx-col no-scrollbar"
-        style={{ height: "100dvh", overflow: "scroll" }}
-      >
-        <div className="fit-container fx-scattered">
-          <div>
-            <h1>{t("AVG3Uga")}</h1>
-            <p className="gray-c">{t("Aig65l1")}</p>
-          </div>
-          <Link href={"/sub-management"}>
-            <Button
-              size="m"
-              label={t("AYIXG83")}
-              type="gray"
-              rightIcon={"share-icon"}
+      <LoadingData isLoading={loading} height="50dvh">
+        <h3 className="p-primary-c">{t("AWmDftG")}</h3>
+        <div className="fit-container round-corner-m border-all">
+          <div className="fx-scattered box-pad-h-m box-pad-v-m border-bottom">
+            <p>{t("AHhPGax")}</p>
+            <Toggle
+              status={!stripeAccount?.is_setup ? false : enableFiat}
+              setStatus={setEnableFiat}
+              disabled={!stripeAccount?.is_setup}
             />
-          </Link>
-        </div>
-        <LoadingData isLoading={loading} height="50dvh">
-          <h3 className="p-primary-c">{t("AWmDftG")}</h3>
-          <div className="fit-container round-corner-m border-all">
-            <div className="fx-scattered box-pad-h-m box-pad-v-m border-bottom">
-              <p>{t("AHhPGax")}</p>
-              <Toggle
-                status={!stripeAccount?.is_setup ? false : enableFiat}
-                setStatus={setEnableFiat}
-                disabled={!stripeAccount?.is_setup}
-              />
-            </div>
-            {/* {caps.sc && (
-              <div className="fx-scattered box-pad-h-m box-pad-v-m border-bottom">
-                <p>{t("ApPw14o")}</p>
-                <Toggle
-                  status={!stripeAccount?.is_setup ? false : enableSC}
-                  setStatus={setEnableSC}
-                  disabled={!stripeAccount?.is_setup}
-                />
-              </div>
-            )} */}
+          </div>
 
-            <div className="fx-scattered box-pad-h-m box-pad-v-m ">
-              <div>
-                {stripeAccount?.account_id && (
-                  <div className="box-pad-h-s border-all round-corner-m fx-centered fx-gap-h bg-hover pointer">
-                    <p>#{stripeAccount.account_id}</p>
-                    <Icon name={"copy"} />
-                  </div>
-                )}
-              </div>
-              {!stripeAccount && (
-                <Button
-                  size="m"
-                  label={t("A1jhS42")}
-                  onClick={() => setShowEnableStripe(true)}
-                  type="primary"
-                  loading={loading}
-                  disabled={loading}
-                />
-              )}
-              {stripeAccount && stripeAccount?.is_setup && (
-                <Button
-                  size="m"
-                  label={t("Aai65RJ")}
-                  onClick={loginAccount}
-                  type="gray"
-                  loading={loading}
-                  disabled={loading}
-                />
-              )}
-              {stripeAccount && !stripeAccount?.is_setup && (
-                <Button
-                  size="m"
-                  label={t("Alz0E9Y")}
-                  onClick={finishSetup}
-                  type="secondary"
-                  loading={loading}
-                  disabled={loading}
-                />
+          <div className="fx-scattered box-pad-h-m box-pad-v-m ">
+            <div>
+              {stripeAccount?.account_id && (
+                <div className="box-pad-h-s border-all round-corner-m fx-centered fx-gap-h bg-hover pointer">
+                  <p>#{stripeAccount.account_id}</p>
+                  <Icon name={"copy"} />
+                </div>
               )}
             </div>
-          </div>
-          <div className="fit-container fx-scattered box-pad-h-m box-pad-v-m round-corner-m border-all">
-            <p>{t("AHMARaK")}</p>
-            <Toggle status={enableLightning} setStatus={setEnableLightning} />
-          </div>
-          <div className="fit-container fx-scattered">
-            <h3 className="p-primary-c">{t("AO0OqWT")}</h3>
-            {enableSaving && (
-              <div className="slide-left">
-                <Button
-                  size="m"
-                  type="primary"
-                  loading={isLoading}
-                  label={t("A1IsKJ0")}
-                  onClick={handleSave}
-                />
-              </div>
+            {!stripeAccount && (
+              <Button
+                size="m"
+                label={t("A1jhS42")}
+                onClick={() => setShowEnableStripe(true)}
+                type="primary"
+                loading={loading}
+                disabled={loading}
+              />
+            )}
+            {stripeAccount && stripeAccount?.is_setup && (
+              <Button
+                size="m"
+                label={t("Aai65RJ")}
+                onClick={loginAccount}
+                type="gray"
+                loading={loading}
+                disabled={loading}
+              />
+            )}
+            {stripeAccount && !stripeAccount?.is_setup && (
+              <Button
+                size="m"
+                label={t("Alz0E9Y")}
+                onClick={finishSetup}
+                type="secondary"
+                loading={loading}
+                disabled={loading}
+              />
             )}
           </div>
-          {enableFiat && (
-            <FiatPricings
-              currency={currency}
-              setFiatPricings={setFiatPricings}
-              fiatPricings={plans.fiat}
-              handleArchivePrice={handleArchivePrice}
-            />
-          )}
-          {enableSC && (
-            <StableCoinsPricings
-              scPricings={plans.crypto}
-              setScPricings={setScPricings}
-              handleArchivePrice={handleArchivePrice}
-            />
-          )}
-          {enableLightning && (
-            <LightningPricings
-              lightningPricings={plans.ln}
-              currency={"SATs"}
-              setLightningPricings={setLightningPricings}
-            />
-          )}
-          {!enableFiat && !enableSC && !enableLightning && (
-            <div className="fit-container fx-centered border-all round-corner-m box-pad-h box-pad-v fx-centered fx-col fx-gap-v">
-              <h4>{t("A8YL3m4")}</h4>
-              <p className="p-secondary-c">{t("AVUI6uC")}</p>
+        </div>
+        <div className="fit-container fx-scattered box-pad-h-m box-pad-v-m round-corner-m border-all">
+          <p>{t("AHMARaK")}</p>
+          <Toggle status={enableLightning} setStatus={setEnableLightning} />
+        </div>
+        <div className="fit-container fx-scattered">
+          <h3 className="p-primary-c">{t("AO0OqWT")}</h3>
+          {enableSaving && (
+            <div className="slide-left">
+              <Button
+                size="m"
+                type="primary"
+                loading={isLoading}
+                label={t("A1IsKJ0")}
+                onClick={handleSave}
+              />
             </div>
           )}
-        </LoadingData>
-      </div>
-    </IsUserOnline>
+        </div>
+        {enableFiat && (
+          <FiatPricings
+            currency={currency}
+            setFiatPricings={setFiatPricings}
+            fiatPricings={plans.fiat}
+            handleArchivePrice={handleArchivePrice}
+          />
+        )}
+        {enableSC && (
+          <StableCoinsPricings
+            scPricings={plans.crypto}
+            setScPricings={setScPricings}
+            handleArchivePrice={handleArchivePrice}
+          />
+        )}
+        {enableLightning && (
+          <LightningPricings
+            lightningPricings={plans.ln}
+            currency={"SATs"}
+            setLightningPricings={setLightningPricings}
+          />
+        )}
+        {!enableFiat && !enableSC && !enableLightning && (
+          <div className="fit-container fx-centered border-all round-corner-m box-pad-h box-pad-v fx-centered fx-col fx-gap-v">
+            <h4>{t("A8YL3m4")}</h4>
+            <p className="p-secondary-c">{t("AVUI6uC")}</p>
+          </div>
+        )}
+      </LoadingData>
+    </>
   );
 }

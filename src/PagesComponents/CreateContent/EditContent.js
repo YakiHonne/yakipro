@@ -43,7 +43,6 @@ export default function EditContent() {
           setError("Article not found.");
           return;
         }
-        // Pick the most recent version
         const sorted = [...data].sort((a, b) => b.created_at - a.created_at);
         setEvent(sorted[0]);
       })

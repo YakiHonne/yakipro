@@ -1,6 +1,6 @@
 import axiosInstance from "@/Helpers/HTTP_Client";
 
-export const enableStripe = async ({ country }) => {
+export const enableStripe = async ({ country = "" }) => {
   try {
     const data = await axiosInstance.post("/api/v1/enable-stripe", { country });
     return data.data;

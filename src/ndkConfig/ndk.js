@@ -1,6 +1,5 @@
 import NDK from "@nostr-dev-kit/ndk";
 
-// Default relay list — add or remove relays as needed via env
 const DEFAULT_RELAYS = [
   "wss://relay.damus.io",
   "wss://relay.primal.net",
@@ -14,7 +13,6 @@ const relayUrls =
     ? process.env.NEXT_PUBLIC_NOSTR_RELAYS.split(",").map((r) => r.trim())
     : DEFAULT_RELAYS;
 
-// Singleton NDK instance — reused across the app
 let ndkInstance = null;
 
 export function getNDK() {

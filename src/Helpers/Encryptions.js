@@ -3,28 +3,15 @@ import * as secp from "@noble/secp256k1";
 import { finalizeEvent, nip04, nip44 } from "nostr-tools";
 import { BunkerSigner, parseBunkerInput } from "nostr-tools/nip46";
 
-/**
- * Convert a Uint8Array/Buffer to a hex string.
- */
 export const bytesTohex = (bytes) => Buffer.from(bytes).toString("hex");
 
-/**
- * Convert a hex string to a Uint8Array.
- */
 export const hexToBytes = (hex) => Uint8Array.from(Buffer.from(hex, "hex"));
 
-/**
- * Encode a hex key into a bech32 string (e.g. "npub1...", "nsec1...").
- */
 export const getBech32 = (prefix, hexKey) => {
   const words = bech32.toWords(hexToBytes(hexKey));
   return bech32.encode(prefix, words, 1000);
 };
 
-/**
- * Decode a bech32-encoded key to a hex string.
- * Accepts npub, nsec, nprofile, and naddr.
- */
 export const getHex = (bech32Key) => {
   try {
     const { words } = bech32.decode(bech32Key, 1000);
@@ -34,9 +21,6 @@ export const getHex = (bech32Key) => {
   }
 };
 
-/**
- * Check if a string is a valid 64-char hex private key.
- */
 export const isValidHexKey = (key) => {
   try {
     return /^[0-9a-f]{64}$/i.test(key) && secp.utils.isValidPrivateKey(key);
@@ -190,7 +174,7 @@ export const decrypt04UsingBunker = async (
   try {
     const bunkerPointer = await parseBunkerInput(userKeys.bunker);
     const bunker = BunkerSigner.fromBunker(
-      userKeys.localKeys.sec,
+      hexToUint8Array(userKeys.localKeys.sec),
       bunkerPointer,
       {
         onauth: (url) => {
@@ -219,7 +203,7 @@ export const encrypt04UsingBunker = async (
   try {
     const bunkerPointer = await parseBunkerInput(userKeys.bunker);
     const bunker = BunkerSigner.fromBunker(
-      userKeys.localKeys.sec,
+      hexToUint8Array(userKeys.localKeys.sec),
       bunkerPointer,
       {
         onauth: (url) => {
@@ -249,7 +233,7 @@ export const encrypt44UsingBunker = async (
   try {
     const bunkerPointer = await parseBunkerInput(userKeys.bunker);
     const bunker = BunkerSigner.fromBunker(
-      userKeys.localKeys.sec,
+      hexToUint8Array(userKeys.localKeys.sec),
       bunkerPointer,
       {
         onauth: (url) => {
@@ -279,7 +263,7 @@ export const decrypt44UsingBunker = async (
   try {
     const bunkerPointer = await parseBunkerInput(userKeys.bunker);
     const bunker = BunkerSigner.fromBunker(
-      userKeys.localKeys.sec,
+      hexToUint8Array(userKeys.localKeys.sec),
       bunkerPointer,
       {
         onauth: (url) => {
@@ -328,7 +312,7 @@ export const InitEvent = async ({
     } else if (userKeys.bunker) {
       const bunkerPointer = await parseBunkerInput(userKeys.bunker);
       const bunker = BunkerSigner.fromBunker(
-        userKeys.localKeys.sec,
+        hexToUint8Array(userKeys.localKeys.sec),
         bunkerPointer,
         {
           onauth: (url) => {

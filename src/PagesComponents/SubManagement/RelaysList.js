@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSelector, useDispatch } from "react-redux";
 import useUserRelays from "@/hooks/useUserRelays";
@@ -7,6 +7,7 @@ import useRelaysAccess from "@/hooks/useRelaysAccess";
 import useAllowedRelays from "@/hooks/useAllowedRelays";
 import Icon from "@/Components/Icon";
 import Button from "@/Components/UI/Button";
+import Spinner from "@/Components/Spinner";
 import LoadingScreen from "@/Components/LoadingScreen";
 import axios from "axios";
 import Overlay from "@/Components/Overlay";
@@ -15,6 +16,9 @@ import { setUserRelays } from "@/Store/Slices/UserData";
 import { setUserRelaysCache } from "@/Cache/userRelaysCache";
 import { setToast } from "@/Store/Slices/Extras";
 import { InitEvent } from "@/Helpers/Encryptions";
+import { getPremiumRelayInviteCode } from "@/Endpoionts/Relays";
+
+const PREMIUM_RELAY = process.env.NEXT_PUBLIC_PREMIUM_RELAY;
 
 const RelayRow = ({ relayUrl, isDiscovery = false }) => {
   const { t } = useTranslation();
@@ -42,6 +46,38 @@ const RelayRow = ({ relayUrl, isDiscovery = false }) => {
   const isPremium = relayMetadata?.supported_nips?.includes(63);
   const isAlreadyAdded = userRelays.find((r) => r.url === relayUrl);
   const isDelegated = allowedRelays?.delegation_list?.includes(relayUrl);
+
+  const isAutoManaged = !isDiscovery && relayUrl === PREMIUM_RELAY;
+  const autoRanRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      !isAutoManaged ||
+      !isMembershipRequired ||
+      isRelayAccessLoading ||
+      isAllowedLoading ||
+      autoRanRef.current
+    ) {
+      return;
+    }
+
+    autoRanRef.current = true;
+    (isMember
+      ? isDelegated
+        ? Promise.resolve()
+        : onAllowDelegation()
+      : onAutoJoin()
+    ).finally(() => {
+      autoRanRef.current = false;
+    });
+  }, [isAutoManaged, isMembershipRequired, isMember, isDelegated, isRelayAccessLoading, isAllowedLoading]);
+
+  const onAutoJoin = async () => {
+    const inviteCode = await getPremiumRelayInviteCode();
+    if (inviteCode) {
+      await handleJoinRequest(inviteCode);
+    }
+  };
 
   const onAllowDelegation = async () => {
     const accessCode = await handleRequestCode();
@@ -137,11 +173,14 @@ const RelayRow = ({ relayUrl, isDiscovery = false }) => {
           {isPremium && <Icon name="crown" size={20} />}
           {isPremium && isMembershipRequired && (
             <div className="fx-centered fx-gap-h">
-              {isMember ? (
+              {isRelayAccessLoading || isAllowedLoading ? (
+                <Spinner size={20} />
+              ) : isAutoManaged ? (
+                isMember && isDelegated ? null : <Spinner size={20} />
+              ) : isMember ? (
                 isDiscovery ? (
                   <Button
                     label={isAlreadyAdded ? "Added" : "Add relay"}
-                    size="s"
                     type={isAlreadyAdded ? "gray" : "primary"}
                     disabled={isAlreadyAdded}
                     loading={isAddingRelay}
@@ -151,10 +190,8 @@ const RelayRow = ({ relayUrl, isDiscovery = false }) => {
                   !isDelegated && (
                     <Button
                       label="Allow delegation"
-                      size="s"
                       type="gray"
                       onClick={onAllowDelegation}
-                      loading={isAllowedLoading || isRelayAccessLoading}
                     />
                   )
                 )
@@ -239,10 +276,46 @@ const RelayRow = ({ relayUrl, isDiscovery = false }) => {
 
 export default function RelaysList() {
   const { t } = useTranslation();
+  const dispatch = useDispatch();
   const { userRelays, loading } = useUserRelays();
   const [showNewRelays, setShowNewRelays] = useState(false);
   const [newRelays, setNewRelays] = useState([]);
   const [isFetchingNew, setIsFetchingNew] = useState(false);
+  const autoAddRanRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      !PREMIUM_RELAY ||
+      loading ||
+      autoAddRanRef.current ||
+      userRelays.some((r) => r.url === PREMIUM_RELAY)
+    ) {
+      return;
+    }
+
+    autoAddRanRef.current = true;
+    (async () => {
+      const newRelayObj = { url: PREMIUM_RELAY, read: true, write: true };
+      const updatedRelays = [...userRelays, newRelayObj];
+      const tags = updatedRelays.map((r) =>
+        [
+          "r",
+          r.url,
+          r.read && r.write ? undefined : r.read ? "read" : "write",
+        ].filter(Boolean),
+      );
+      const event = { kind: 10002, tags, content: "" };
+      const eventInitEx = await InitEvent(event);
+      if (!eventInitEx) return;
+      const success = await publishEvent(eventInitEx);
+      if (success) {
+        dispatch(setUserRelays(updatedRelays));
+        setUserRelaysCache(updatedRelays);
+      }
+    })().finally(() => {
+      autoAddRanRef.current = false;
+    });
+  }, [userRelays, loading]);
 
   const handleFetchNewRelays = async () => {
     setIsFetchingNew(true);
@@ -259,7 +332,7 @@ export default function RelaysList() {
     }
   };
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <LoadingScreen height="300" />;
 
   return (
     <div className="fit-container box-pad-h-m box-pad-v-m fx-gap-v-m fx-col no-scrollbar">
@@ -278,11 +351,7 @@ export default function RelaysList() {
       {showNewRelays && (
         <Overlay exit={() => setShowNewRelays(false)}>
           <div
-            className="bg-main-c box-pad-h box-pad-v fx-centered fx-gap-v-l fx-col slide-up"
-            style={{
-              maxHeight: "80vh",
-              overflowY: "auto",
-            }}
+            className="box-pad-h box-pad-v fx-centered fx-gap-v-l fx-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="fit-container fx-scattered">

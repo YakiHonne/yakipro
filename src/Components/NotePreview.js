@@ -2,7 +2,6 @@ import React, { Fragment } from "react";
 import Nip19Preview from "@/Components/Nip19Preview";
 import LinkPreview from "@/Components/LinkPreview";
 
-// ─── Regex helpers (mirrored from YakiV5 ClientHelpers) ──────────────────────
 const nostrSchemaRegex =
   /\b(naddr1|note1|nevent1|npub1|nprofile1|nsec1|nrelay1)[a-zA-Z0-9]+\b/;
 
@@ -40,7 +39,6 @@ const doesContainNostrSchema = (url) => {
   }
 };
 
-/** Is this a YouTube or Vimeo URL? Returns { isYT, videoId } or false */
 function isVid(url) {
   const regex =
     /(?:https?:\/\/)?(?:www\.)?(?:youtu(?:\.be|be\.com)\/(?:watch\?v=|embed\/)?|vimeo\.com\/)([^?&]+)/;
@@ -54,7 +52,6 @@ function isVid(url) {
   return false;
 }
 
-/** Returns { type: 'image' | 'video' } or false */
 function isImageUrl(url) {
   try {
     if (/^data:image/.test(url)) return { type: "image" };
@@ -84,8 +81,6 @@ function isImageUrl(url) {
 function isRelayUrl(el) {
   return /^wss?:\/\/.+/.test(el);
 }
-
-// ─── Inline renderers ─────────────────────────────────────────────────────────
 
 function RenderImage({ src, key }) {
   return (
@@ -186,7 +181,6 @@ function RenderAudio({ src, key }) {
   );
 }
 
-/** Renders a Nostr entity (npub, nprofile, naddr, note, nevent) with live fetching */
 function RenderNostrEntity({ addr, key }) {
   return (
     <Fragment key={key}>
@@ -277,7 +271,6 @@ function RenderText({ text, key }) {
   );
 }
 
-// ─── Core builder (ported from YakiV5 getNoteTree) ────────────────────────────
 export function getNoteTree(content, minimal = false) {
   if (!content) return null;
 
@@ -294,7 +287,6 @@ export function getNoteTree(content, minimal = false) {
     const key = `${el}-${i}`;
     if (!el) continue;
 
-    // ── Newlines ────────────────────────────────────────────────────────────
     if (el === "\n") {
       const last1 = result[result.length - 1];
       const last2 = result[result.length - 2];
@@ -304,7 +296,6 @@ export function getNoteTree(content, minimal = false) {
       continue;
     }
 
-    // ── URLs ─────────────────────────────────────────────────────────────────
     if (
       /(https?:\/\/)/i.test(el) ||
       el.startsWith("data:image") ||
@@ -313,7 +304,6 @@ export function getNoteTree(content, minimal = false) {
       const cleanUrl = el.replace(/[.,|']+$/, "");
 
       if (!minimal) {
-        // YouTube / Vimeo
         const platformVid = isVid(cleanUrl);
         if (platformVid) {
           if (platformVid.isYT)
@@ -323,7 +313,6 @@ export function getNoteTree(content, minimal = false) {
           continue;
         }
 
-        // Image / Video by extension / CDN heuristic
         const checkURL = isImageUrl(cleanUrl);
         if (checkURL) {
           if (checkURL.type === "image")
@@ -333,7 +322,6 @@ export function getNoteTree(content, minimal = false) {
           continue;
         }
 
-        // Audio
         if (
           cleanUrl.includes(".mp3") ||
           cleanUrl.includes(".ogg") ||
@@ -343,7 +331,6 @@ export function getNoteTree(content, minimal = false) {
           continue;
         }
 
-        // Nostr entity embedded in a URL (e.g. yakihonne.com/article/naddr1…)
         if (doesContainNostrSchema(cleanUrl)) {
           const cleanPart = cleanUrl.match(nostrSchemaRegex)?.[0];
           if (cleanPart) {
@@ -352,7 +339,6 @@ export function getNoteTree(content, minimal = false) {
           }
         }
 
-        // Plain link
         result.push(<RenderLink url={cleanUrl} key={key} />);
       } else {
         result.push(<RenderLink url={cleanUrl} key={key} />);
@@ -360,13 +346,11 @@ export function getNoteTree(content, minimal = false) {
       continue;
     }
 
-    // ── Relay URLs (wss:// / ws://) ─────────────────────────────────────────
     if (isRelayUrl(el)) {
       result.push(<RenderRelayUrl url={el} key={key} />);
       continue;
     }
 
-    // ── Nostr entities in text (npub1 / nprofile1 / nevent1 / note1 / naddr1)
     if (
       (el.includes("naddr") ||
         el.includes("nprofile") ||
@@ -408,7 +392,6 @@ export function getNoteTree(content, minimal = false) {
       continue;
     }
 
-    // Bare nostr schema token
     if (el.match(nostrSchemaRegex)?.[0]) {
       result.push(
         <RenderNostrEntity
@@ -419,13 +402,11 @@ export function getNoteTree(content, minimal = false) {
       continue;
     }
 
-    // ── Lightning invoices ──────────────────────────────────────────────────
     if (el.toLowerCase().startsWith("lnbc") && el.length > 30) {
       result.push(<RenderLnbc lnbc={el} key={key} />);
       continue;
     }
 
-    // ── Hashtags ────────────────────────────────────────────────────────────
     if (el.startsWith("#") && el.length > 1) {
       const match = el.match(/(#+)([^\s#]+)/);
       if (match) {
@@ -434,14 +415,12 @@ export function getNoteTree(content, minimal = false) {
       }
     }
 
-    // ── Plain text ──────────────────────────────────────────────────────────
     result.push(<RenderText text={el} key={key} />);
   }
 
   return result;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 export default function NotePreview({ content, minimal = false }) {
   if (!content) return null;
 

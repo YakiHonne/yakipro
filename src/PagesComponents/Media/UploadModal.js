@@ -1,10 +1,12 @@
 import Spinner from "@/Components/Spinner";
+import Icon from "@/Components/Icon";
 import {
   generateAuthorizationHeaderForBlossomServer,
   getHashFromFile,
 } from "@/Helpers/Helpers";
 import axios from "axios";
 import { useRef, useState } from "react";
+import Overlay from "@/Components/Overlay";
 
 function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`;
@@ -85,49 +87,17 @@ export default function UploadModal({ servers, refreshLists, exit }) {
   };
 
   return (
-    <div
-      className="fx-centered"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.5)",
-        zIndex: 1000,
-        padding: "16px",
-      }}
-      onClick={exit}
-    >
-      <div
-        style={{
-          background: "var(--color-primary-bg)",
-          borderRadius: "var(--radius-xl)",
-          width: "100%",
-          maxWidth: "520px",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-        className="border-all"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Overlay exit={exit} width={520}>
+      <div>
         {/* Header */}
         <div
           className="fx-scattered fx-centered box-pad-h-m box-pad-v-s"
           style={{ borderBottom: "1px solid var(--color-divider)" }}
         >
           <h4 style={{ margin: 0 }}>Upload media</h4>
-          <button
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "1.4rem",
-              color: "var(--color-secondary-text)",
-              lineHeight: 1,
-            }}
-            onClick={exit}
-          >
-            ×
-          </button>
+          <div className="close" onClick={exit}>
+            <div />
+          </div>
         </div>
 
         <div
@@ -150,9 +120,7 @@ export default function UploadModal({ servers, refreshLists, exit }) {
             style={{
               border: `2px dashed ${isDragging ? "var(--color-primary-accent)" : "var(--color-divider)"}`,
               borderRadius: "var(--radius-lg)",
-              background: isDragging
-                ? "var(--color-primary-light)"
-                : "var(--color-primary-bg-side)",
+              background: isDragging ? "var(--color-primary-light)" : "transparent",
               minHeight: "180px",
               display: "flex",
               flexDirection: "column",
@@ -167,7 +135,7 @@ export default function UploadModal({ servers, refreshLists, exit }) {
           >
             {!file ? (
               <>
-                <span style={{ fontSize: "2rem" }}>☁️</span>
+                <Icon name="cloud_upload" v={2} size={36} />
                 <p style={{ margin: 0, fontWeight: 500 }}>
                   Drop a file or click to browse
                 </p>
@@ -267,7 +235,7 @@ export default function UploadModal({ servers, refreshLists, exit }) {
                       gap: "10px",
                       padding: "10px 14px",
                       borderRadius: "var(--radius-md)",
-                      border: `1px solid ${checked ? "var(--color-primary-light)" : "var(--color-divider)"}`,
+                      border: `1px solid ${checked ? "var(--color-primary-accent)" : "var(--color-divider)"}`,
                       cursor: isLoading ? "default" : "pointer",
                       transition: "all 0.15s",
                     }}
@@ -304,12 +272,30 @@ export default function UploadModal({ servers, refreshLists, exit }) {
                         {pct}%
                       </span>
                     )}
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => {}}
-                      style={{ accentColor: "var(--color-primary-accent)" }}
-                    />
+                    <div
+                      style={{
+                        width: "18px",
+                        height: "18px",
+                        flexShrink: 0,
+                        borderRadius: "4px",
+                        border: `1.5px solid ${checked ? "var(--color-primary-accent)" : "var(--color-divider)"}`,
+                        background: checked ? "var(--color-primary-accent)" : "transparent",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      {checked && (
+                        <Icon
+                          name="check"
+                          v={2}
+                          size={12}
+                          isColored
+                          className="checkbox-check-icon"
+                        />
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -339,6 +325,6 @@ export default function UploadModal({ servers, refreshLists, exit }) {
           </div>
         </div>
       </div>
-    </div>
+    </Overlay>
   );
 }

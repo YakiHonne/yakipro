@@ -63,9 +63,9 @@ export default function MediaPage() {
     let list =
       selectedServer !== null
         ? (blobs[selectedServer] || []).map((b) => ({
-            ...b,
-            seen: allBlobs.find((a) => a.sha256 === b.sha256)?.seen || [],
-          }))
+          ...b,
+          seen: allBlobs.find((a) => a.sha256 === b.sha256)?.seen || [],
+        }))
         : allBlobs;
 
     if (search.trim()) {
@@ -90,75 +90,76 @@ export default function MediaPage() {
       )}
 
       <div
-        className="fit-container fx-col fx-start-v fx-start-h box-pad-h box-pad-v no-scrollbar border-right"
-        style={{ gap: "20px", height: "100vh", overflowY: "scroll" }}
+        className="fit-container fx-col fx-start-v fx-start-h box-pad-h box-pad-v no-scrollbar"
+        style={{ gap: "20px" }}
       >
         {/* Page header */}
         <div className="fit-container fx-scattered">
           <div>
-            <h3 style={{ margin: 0 }}>Media uploads</h3>
-            <p className="p-secondary-c" style={{ margin: "4px 0 0" }}>
-              Manage your files across Blossom servers
-            </p>
+            <h1 style={{ margin: 0 }}>Media uploads</h1>
+
           </div>
-          <Button
-            onClick={() => setShowUpload(true)}
-            size="m"
-            label="Upload"
-            leftIcon={"plus"}
-            disabled={userBlossomServers.length === 0}
-          />
+          <div className="fx-centered fx-gap-h">
+            {userBlossomServers.length > 0 && (
+              <Select
+                value={selectedServer ?? "__all__"}
+                onChange={(v) => setSelectedServer(v === "__all__" ? null : v)}
+                options={[
+                  {
+                    value: "__all__",
+                    display_name: (
+                      <div
+                        className="fx-centered fx-start-h"
+                        style={{ gap: "8px" }}
+                      >
+                        <span>All</span>
+                        <span className="border-all box-pad-h-xs p-medium round-corner bg-secondary-c">
+                          {allBlobs.length}
+                        </span>
+                      </div>
+                    ),
+                  },
+                  ...userBlossomServers.map((server, i) => ({
+                    value: server,
+                    display_name: (
+                      <div
+                        className="fx-centered fx-start-h"
+                        style={{ gap: "8px" }}
+                      >
+                        <span
+                          style={{
+                            width: "10px",
+                            height: "10px",
+                            borderRadius: "50%",
+                            background: blossomColors[i],
+                            flexShrink: 0,
+                            display: "inline-block",
+                          }}
+                        />
+                        <span>{new URL(server).hostname}</span>
+                        {(blobs[server] || []).length > 0 && (
+                          <span className="border-all box-pad-h-xs p-medium round-corner bg-secondary-c">
+                            {(blobs[server] || []).length}
+                          </span>
+                        )}
+                      </div>
+                    ),
+                  })),
+                ]}
+              />
+            )}
+            <Button
+              onClick={() => setShowUpload(true)}
+              size="m"
+              label="Upload"
+              leftIcon={"plus"}
+              disabled={userBlossomServers.length === 0}
+            />
+          </div>
         </div>
 
         {/* Server filter */}
-        {userBlossomServers.length > 0 && (
-          <Select
-            value={selectedServer ?? "__all__"}
-            onChange={(v) => setSelectedServer(v === "__all__" ? null : v)}
-            options={[
-              {
-                value: "__all__",
-                display_name: (
-                  <div
-                    className="fx-centered fx-start-h"
-                    style={{ gap: "8px" }}
-                  >
-                    <span>All</span>
-                    <span className="border-all box-pad-h-xs p-medium round-corner bg-secondary-c">
-                      {allBlobs.length}
-                    </span>
-                  </div>
-                ),
-              },
-              ...userBlossomServers.map((server, i) => ({
-                value: server,
-                display_name: (
-                  <div
-                    className="fx-centered fx-start-h"
-                    style={{ gap: "8px" }}
-                  >
-                    <span
-                      style={{
-                        width: "10px",
-                        height: "10px",
-                        borderRadius: "50%",
-                        background: blossomColors[i],
-                        flexShrink: 0,
-                        display: "inline-block",
-                      }}
-                    />
-                    <span>{new URL(server).hostname}</span>
-                    {(blobs[server] || []).length > 0 && (
-                      <span className="border-all box-pad-h-xs p-medium round-corner bg-secondary-c">
-                        {(blobs[server] || []).length}
-                      </span>
-                    )}
-                  </div>
-                ),
-              })),
-            ]}
-          />
-        )}
+
 
         {/* Storage title + Search */}
         {allBlobs.length > 0 && (

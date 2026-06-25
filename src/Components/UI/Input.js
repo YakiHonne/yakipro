@@ -16,26 +16,20 @@ export default function Input({
   const handleOnChange = (e) => {
     let val = e.target.value;
     if (type === "number") {
-      // Allow only digits and decimal point
       val = val.replace(/[^0-9.]/g, "");
 
-      // Prevent multiple decimal points
       const parts = val.split(".");
       if (parts.length > 2) {
         val = parts[0] + "." + parts.slice(1).join("");
       }
 
-      // Remove leading zeros ("01" -> "1") but preserve "0.x"
       if (val.length > 1 && val.startsWith("0") && val[1] !== ".") {
         val = val.replace(/^0+/, "");
       }
 
-      // If the value is a valid numeric string, we convert to number
-      // but we skip the conversion if it ends with "." to allow typing "1."
       if (val !== "" && !val.endsWith(".")) {
         onChange && onChange(parseFloat(val));
       } else {
-        // Pass empty string or "0" if that's the current state
         onChange && onChange(val === "" ? "" : val);
       }
     } else {

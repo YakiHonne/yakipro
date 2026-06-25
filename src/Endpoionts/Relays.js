@@ -26,3 +26,18 @@ export const addAllowedRelays = async ({
     return false;
   }
 };
+
+export const getPremiumRelayInviteCode = async () => {
+  try {
+    const { data } = await axiosInstance.get(
+      `/api/v1/premium-relay/invite-code`,
+    );
+    return data.code;
+  } catch (err) {
+    if (err?.response?.status === 404) {
+      return null;
+    }
+    console.log(err);
+    return false;
+  }
+};

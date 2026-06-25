@@ -85,7 +85,6 @@ export default function ArticlePublishModal({
       >
         <h4>Publish Article</h4>
 
-        {/* Cover image */}
         <div className="fit-container fx-col" style={{ gap: "8px" }}>
           <p className="p-bold">Cover image</p>
           <div className="fx-centered" style={{ gap: "12px" }}>
@@ -120,7 +119,6 @@ export default function ArticlePublishModal({
           )}
         </div>
 
-        {/* Summary */}
         <div className="fit-container fx-col" style={{ gap: "8px" }}>
           <p className="p-bold">Summary</p>
           <textarea
@@ -133,7 +131,6 @@ export default function ArticlePublishModal({
           />
         </div>
 
-        {/* Tags */}
         <div className="fit-container fx-col" style={{ gap: "8px" }}>
           <p className="p-bold">Tags</p>
           <input
@@ -145,7 +142,6 @@ export default function ArticlePublishModal({
           />
         </div>
 
-        {/* Actions */}
         <div className="fit-container fx-scattered">
           <button
             className="btn btn-gst"

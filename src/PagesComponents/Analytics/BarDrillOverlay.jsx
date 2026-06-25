@@ -17,8 +17,6 @@ import { getSubData } from "@/Helpers/Helpers";
 import Overlay from "@/Components/Overlay";
 import Icon from "@/Components/Icon";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function intervalLabel(dateStr, bucket) {
   const d = parseISO(dateStr);
   if (bucket === "day") return format(d, "MMMM d, yyyy");
@@ -50,15 +48,11 @@ function eventLink(event) {
   }
 }
 
-// ─── Meta per chart type ──────────────────────────────────────────────────────
-
 const TYPE_META = {
   zaps:      { icon: "bolt-bold", color: "#f59e0b", unit: "sats" },
   reactions: { icon: "heart",     color: "#f59e0b", unit: "reactions" },
   notes:     { icon: "note-bold", color: "#6366f1", unit: "posts" },
 };
-
-// ─── Fetch full NDK events for a list of eventIds ────────────────────────────
 
 async function fetchNDKEvents(eventIds) {
   if (!eventIds.length) return new Map();
@@ -71,8 +65,6 @@ async function fetchNDKEvents(eventIds) {
   for (const e of data) map.set(e.id, e);
   return map;
 }
-
-// ─── Single content card ─────────────────────────────────────────────────────
 
 function ContentCard({ row, ndkEvent, type }) {
   const isArticle = row.kind === 30023 || row.kind === 30024;
@@ -106,7 +98,6 @@ function ContentCard({ row, ndkEvent, type }) {
       onMouseEnter={(e) => { if (link) e.currentTarget.style.opacity = "0.8"; }}
       onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
     >
-      {/* Top row: kind pill + date */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
         <span
           style={{
@@ -127,7 +118,6 @@ function ContentCard({ row, ndkEvent, type }) {
         </span>
       </div>
 
-      {/* Title (articles) or content preview (notes) */}
       {isArticle && title ? (
         <p style={{ margin: 0, fontWeight: 600, fontSize: "0.9rem", lineHeight: 1.4 }} className="p-medium-c">
           {title}
@@ -154,7 +144,6 @@ function ContentCard({ row, ndkEvent, type }) {
         </p>
       )}
 
-      {/* Stats row — highlight the window-specific value for the active chart type */}
       <div style={{ display: "flex", gap: "1rem", marginTop: "0.25rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
           <Icon name="heart" size={13} />
@@ -189,19 +178,15 @@ function ContentCard({ row, ndkEvent, type }) {
   );
 }
 
-// ─── Main overlay ─────────────────────────────────────────────────────────────
-
 export default function BarDrillOverlay({ drill, pubkey, onClose }) {
   const { title, type, dateStr, bucket, value } = drill;
   const [since, until] = intervalBounds(dateStr, bucket);
   const [ndkEvents, setNdkEvents] = useState(new Map());
 
-  // ── Query Dexie for relevant rows ─────────────────────────────────────────
   const rows = useLiveQuery(async () => {
     if (!pubkey) return [];
 
     if (type === "notes") {
-      // Posts published in this exact time window
       const r = await analyticsDb.contentStats
         .where("authorPubkey").equals(pubkey)
         .filter((row) => row.publishedAt >= since && row.publishedAt <= until)
@@ -209,8 +194,6 @@ export default function BarDrillOverlay({ drill, pubkey, onClose }) {
       return r.sort((a, b) => b.publishedAt - a.publishedAt);
     }
 
-    // For reactions + zaps: query statEvents by createdAt window,
-    // then group by contentEventId summing values, join with contentStats
     const statType = type === "reactions" ? "reaction" : "zap";
 
     const statRows = await analyticsDb.statEvents
@@ -220,26 +203,22 @@ export default function BarDrillOverlay({ drill, pubkey, onClose }) {
 
     if (statRows.length === 0) return [];
 
-    // Aggregate value per content event in this window
-    const totals = new Map(); // contentEventId → summed value
+    const totals = new Map();
     for (const r of statRows) {
       totals.set(r.contentEventId, (totals.get(r.contentEventId) || 0) + r.value);
     }
 
-    // Fetch the matching contentStats rows (only those authored by this pubkey)
     const contentIds = Array.from(totals.keys());
     const contentRows = await analyticsDb.contentStats
       .where("eventId").anyOf(contentIds)
       .filter((r) => r.authorPubkey === pubkey)
       .toArray();
 
-    // Attach the window-specific value so the card can show it
     return contentRows
       .map((r) => ({ ...r, _windowValue: totals.get(r.eventId) || 0 }))
       .sort((a, b) => b._windowValue - a._windowValue);
   }, [pubkey, since, until, type]);
 
-  // ── Fetch full NDK events for content rendering ───────────────────────────
   useEffect(() => {
     if (!rows || rows.length === 0) return;
     const ids = rows.map((r) => r.eventId);
@@ -252,7 +231,6 @@ export default function BarDrillOverlay({ drill, pubkey, onClose }) {
 
   return (
     <Overlay exit={onClose} width={540}>
-      {/* Header */}
       <div
         className="border-bottom-p box-pad-h box-pad-v-m"
         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem" }}
@@ -290,7 +268,6 @@ export default function BarDrillOverlay({ drill, pubkey, onClose }) {
         </div>
       </div>
 
-      {/* List */}
       <div
         className="box-pad-h box-pad-v-m"
         style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}

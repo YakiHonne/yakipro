@@ -29,24 +29,17 @@ export default function CreateContent() {
       className="fit-container box-pad-h-m box-pad-v-m fx-col no-scrollbar"
       style={{ height: "100dvh", overflow: "scroll", gap: "1.5rem" }}
     >
-      {/* Page header */}
-      <div>
-        <h1>Create content</h1>
-        <p className="gray-c">
-          Write and publish notes or long-form articles to Nostr.
-        </p>
+
+      <div className="fx-centered">
+        <div>
+          <SelectTabs
+            tabs={["Notes", "Articles"]}
+            selectedTab={activeSection}
+            setSelectedTab={setActiveSection}
+          />
+        </div>
       </div>
 
-      {/* Section selector */}
-      <div className="fx-centered fx-start-h">
-        <SelectTabs
-          tabs={["Notes", "Articles"]}
-          selectedTab={activeSection}
-          setSelectedTab={setActiveSection}
-        />
-      </div>
-
-      {/* Section content */}
       {activeSection === 0 && <NoteEditor />}
       {activeSection === 1 && <ArticleEditorV2 />}
     </div>

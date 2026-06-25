@@ -7,8 +7,6 @@ import Icon from "@/Components/Icon";
 import Button from "@/Components/UI/Button";
 import Spinner from "@/Components/Spinner";
 
-// ─── Resolve a raw query string to a hex pubkey (npub/nprofile/hex) ───────────
-
 function resolveQueryToPubkey(query) {
   const trimmed = query.trim();
   try {
@@ -26,8 +24,6 @@ function resolveQueryToPubkey(query) {
   if (/^[0-9a-f]{64}$/i.test(trimmed)) return trimmed;
   return null;
 }
-
-// ─── Single user result row ───────────────────────────────────────────────────
 
 function UserResult({ profile, pubkey, onAdd, isAdding, alreadyAdded }) {
   return (
@@ -74,8 +70,6 @@ function UserResult({ profile, pubkey, onAdd, isAdding, alreadyAdded }) {
   );
 }
 
-// ─── Main overlay ─────────────────────────────────────────────────────────────
-
 export default function AddSubscriberOverlay({
   exit,
   onAdd,
@@ -101,8 +95,6 @@ export default function AddSubscriberOverlay({
       const pubkey = resolveQueryToPubkey(trimmed);
 
       if (pubkey) {
-        // Pubkey / nip19 — fetch kind 0 directly from relays
-
         const res = await saveUsers([pubkey]);
         if (res.length === 0) {
           setResults([]);
@@ -112,7 +104,6 @@ export default function AddSubscriberOverlay({
         const user = res[0];
         setResults([{ pubkey: user.pubkey, profile: user }]);
       } else {
-        // Name search — use the cache API (different base URL from axiosInstance)
         const { data } = await axiosInstance.get(
           `https://cache-v2.yakihonne.com/api/v1/users/search/${encodeURIComponent(trimmed)}`,
         );
@@ -165,7 +156,6 @@ export default function AddSubscriberOverlay({
           <h3 style={{ margin: 0 }}>Add subscriber</h3>
         </div>
 
-        {/* Search input */}
         <div
           className="if if-full fx-centered fx-gap-h-s"
           style={{ position: "relative" }}
@@ -191,14 +181,12 @@ export default function AddSubscriberOverlay({
           )}
         </div>
 
-        {/* Error */}
         {error && (
           <p className="p-secondary-c p-medium" style={{ textAlign: "center" }}>
             {error}
           </p>
         )}
 
-        {/* Results */}
         {results.length > 0 && (
           <div
             className="fx-col fx-gap-v fit-container"
@@ -217,7 +205,6 @@ export default function AddSubscriberOverlay({
           </div>
         )}
 
-        {/* Empty prompt */}
         {results.length === 0 && !error && !isSearching && (
           <p
             className="p-secondary-c p-medium"

@@ -27,7 +27,6 @@ export const store = configureStore({
     nostrUser: NostrUserReducer,
     isConnected: IsConnectedReducer,
     loadingConnectedUser: LoadingConnectedUserReducer,
-    // User
     userKeys: UserKeysReducer,
     userMetadata: UserMetadataReducer,
     userRelays: UserRelaysReducer,
@@ -36,15 +35,11 @@ export const store = configureStore({
     userBookmarks: UserBookmarksReducer,
     userInterestList: UserInterestListReducer,
     userBlossomServers: UserBlossomServersReducer,
-    // App
     isDarkMode: IsDarkModeReducer,
     toast: ToastReducer,
     nostrAuthors: NostrAuthorsReducer,
-    // Publishers
     publishers: PublishersReducer,
-    // Analytics
     analytics: AnalyticsReducer,
-    // Subscription
     subscription: SubscriptionReducer,
   },
 });

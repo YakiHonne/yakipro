@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import Icon from "@/Components/Icon";
 import { useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 
 // ─── Scroll-reveal hook ───────────────────────────────────────────────────────
 function useReveal() {
@@ -111,6 +112,7 @@ function HeroCanvas() {
 
 // ─── Nav ──────────────────────────────────────────────────────────────────────
 function Nav() {
+  const { t } = useTranslation();
   const userKeys = useSelector((state) => state.userKeys);
   const isConnected = useSelector((state) => state.isConnected);
   const authed = !!(userKeys || isConnected);
@@ -140,16 +142,16 @@ function Nav() {
       </Link>
       <div className="lp-nav-links">
         <a href="#analytics" className="lp-nav-link">
-          Analytics
+          {t("ALPg007")}
         </a>
         <a href="#ai-tools" className="lp-nav-link">
-          AI Tools
+          {t("ALPg008")}
         </a>
         <a href="#monetize" className="lp-nav-link">
-          Monetize
+          {t("ALPg009")}
         </a>
         <Link href="/pricing" className="lp-nav-link">
-          Pricing
+          {t("ALog013")}
         </Link>
       </div>
       <div className="lp-nav-actions">
@@ -157,47 +159,16 @@ function Nav() {
           href={authed ? "/home" : "/login"}
           className="lp-btn lp-btn-outline lp-btn-sm"
         >
-          {authed ? "Dashboard" : "Sign in"}
+          {authed ? t("ALPg011") : t("ALPg010")}
         </Link>
         <Link
           href="/create-content"
           className="lp-btn lp-btn-primary lp-btn-sm"
         >
-          Start writing
+          {t("ALPg012")}
         </Link>
       </div>
     </nav>
-  );
-}
-
-// ─── Feature ticker ───────────────────────────────────────────────────────────
-const TICKER_ITEMS = [
-  { icon: "✦", label: "AI Writing Assistant" },
-  { icon: "✦", label: "Second Reader AI — 5 personas" },
-  { icon: "⚡", label: "Energy Mapper — note emotion graph" },
-  { icon: "📊", label: "Creator Analytics" },
-  { icon: "⚡", label: "Lightning Monetization" },
-  { icon: "🔑", label: "Nostr-native identity" },
-  { icon: "📰", label: "Articles & Notes" },
-  { icon: "☁️", label: "Blossom Media Storage" },
-  { icon: "👥", label: "Subscriber Management" },
-  { icon: "🛡️", label: "Censorship-resistant publishing" },
-  { icon: "₿", label: "Bitcoin-native payments" },
-];
-
-function Ticker() {
-  const doubled = [...TICKER_ITEMS, ...TICKER_ITEMS];
-  return (
-    <div className="lp-ticker-wrap">
-      <div className="lp-ticker">
-        {doubled.map((item, i) => (
-          <div key={i} className="lp-ticker-item">
-            <span className="lp-ticker-item-icon">{item.icon}</span>
-            {item.label}
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -233,7 +204,6 @@ function EditorMockup() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ color: "#f97316" }}>✦</span>
             <span
               style={{
                 fontSize: "0.72rem",
@@ -249,6 +219,9 @@ function EditorMockup() {
           <div style={{ display: "flex", gap: 6 }}>
             <button
               style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
                 padding: "2px 10px",
                 borderRadius: 4,
                 fontSize: "0.68rem",
@@ -260,10 +233,14 @@ function EditorMockup() {
                 fontFamily: "inherit",
               }}
             >
-              ✓ Accept all
+              <Icon name="check" v={2} size={10} className="lp-icon-white" />
+              Accept all
             </button>
             <button
               style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
                 padding: "2px 10px",
                 borderRadius: 4,
                 fontSize: "0.68rem",
@@ -275,7 +252,8 @@ function EditorMockup() {
                 fontFamily: "inherit",
               }}
             >
-              ✕ Reject all
+              <Icon name="close_md" v={2} size={10} />
+              Reject all
             </button>
           </div>
         </div>
@@ -347,6 +325,9 @@ function EditorMockup() {
             >
               <button
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
                   padding: "3px 12px",
                   borderRadius: 4,
                   fontSize: "0.75rem",
@@ -358,10 +339,14 @@ function EditorMockup() {
                   fontFamily: "inherit",
                 }}
               >
-                ✓ Accept
+                <Icon name="check" v={2} size={11} className="lp-icon-white" />
+                Accept
               </button>
               <button
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
                   padding: "3px 12px",
                   borderRadius: 4,
                   fontSize: "0.75rem",
@@ -373,7 +358,8 @@ function EditorMockup() {
                   fontFamily: "inherit",
                 }}
               >
-                ✕ Reject
+                <Icon name="close_md" v={2} size={11} />
+                Reject
               </button>
             </div>
           </div>
@@ -411,7 +397,6 @@ function AnalyticsMockup() {
   const maxV = 120;
   const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-  // Mirrors real StatCard: border-all round-corner, label uppercase, value 2rem bold
   const StatCard = ({ label, value }) => (
     <div
       style={{
@@ -448,7 +433,6 @@ function AnalyticsMockup() {
     </div>
   );
 
-  // Mirrors PeriodTabs exactly: amber active, dark bg inactive
   const PeriodTab = ({ label, active }) => (
     <button
       style={{
@@ -482,7 +466,6 @@ function AnalyticsMockup() {
         borderRadius: 0,
       }}
     >
-      {/* Stat cards row — mirrors grid auto-fit minmax(180px,1fr) */}
       <div
         style={{
           display: "grid",
@@ -496,7 +479,6 @@ function AnalyticsMockup() {
         <StatCard label="Reactions" value="2,047" />
       </div>
 
-      {/* Sats Earned chart card — mirrors border-all round-corner + padding 1.25rem */}
       <div
         style={{
           padding: "16px 20px",
@@ -505,7 +487,6 @@ function AnalyticsMockup() {
           background: "var(--color-surface, #fff)",
         }}
       >
-        {/* SectionHeader: title + PeriodTabs */}
         <div
           style={{
             display: "flex",
@@ -531,7 +512,6 @@ function AnalyticsMockup() {
           </div>
         </div>
 
-        {/* BarChart replica */}
         <div style={{ display: "flex", gap: 4 }}>
           <div
             style={{
@@ -602,7 +582,6 @@ function AnalyticsMockup() {
         </div>
       </div>
 
-      {/* Drill-down overlay card — mirrors BarDrillOverlay ContentCard */}
       <div
         style={{
           padding: "14px 16px",
@@ -661,7 +640,7 @@ function AnalyticsMockup() {
               gap: 4,
             }}
           >
-            ❤️ 88
+            88 likes
           </span>
           <span
             style={{
@@ -672,7 +651,7 @@ function AnalyticsMockup() {
               gap: 4,
             }}
           >
-            🔁 14
+            14 reposts
           </span>
           <span
             style={{
@@ -684,8 +663,305 @@ function AnalyticsMockup() {
               gap: 4,
             }}
           >
-            ⚡ 42,100 sats
+            42,100 sats
           </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Second Reader mockup — mirrors real SecondReaderPanel ActiveReader ───────
+function SecondReaderMockup() {
+  const ReactionCard = ({ para, text, severity, status }) => {
+    const borderColor =
+      severity === "critical"
+        ? "#ef4444"
+        : severity === "warning"
+          ? "#f59e0b"
+          : "#6366f1";
+    const isResolved = status === "fixed" || status === "ignored";
+    return (
+      <div
+        style={{
+          padding: "10px 12px",
+          borderRadius: 6,
+          background: "var(--color-surface, #fff)",
+          borderLeft: `3px solid ${borderColor}`,
+          opacity: isResolved ? 0.4 : 1,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 5,
+          }}
+        >
+          <span
+            style={{
+              fontSize: "0.68rem",
+              color: "var(--color-text-muted, #B6BCCB)",
+              fontFamily: "monospace",
+            }}
+          >
+            Paragraph {para}
+          </span>
+        </div>
+        <p
+          style={{
+            fontSize: "0.82rem",
+            color: "var(--color-text, #1E1F25)",
+            lineHeight: 1.5,
+            margin: 0,
+          }}
+        >
+          {text}
+        </p>
+        {!isResolved && (
+          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+            <button
+              style={{
+                fontSize: "0.72rem",
+                background: "transparent",
+                border: "1px solid var(--color-surface-border, #D1D5DB)",
+                borderRadius: 4,
+                padding: "2px 8px",
+                cursor: "default",
+                color: "var(--color-text-secondary, #5F667A)",
+                fontFamily: "inherit",
+              }}
+            >
+              Fix with AI
+            </button>
+            <button
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: "0.72rem",
+                background: "transparent",
+                border: "1px solid var(--color-surface-border, #D1D5DB)",
+                borderRadius: 4,
+                padding: "2px 8px",
+                cursor: "default",
+                color: "var(--color-text-secondary, #5F667A)",
+                fontFamily: "inherit",
+              }}
+            >
+              <Icon name="cancel" size={10} />
+              Ignore
+            </button>
+          </div>
+        )}
+        {status === "fixed" && (
+          <p
+            style={{
+              fontSize: "0.68rem",
+              color: "var(--color-text-muted, #B6BCCB)",
+              margin: "6px 0 0",
+              fontStyle: "italic",
+            }}
+          >
+            Sent to AI for fixing
+          </p>
+        )}
+        {status === "ignored" && (
+          <p
+            style={{
+              fontSize: "0.68rem",
+              color: "var(--color-text-muted, #B6BCCB)",
+              margin: "6px 0 0",
+              fontStyle: "italic",
+            }}
+          >
+            Marked as read
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div
+      className="lp-sr-mock-root"
+      style={{
+        border: "1px solid var(--color-divider, #D1D5DB)",
+        borderRadius: 12,
+        background: "var(--color-primary-bg, #F5F6F8)",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 14px",
+          borderBottom: "1px solid var(--color-surface-border, #D1D5DB)",
+          flexShrink: 0,
+        }}
+      >
+        <h4
+          style={{
+            margin: 0,
+            fontSize: "1rem",
+            fontWeight: 700,
+            color: "var(--color-primary-text, #1E1F25)",
+          }}
+        >
+          Second reader
+        </h4>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <button
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              background: "rgba(229,57,53,0.15)",
+              border: "1px solid rgba(229,57,53,0.15)",
+              borderRadius: 4,
+              padding: "2px 8px",
+              fontSize: "0.72rem",
+              color: "#E53935",
+              cursor: "default",
+              fontFamily: "inherit",
+            }}
+          >
+            <Icon name="trash" size={10} className="lp-icon-red" />
+            Clear
+          </button>
+          <Icon name="cancel" size={14} opacity={0.5} />
+        </div>
+      </div>
+
+      <div
+        style={{
+          padding: 12,
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+          flex: 1,
+        }}
+      >
+        <ReactionCard
+          para={2}
+          severity="critical"
+          text="This claim needs a source. Readers won't take it on faith alone."
+        />
+        <ReactionCard
+          para={4}
+          severity="warning"
+          text="The transition from section 3 to 4 feels abrupt. Consider a bridging sentence."
+        />
+        <ReactionCard
+          para={1}
+          text="Strong opening hook. Works well."
+          status="fixed"
+        />
+      </div>
+
+      <div
+        style={{
+          flexShrink: 0,
+          position: "relative",
+          paddingTop: 32,
+          borderTop: "1px solid var(--color-surface-border, #D1D5DB)",
+          background: "var(--color-surface, #fff)",
+        }}
+      >
+        <div style={{ position: "absolute", top: -30, left: 16, zIndex: 1 }}>
+          <div
+            style={{
+              width: 58,
+              height: 58,
+              borderRadius: "50%",
+              border: "2px solid var(--color-surface-border, #D1D5DB)",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+              background: "linear-gradient(135deg, #F75816 0%, #8b5cf6 100%)",
+              backgroundImage: `url(https://yakihonne.s3.ap-east-1.amazonaws.com/media/images/Layla.png`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+        </div>
+        <div style={{ padding: "0 16px 16px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 8,
+            }}
+          >
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "0.92rem",
+                    fontWeight: 700,
+                    color: "var(--color-primary-text, #1E1F25)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  Layla
+                </p>
+                <span
+                  style={{
+                    fontSize: "0.65rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    color: "#9A9A9A",
+                  }}
+                >
+                  Reading…
+                </span>
+              </div>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "0.75rem",
+                  color: "#6366f1",
+                  fontWeight: 500,
+                }}
+              >
+                The Skeptic Reader
+              </p>
+              <p
+                style={{
+                  margin: "2px 0 0",
+                  fontSize: "0.72rem",
+                  color: "var(--color-text-muted, #B6BCCB)",
+                }}
+              >
+                Critical reader, demands sources
+              </p>
+            </div>
+            <button
+              style={{
+                background: "rgba(247,88,22,0.15)",
+                border: "1px solid rgba(247,88,22,0.15)",
+                borderRadius: 4,
+                padding: "2px 8px",
+                fontSize: "0.72rem",
+                cursor: "default",
+                color: "#F75816",
+                fontFamily: "inherit",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+              }}
+            >
+              Switch
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -742,7 +1018,6 @@ function EnergyMapperMockup() {
         overflow: "hidden",
       }}
     >
-      {/* Header — mirrors .energy-graph-header */}
       <div
         style={{
           display: "flex",
@@ -775,18 +1050,9 @@ function EnergyMapperMockup() {
         >
           Starts punchy, dips mid-note, peaks at the close.
         </span>
-        <span
-          style={{
-            color: "var(--color-text-muted, #B6BCCB)",
-            fontSize: "1rem",
-            cursor: "default",
-          }}
-        >
-          ×
-        </span>
+        <Icon name="cancel" size={12} opacity={0.5} />
       </div>
 
-      {/* Chart — SVG area sparkline */}
       <div style={{ padding: "10px 14px 4px" }}>
         <svg
           viewBox={`0 0 ${W} ${H}`}
@@ -822,7 +1088,6 @@ function EnergyMapperMockup() {
         </svg>
       </div>
 
-      {/* Chips row — mirrors .energy-chips-row */}
       <div
         style={{
           display: "flex",
@@ -833,9 +1098,6 @@ function EnergyMapperMockup() {
       >
         {sentences.map((s, i) => {
           const cs = chipColor(s.energy);
-          const isPeak =
-            s.energy === Math.max(...sentences.map((x) => x.energy));
-          const isFlatline = s.energy < 0.3;
           return (
             <div
               key={i}
@@ -852,372 +1114,10 @@ function EnergyMapperMockup() {
                 position: "relative",
               }}
             >
-              {isPeak && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: -8,
-                    right: -4,
-                    fontSize: "0.65rem",
-                  }}
-                >
-                  ⚡
-                </span>
-              )}
-              {isFlatline && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: -8,
-                    right: -4,
-                    fontSize: "0.65rem",
-                  }}
-                >
-                  💤
-                </span>
-              )}
               {s.label}
             </div>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Second Reader mockup — mirrors real SecondReaderPanel ActiveReader ───────
-function SecondReaderMockup() {
-  // Mirrors .sr-reaction-card with border-left: 3px solid #6366f1
-  const ReactionCard = ({ para, sentiment, text, severity, status }) => {
-    const borderColor =
-      severity === "critical"
-        ? "#ef4444"
-        : severity === "warning"
-          ? "#f59e0b"
-          : "#6366f1";
-    const isResolved = status === "fixed" || status === "ignored";
-    return (
-      <div
-        style={{
-          padding: "10px 12px",
-          borderRadius: 6,
-          background: "var(--color-surface, #fff)",
-          borderLeft: `3px solid ${borderColor}`,
-          opacity: isResolved ? 0.4 : 1,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {/* .sr-reaction-meta */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 5,
-          }}
-        >
-          <span
-            style={{
-              fontSize: "0.68rem",
-              color: "var(--color-text-muted, #B6BCCB)",
-              fontFamily: "monospace",
-            }}
-          >
-            ¶{para}
-          </span>
-          <span style={{ fontSize: "0.85rem" }}>{sentiment}</span>
-        </div>
-        {/* .sr-reaction-text */}
-        <p
-          style={{
-            fontSize: "0.82rem",
-            color: "var(--color-text, #1E1F25)",
-            lineHeight: 1.5,
-            margin: 0,
-          }}
-        >
-          {text}
-        </p>
-        {/* .sr-reaction-actions */}
-        {!isResolved && (
-          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-            <button
-              style={{
-                fontSize: "0.72rem",
-                background: "transparent",
-                border: "1px solid var(--color-surface-border, #D1D5DB)",
-                borderRadius: 4,
-                padding: "2px 8px",
-                cursor: "default",
-                color: "var(--color-text-secondary, #5F667A)",
-                fontFamily: "inherit",
-              }}
-            >
-              Fix with AI →
-            </button>
-            <button
-              style={{
-                fontSize: "0.72rem",
-                background: "transparent",
-                border: "1px solid var(--color-surface-border, #D1D5DB)",
-                borderRadius: 4,
-                padding: "2px 8px",
-                cursor: "default",
-                color: "var(--color-text-secondary, #5F667A)",
-                fontFamily: "inherit",
-              }}
-            >
-              Ignore
-            </button>
-          </div>
-        )}
-        {status === "fixed" && (
-          <p
-            style={{
-              fontSize: "0.68rem",
-              color: "var(--color-text-muted, #B6BCCB)",
-              margin: "6px 0 0",
-              fontStyle: "italic",
-            }}
-          >
-            ✓ Sent to AI for fixing
-          </p>
-        )}
-        {status === "ignored" && (
-          <p
-            style={{
-              fontSize: "0.68rem",
-              color: "var(--color-text-muted, #B6BCCB)",
-              margin: "6px 0 0",
-              fontStyle: "italic",
-            }}
-          >
-            Marked as read
-          </p>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    // Mirrors .border-all .round-corner-l .bg-main-c — the ActiveReader container
-    <div
-      className="lp-sr-mock-root"
-      style={{
-        border: "1px solid var(--color-divider, #D1D5DB)",
-        borderRadius: 12,
-        background: "var(--color-primary-bg, #F5F6F8)",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      {/* Top header bar — matches ActiveReader header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 14px",
-          borderBottom: "1px solid var(--color-surface-border, #D1D5DB)",
-          flexShrink: 0,
-        }}
-      >
-        <h4
-          style={{
-            margin: 0,
-            fontSize: "1rem",
-            fontWeight: 700,
-            color: "var(--color-primary-text, #1E1F25)",
-          }}
-        >
-          Second reader
-        </h4>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {/* Clear button — sr-switch-btn red variant */}
-          <button
-            style={{
-              background: "rgba(229,57,53,0.15)",
-              border: "1px solid rgba(229,57,53,0.15)",
-              borderRadius: 4,
-              padding: "2px 8px",
-              fontSize: "0.72rem",
-              color: "#E53935",
-              cursor: "default",
-              fontFamily: "inherit",
-            }}
-          >
-            Clear
-          </button>
-          {/* reduce icon placeholder */}
-          <div
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: 3,
-              border: "1.5px solid var(--color-text-muted, #B6BCCB)",
-              cursor: "default",
-            }}
-          />
-          {/* close */}
-          <div
-            style={{
-              width: 16,
-              height: 16,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "default",
-              color: "var(--color-text-muted, #B6BCCB)",
-              fontSize: "0.9rem",
-            }}
-          >
-            ✕
-          </div>
-        </div>
-      </div>
-
-      {/* .sr-reactions scrollable list */}
-      <div
-        style={{
-          padding: 12,
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-          flex: 1,
-        }}
-      >
-        <ReactionCard
-          para={2}
-          sentiment="👎"
-          severity="critical"
-          text="This claim needs a source. Readers won't take it on faith alone."
-        />
-        <ReactionCard
-          para={4}
-          sentiment="💬"
-          severity="warning"
-          text="The transition from section 3 to 4 feels abrupt. Consider a bridging sentence."
-        />
-        <ReactionCard
-          para={1}
-          sentiment="👍"
-          text="Strong opening hook. Works well."
-          status="fixed"
-        />
-      </div>
-
-      {/* .sr-active-footer — persona card pinned at bottom with avatar overflowing up */}
-      <div
-        style={{
-          flexShrink: 0,
-          position: "relative",
-          paddingTop: 32,
-          borderTop: "1px solid var(--color-surface-border, #D1D5DB)",
-          background: "var(--color-surface, #fff)",
-        }}
-      >
-        {/* .sr-active-avatar-wrap: position absolute top -30px */}
-        <div style={{ position: "absolute", top: -30, left: 16, zIndex: 1 }}>
-          <div
-            style={{
-              width: 58,
-              height: 58,
-              borderRadius: "50%",
-              border: "2px solid var(--color-surface-border, #D1D5DB)",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
-              background: "linear-gradient(135deg, #F75816 0%, #8b5cf6 100%)",
-              backgroundImage: `url(https://yakihonne.s3.ap-east-1.amazonaws.com/media/images/Layla.png`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          />
-        </div>
-        {/* .sr-active-footer-body */}
-        <div style={{ padding: "0 16px 16px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: 8,
-            }}
-          >
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "0.92rem",
-                    fontWeight: 700,
-                    color: "var(--color-primary-text, #1E1F25)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.04em",
-                  }}
-                >
-                  Layla
-                </p>
-                <span
-                  style={{
-                    fontSize: "0.65rem",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    color: "#9A9A9A",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      background: "#6366f1",
-                      display: "inline-block",
-                    }}
-                  />
-                  Reading…
-                </span>
-              </div>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "0.75rem",
-                  color: "#6366f1",
-                  fontWeight: 500,
-                }}
-              >
-                The Skeptic Reader
-              </p>
-              <p
-                style={{
-                  margin: "2px 0 0",
-                  fontSize: "0.72rem",
-                  color: "var(--color-text-muted, #B6BCCB)",
-                }}
-              >
-                Critical reader, demands sources
-              </p>
-            </div>
-            {/* .sr-switch-btn */}
-            <button
-              style={{
-                background: "rgba(247,88,22,0.15)",
-                border: "1px solid rgba(247,88,22,0.15)",
-                borderRadius: 4,
-                padding: "2px 8px",
-                fontSize: "0.72rem",
-                cursor: "default",
-                color: "#F75816",
-                fontFamily: "inherit",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
-            >
-              Switch
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -1237,7 +1137,6 @@ function MonetizationMockup() {
       className="lp-mono-mock-root"
       style={{ display: "flex", flexDirection: "column", gap: 16 }}
     >
-      {/* Publish modal premium toggle — mirrors ArticlePublishModalV2 actions row */}
       <div
         style={{
           border: "1px solid var(--color-divider, #D1D5DB)",
@@ -1270,7 +1169,6 @@ function MonetizationMockup() {
             read
           </p>
         </div>
-        {/* mirrors .fx-scattered .box-pad-h-m bottom row */}
         <div
           style={{
             display: "flex",
@@ -1280,7 +1178,6 @@ function MonetizationMockup() {
             borderTop: "1px solid var(--color-divider, #D1D5DB)",
           }}
         >
-          {/* crown + Premium content + Toggle — matches actual layout */}
           <div
             style={{
               display: "flex",
@@ -1291,7 +1188,6 @@ function MonetizationMockup() {
               padding: "6px 10px",
             }}
           >
-            <span style={{ fontSize: "1rem" }}>♛</span>
             <span
               style={{
                 fontSize: "0.82rem",
@@ -1300,7 +1196,6 @@ function MonetizationMockup() {
             >
               Premium content
             </span>
-            {/* Toggle on */}
             <div
               style={{
                 width: 32,
@@ -1359,7 +1254,6 @@ function MonetizationMockup() {
         </div>
       </div>
 
-      {/* Subscribers list — mirrors SubscribersList SubscriberRow */}
       <div
         style={{
           border: "1px solid var(--color-divider, #D1D5DB)",
@@ -1403,7 +1297,7 @@ function MonetizationMockup() {
               fontFamily: "inherit",
             }}
           >
-            + Add subscriber
+            Add subscriber
           </button>
         </div>
         <div
@@ -1415,7 +1309,6 @@ function MonetizationMockup() {
           }}
         >
           {subs.map((s) => (
-            // mirrors .fit-container .round-corner-m .border-all .box-pad-h-m .box-pad-v-s .fx-scattered
             <div
               key={s.handle}
               style={{
@@ -1429,7 +1322,6 @@ function MonetizationMockup() {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                {/* avatar — mirrors bg-cover circle with picture */}
                 <div
                   style={{
                     width: 38,
@@ -1467,16 +1359,7 @@ function MonetizationMockup() {
                   </p>
                 </div>
               </div>
-              {/* trash icon placeholder */}
-              <span
-                style={{
-                  fontSize: "0.8rem",
-                  color: "#B6BCCB",
-                  cursor: "default",
-                }}
-              >
-                🗑
-              </span>
+              <Icon name="trash" size={14} opacity={0.5} />
             </div>
           ))}
         </div>
@@ -1488,6 +1371,7 @@ function MonetizationMockup() {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function LandingHome() {
   useReveal();
+  const { t } = useTranslation();
 
   return (
     <div className="lp-root">
@@ -1496,20 +1380,6 @@ export default function LandingHome() {
       {/* ══ 1. Hero ══════════════════════════════════════════════════════════ */}
       <section className="lp-hero">
         <HeroCanvas />
-        {/* Glow under hero content */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: -80,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 700,
-            height: 400,
-            background:
-              "radial-gradient(ellipse at 50% 100%, rgba(247,88,22,0.14) 0%, transparent 65%)",
-            pointerEvents: "none",
-          }}
-        />
 
         <div
           style={{
@@ -1520,50 +1390,26 @@ export default function LandingHome() {
             alignItems: "center",
           }}
         >
-          <div className="lp-hero-pill-row">
-            <span className="lp-pill">✦ Built on Nostr</span>
-            <span className="lp-pill-white lp-pill">
-              ⚡ Powered by Bitcoin Lightning
-            </span>
-          </div>
-
           <h1 className="lp-hero-title">
-            Your writing.
+            {t("ALPg001")}
             <br />
-            <em>Your keys.</em>
+            <em>{t("ALPg002")}</em>
             <br />
-            Your audience.
+            {t("ALPg003")}
           </h1>
 
-          <p className="lp-hero-sub">
-            Publish articles and notes on a decentralized protocol. Earn in
-            sats. Get AI feedback before anyone else reads it. No algorithm. No
-            middleman.
-          </p>
+          <p className="lp-hero-sub">{t("ALPg004")}</p>
 
           <div className="lp-hero-actions">
             <Link
               href="/create-content"
               className="lp-btn lp-btn-primary lp-btn-lg"
             >
-              Start writing free
+              {t("ALPg005")}
             </Link>
             <Link href="/pricing" className="lp-btn lp-btn-outline lp-btn-lg">
-              View pricing
+              {t("ALPg006")}
             </Link>
-          </div>
-
-          <div className="lp-hero-proof">
-            {[
-              "No lock-in",
-              "Censorship-resistant",
-              "Lightning payments",
-              "Relay-redundant",
-            ].map((t) => (
-              <span key={t} className="lp-hero-proof-item">
-                {t}
-              </span>
-            ))}
           </div>
         </div>
 
@@ -1573,48 +1419,25 @@ export default function LandingHome() {
         </div>
       </section>
 
-      {/* ══ Feature ticker ════════════════════════════════════════════════════ */}
-      <Ticker />
-
       {/* ══ 2. Analytics ══════════════════════════════════════════════════════ */}
-      <section
-        id="analytics"
-        className="lp-section"
-        style={{ background: "#0D1117" }}
-      >
-        {/* Indigo glow top-right */}
-        <div
-          className="lp-glow-indigo"
-          style={{ width: 500, height: 500, top: -100, right: -100 }}
-        />
+      <section id="analytics" className="lp-section">
         <div className="lp-section-inner">
           <div className="lp-feature-row">
             <div className="lp-feature-copy">
               <div className="lp-reveal">
-                <span className="lp-section-label">Creator Analytics</span>
-                <h2 className="lp-section-title" style={{ color: "#E6EDF3" }}>
-                  Know your audience.
-                  <br />
-                  Track what lands.
-                </h2>
-                <p className="lp-section-sub">
-                  Real-time sync from Nostr relays. See reactions, zaps, and
-                  follower growth across configurable time windows. Click any
-                  bar to drill into which article or note drove that spike.
-                </p>
+                <span className="lp-section-label">{t("ALPg013")}</span>
+                <h2 className="lp-section-title">{t("ALPg014")}</h2>
+                <p className="lp-section-sub">{t("ALPg015")}</p>
               </div>
               <ul className="lp-feature-list lp-reveal lp-reveal-delay-1">
                 {[
-                  "Up to 3 years of history on Pro",
-                  "Click any bar to see the exact note or article",
-                  "Zaps, reactions, reposts — all in one view",
-                  "Live event feed syncing from your relays",
-                  "3-month view on Creator plan",
+                  t("ALPg016"),
+                  t("ALPg017"),
+                  t("ALPg018"),
+                  t("ALPg019"),
+                  t("ALPg020"),
                 ].map((item) => (
-                  <li key={item}>
-                    <span className="check">✓</span>
-                    {item}
-                  </li>
+                  <li key={item}>{item}</li>
                 ))}
               </ul>
             </div>
@@ -1628,52 +1451,23 @@ export default function LandingHome() {
       <div className="lp-divider-line" />
 
       {/* ══ 3. AI Writing Assistant ═══════════════════════════════════════════ */}
-      <section
-        id="ai-tools"
-        className="lp-section"
-        style={{ background: "#0D1117" }}
-      >
-        <div
-          className="lp-glow-orange"
-          style={{ width: 500, height: 500, bottom: -100, right: -80 }}
-        />
+      <section id="ai-tools" className="lp-section">
         <div className="lp-section-inner">
           <div className="lp-feature-row flip">
             <div className="lp-feature-copy">
               <div className="lp-reveal">
-                <span className="lp-section-label">AI Writing Assistant</span>
-                <h2 className="lp-section-title" style={{ color: "#E6EDF3" }}>
-                  An AI that rewrites with you,
-                  <br />
-                  not over you.
-                </h2>
-                <p className="lp-section-sub">
-                  Ask the AI to improve any section. It proposes a diff inline —
-                  every removed line in red, every addition in green. You accept
-                  or reject each change individually. Nothing changes without
-                  your approval.
-                </p>
-              </div>
-              <div className="lp-feature-tags lp-reveal lp-reveal-delay-1">
-                <span className="lp-pill">Inline diff viewer</span>
-                <span className="lp-pill-indigo lp-pill">
-                  Accept / Reject per change
-                </span>
-                <span className="lp-pill-green lp-pill">
-                  Context-aware rewrites
-                </span>
+                <span className="lp-section-label">{t("ALPg021")}</span>
+                <h2 className="lp-section-title">{t("ALPg022")}</h2>
+                <p className="lp-section-sub">{t("ALPg023")}</p>
               </div>
               <ul className="lp-feature-list lp-reveal lp-reveal-delay-2">
                 {[
-                  "Pro plan exclusive feature",
-                  "Chat history persisted across sessions",
-                  "Propose full-article or paragraph rewrites",
-                  "AI sees your full article as context",
+                  t("ALPg024"),
+                  t("ALPg025"),
+                  t("ALPg026"),
+                  t("ALPg027"),
                 ].map((item) => (
-                  <li key={item}>
-                    <span className="check">✓</span>
-                    {item}
-                  </li>
+                  <li key={item}>{item}</li>
                 ))}
               </ul>
             </div>
@@ -1687,49 +1481,24 @@ export default function LandingHome() {
       <div className="lp-divider-line" />
 
       {/* ══ 4. Second Reader ══════════════════════════════════════════════════ */}
-      <section className="lp-section" style={{ background: "#0D1117" }}>
-        <div
-          className="lp-glow-indigo"
-          style={{ width: 480, height: 480, bottom: -80, left: -80 }}
-        />
+      <section className="lp-section">
         <div className="lp-section-inner">
           <div className="lp-feature-row">
             <div className="lp-feature-copy">
               <div className="lp-reveal">
-                <span className="lp-section-label">Second Reader AI</span>
-                <h2 className="lp-section-title" style={{ color: "#E6EDF3" }}>
-                  A reader who gives feedback
-                  <br />
-                  before anyone else does.
-                </h2>
-                <p className="lp-section-sub">
-                  Choose a persona — skeptic, editor, casual reader, investor,
-                  or viral strategist — and get paragraph-level reactions as you
-                  write. Each note points to the exact paragraph that needs
-                  work.
-                </p>
-              </div>
-              <div className="lp-feature-tags lp-reveal lp-reveal-delay-1">
-                <span className="lp-pill">5 distinct personas</span>
-                <span className="lp-pill-indigo lp-pill">
-                  Per-paragraph reactions
-                </span>
-                <span className="lp-pill-green lp-pill">
-                  Fix with AI in one click
-                </span>
+                <span className="lp-section-label">{t("ALPg028")}</span>
+                <h2 className="lp-section-title">{t("ALPg029")}</h2>
+                <p className="lp-section-sub">{t("ALPg030")}</p>
               </div>
               <ul className="lp-feature-list lp-reveal lp-reveal-delay-2">
                 {[
-                  "Pro plan exclusive feature",
-                  "Reactions persist across sessions",
-                  "Live re-analysis as you edit",
-                  "Send any reaction directly to AI chat",
-                  "Clear or switch personas anytime",
+                  t("ALPg024"),
+                  t("ALPg031"),
+                  t("ALPg032"),
+                  t("ALPg033"),
+                  t("ALPg034"),
                 ].map((item) => (
-                  <li key={item}>
-                    <span className="check">✓</span>
-                    {item}
-                  </li>
+                  <li key={item}>{item}</li>
                 ))}
               </ul>
             </div>
@@ -1743,49 +1512,24 @@ export default function LandingHome() {
       <div className="lp-divider-line" />
 
       {/* ══ 4c. Energy Mapper ════════════════════════════════════════════════ */}
-      <section className="lp-section" style={{ background: "#0D1117" }}>
-        <div
-          className="lp-glow-orange"
-          style={{ width: 420, height: 420, top: -80, right: -60 }}
-        />
+      <section className="lp-section">
         <div className="lp-section-inner">
           <div className="lp-feature-row flip">
             <div className="lp-feature-copy">
               <div className="lp-reveal">
-                <span className="lp-section-label">Energy Mapper</span>
-                <h2 className="lp-section-title" style={{ color: "#E6EDF3" }}>
-                  See the emotional arc
-                  <br />
-                  of every note.
-                </h2>
-                <p className="lp-section-sub">
-                  One click maps the emotional energy of each sentence in your
-                  note — high energy, flat spots, and peak moments — as an
-                  interactive sparkline graph. Know where your note loses
-                  momentum before your readers do.
-                </p>
-              </div>
-              <div className="lp-feature-tags lp-reveal lp-reveal-delay-1">
-                <span className="lp-pill">Per-sentence energy score</span>
-                <span className="lp-pill-green lp-pill">
-                  Peak & flatline detection
-                </span>
-                <span className="lp-pill-indigo lp-pill">
-                  Pro plan exclusive
-                </span>
+                <span className="lp-section-label">{t("ALPg035")}</span>
+                <h2 className="lp-section-title">{t("ALPg036")}</h2>
+                <p className="lp-section-sub">{t("ALPg037")}</p>
               </div>
               <ul className="lp-feature-list lp-reveal lp-reveal-delay-2">
                 {[
-                  "Sparkline chart with color-coded brackets",
-                  "Green · Amber · Red energy levels per sentence",
-                  "Hover any sentence chip for the full text & reason",
-                  "Peak sentence and flatlines flagged automatically",
-                  "Re-run anytime as you edit your note",
+                  t("ALPg038"),
+                  t("ALPg039"),
+                  t("ALPg040"),
+                  t("ALPg041"),
+                  t("ALPg042"),
                 ].map((item) => (
-                  <li key={item}>
-                    <span className="check">✓</span>
-                    {item}
-                  </li>
+                  <li key={item}>{item}</li>
                 ))}
               </ul>
             </div>
@@ -1799,49 +1543,24 @@ export default function LandingHome() {
       <div className="lp-divider-line" />
 
       {/* ══ 5. Monetization ═══════════════════════════════════════════════════ */}
-      <section
-        id="monetize"
-        className="lp-section"
-        style={{ background: "#0D1117" }}
-      >
-        <div
-          className="lp-glow-orange"
-          style={{
-            width: 600,
-            height: 400,
-            top: "50%",
-            right: -120,
-            transform: "translateY(-50%)",
-          }}
-        />
+      <section id="monetize" className="lp-section">
         <div className="lp-section-inner">
           <div className="lp-feature-row flip">
             <div className="lp-feature-copy">
               <div className="lp-reveal">
-                <span className="lp-section-label">Monetization</span>
-                <h2 className="lp-section-title" style={{ color: "#E6EDF3" }}>
-                  Publish premium.
-                  <br />
-                  Earn in sats.
-                </h2>
-                <p className="lp-section-sub">
-                  Gate content to paying subscribers. Accept Lightning payments
-                  directly. Manage your subscriber list without a middleman —
-                  available on both Creator and Pro plans.
-                </p>
+                <span className="lp-section-label">{t("ALPg043")}</span>
+                <h2 className="lp-section-title">{t("ALPg044")}</h2>
+                <p className="lp-section-sub">{t("ALPg045")}</p>
               </div>
               <ul className="lp-feature-list lp-reveal lp-reveal-delay-1">
                 {[
-                  "Available on Creator and Pro plans",
-                  "Gate articles with NIP-63 premium flag",
-                  "Add / remove subscribers directly",
-                  "No platform commission — ever",
-                  "Lightning payments go straight to you",
+                  t("ALPg046"),
+                  t("ALPg047"),
+                  t("ALPg048"),
+                  t("ALPg049"),
+                  t("ALPg050"),
                 ].map((item) => (
-                  <li key={item}>
-                    <span className="check">✓</span>
-                    {item}
-                  </li>
+                  <li key={item}>{item}</li>
                 ))}
               </ul>
             </div>
@@ -1852,164 +1571,24 @@ export default function LandingHome() {
         </div>
       </section>
 
-      <div className="lp-divider-line" />
-
-      {/* ══ 6. Nostr Identity ═════════════════════════════════════════════════ */}
-      <section className="lp-nostr-section lp-section">
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%,-50%)",
-            width: 700,
-            height: 400,
-            background:
-              "radial-gradient(ellipse at center, rgba(105,123,216,0.1) 0%, transparent 65%)",
-            pointerEvents: "none",
-          }}
-        />
-        <div className="lp-nostr-inner">
-          <span className="lp-pill lp-pill-indigo lp-reveal">
-            🔑 Nostr-native
-          </span>
-          <h2
-            className="lp-section-title lp-reveal lp-reveal-delay-1"
-            style={{ color: "#E6EDF3", textAlign: "center" }}
-          >
-            Your content lives on the protocol,
-            <br />
-            not on our servers.
-          </h2>
-          <p
-            className="lp-section-sub lp-reveal lp-reveal-delay-2"
-            style={{ textAlign: "center" }}
-          >
-            Every article is a signed Nostr event stored across relays you
-            choose. Portable, verifiable, and impossible to deplatform.
-          </p>
-          <div className="lp-code-pill lp-reveal lp-reveal-delay-2">
-            naddr1qqxnzdesxqmnxvpex5unsvfkqgsph3c2q9yt8uckmgelu0yf7glruudvfluesqn7cuab78a2k99dahrqxpqqqp65w…
-          </div>
-          <div className="lp-nostr-points lp-reveal lp-reveal-delay-3">
-            <div className="lp-nostr-point">
-              <div className="lp-nostr-point-icon">🔑</div>
-              <h4>Portable identity</h4>
-              <p>
-                Your npub is your login. Take your content anywhere that speaks
-                Nostr.
-              </p>
-            </div>
-            <div className="lp-nostr-point">
-              <div className="lp-nostr-point-icon">🛡️</div>
-              <h4>Censorship-resistant</h4>
-              <p>
-                No bans, no takedowns. Your signed events live on relays you
-                control.
-              </p>
-            </div>
-            <div className="lp-nostr-point">
-              <div className="lp-nostr-point-icon">🌐</div>
-              <h4>Relay-redundant</h4>
-              <p>
-                Publish to multiple relays simultaneously. No single point of
-                failure.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══ 7. Footer CTA ═════════════════════════════════════════════════════ */}
-      <section className="lp-footer-cta">
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%,-50%)",
-            width: 700,
-            height: 350,
-            background:
-              "radial-gradient(ellipse at center, rgba(247,88,22,0.14) 0%, transparent 65%)",
-            pointerEvents: "none",
-          }}
-        />
-        <div className="lp-footer-cta-inner">
-          <h2
-            className="lp-reveal"
-            style={{
-              color: "#E6EDF3",
-              fontSize: "clamp(2rem,5vw,3rem)",
-              margin: 0,
-              letterSpacing: "-0.03em",
-              fontWeight: 900,
-            }}
-          >
-            Ready to own
-            <br />
-            your writing?
-          </h2>
-          <p
-            className="lp-reveal lp-reveal-delay-1"
-            style={{ color: "rgba(139,148,158,0.8)", margin: 0 }}
-          >
-            Join writers publishing on Nostr and earning with Bitcoin Lightning.
-          </p>
-          <div
-            className="lp-reveal lp-reveal-delay-2"
-            style={{
-              display: "flex",
-              gap: 12,
-              flexWrap: "wrap",
-              justifyContent: "center",
-            }}
-          >
-            <Link
-              href="/create-content"
-              className="lp-btn lp-btn-primary lp-btn-lg"
-            >
-              Create your first article
-            </Link>
-            <Link href="/pricing" className="lp-btn lp-btn-outline lp-btn-lg">
-              See pricing
-            </Link>
-          </div>
-          <div className="lp-footer-links lp-reveal lp-reveal-delay-3">
-            <Link href="/pricing" className="lp-footer-link">
-              Pricing
-            </Link>
-            <a href="#" className="lp-footer-link">
-              GitHub
-            </a>
-            <a href="#" className="lp-footer-link">
-              Nostr
-            </a>
-            <a href="#" className="lp-footer-link">
-              ⚡ Support
-            </a>
-          </div>
-        </div>
-      </section>
-
       {/* ══ Footer nav ════════════════════════════════════════════════════════ */}
       <footer className="lp-footer-nav">
         <div className="lp-footer-nav-inner">
           <span className="lp-footer-copy">
-            © {new Date().getFullYear()} YakiPro. Built on Nostr.
+            © {new Date().getFullYear()} YakiPro.
           </span>
           <div className="lp-footer-nav-links">
             <Link href="/home" className="lp-footer-link">
-              Home
+              {t("ALPg051")}
             </Link>
             <Link href="/pricing" className="lp-footer-link">
-              Pricing
+              {t("ALog013")}
             </Link>
             <a href="#" className="lp-footer-link">
-              Privacy
+              {t("ALPg052")}
             </a>
             <a href="#" className="lp-footer-link">
-              Terms
+              {t("ALPg053")}
             </a>
           </div>
         </div>

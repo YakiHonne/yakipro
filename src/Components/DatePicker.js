@@ -115,31 +115,31 @@ export default function DatePicker({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="fit-container fx-centered">
-          <h4>Schedule Post</h4>
+          <h4>Pick a date</h4>
         </div>
-        <p className="gray-c">Choose the date and time for publishing.</p>
 
+        <p className="gray-c">Date</p>
         <div className="fit-container fx-scattered" style={{ gap: "8px" }}>
-          <Select
-            options={months}
-            value={selectedMonth}
-            onChange={setSelectedMonth}
-            full={true}
-            placeholder="Month"
-          />
           <Select
             options={days}
             value={selectedDay}
             onChange={setSelectedDay}
             full={true}
-            placeholder="Day"
+            label="Day"
+          />
+          <Select
+            options={months}
+            value={selectedMonth}
+            onChange={setSelectedMonth}
+            full={true}
+            label="Month"
           />
           <Select
             options={years}
             value={selectedYear}
             onChange={setSelectedYear}
             full={true}
-            placeholder="Year"
+            label="Year"
           />
         </div>
 
@@ -150,21 +150,21 @@ export default function DatePicker({
             value={selectedHour}
             onChange={setSelectedHour}
             full={true}
-            placeholder="Hour"
+            label="Hours"
           />
           <Select
             options={minutes}
             value={selectedMinute}
             onChange={setSelectedMinute}
             full={true}
-            placeholder="Min"
+            label="Minutes"
           />
           <Select
             options={dayTime}
             value={selectedDayPeriod}
             onChange={setSelectedDayPeriod}
             full={true}
-            placeholder="AM/PM"
+            label="AM/PM"
           />
         </div>
 

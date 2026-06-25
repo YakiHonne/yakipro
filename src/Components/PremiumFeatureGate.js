@@ -26,7 +26,7 @@ export default function PremiumFeatureGate({ feature, onClose }) {
 
   const handleUpgrade = () => {
     onClose();
-    router.push("/settings#subscription");
+    router.push("/sub-and-usage");
   };
 
   return (
@@ -41,7 +41,6 @@ export default function PremiumFeatureGate({ feature, onClose }) {
           textAlign: "center",
         }}
       >
-        {/* Headline */}
         <div style={{ display: "flex", flexDirection: "column", rowGap: "10px", alignItems: "center" }}>
           <span
             style={{
@@ -67,7 +66,6 @@ export default function PremiumFeatureGate({ feature, onClose }) {
           </p>
         </div>
 
-        {/* Perks list */}
         <div
           className="fit-container"
           style={{
@@ -107,7 +105,6 @@ export default function PremiumFeatureGate({ feature, onClose }) {
           ))}
         </div>
 
-        {/* Actions */}
         <div style={{ display: "flex", flexDirection: "column", width: "100%", rowGap: "10px" }}>
           <button
             className="btn btn-normal"

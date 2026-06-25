@@ -1,6 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-// Represents the currently logged-in Nostr user
 const nostrUserSlice = createSlice({
   name: "nostrUser",
   initialState: null,
@@ -14,7 +13,6 @@ const nostrUserSlice = createSlice({
   },
 });
 
-// Tracks whether the user has connected their Nostr key
 const isConnectedSlice = createSlice({
   name: "isConnected",
   initialState: false,
@@ -25,7 +23,6 @@ const isConnectedSlice = createSlice({
   },
 });
 
-// Tracks whether the app is still resolving the user's connection status on boot
 const loadingConnectedUserSlice = createSlice({
   name: "loadingConnectedUser",
   initialState: true,

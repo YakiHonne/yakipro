@@ -8,10 +8,8 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
-// Public pages that should never trigger an auto-redirect to /login
 const PUBLIC_PATHS = new Set(["/login", "/", "/pricing", "/404"]);
 
-// Module-level guard so concurrent failing requests don't fire multiple redirects
 let isRedirecting = false;
 
 axiosInstance.interceptors.response.use(
@@ -19,10 +17,10 @@ axiosInstance.interceptors.response.use(
   (error) => {
     const status = error?.response?.status;
     const isUnresponsive =
-      !error?.response ||                          // no response received
-      error?.code === "ECONNABORTED" ||            // request timed out
-      error?.code === "ERR_NETWORK" ||             // network failure
-      (status >= 500 && status < 600);             // server error
+      !error?.response ||
+      error?.code === "ECONNABORTED" ||
+      error?.code === "ERR_NETWORK" ||
+      (status >= 500 && status < 600);
 
     if (
       isUnresponsive &&

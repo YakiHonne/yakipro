@@ -1,6 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-// ─── Dark Mode ───────────────────────────────────────────────────────────────
 const isDarkModeSlice = createSlice({
   name: "isDarkMode",
   initialState: "dark",
@@ -9,7 +8,6 @@ const isDarkModeSlice = createSlice({
   },
 });
 
-// ─── Toast ───────────────────────────────────────────────────────────────────
 const toastSlice = createSlice({
   name: "toast",
   initialState: [],
@@ -27,7 +25,6 @@ const toastSlice = createSlice({
   },
 });
 
-// ─── Nostr Authors (profile cache) ───────────────────────────────────────────
 const nostrAuthorsSlice = createSlice({
   name: "nostrAuthors",
   initialState: [],

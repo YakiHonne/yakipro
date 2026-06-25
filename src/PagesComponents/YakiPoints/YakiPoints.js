@@ -95,7 +95,7 @@ const TierDemo = ({ tier, exit }) => {
   return (
     <Overlay exit={exit}>
       <div
-        className="box-pad-h box-pad-v round-corner-m fx-centered fx-col fx-start-h slide-up"
+        className="box-pad-h box-pad-v fx-centered fx-col fx-start-h"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="box-pad-h-s box-pad-v-s">
@@ -149,7 +149,7 @@ const PointsDesc = ({ exit }) => {
   return (
     <Overlay exit={exit}>
       <div
-        className="box-pad-h box-pad-v round-corner-m fx-centered fx-col fx-start-h slide-up"
+        className="box-pad-h box-pad-v fx-centered fx-col fx-start-h"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="p-centered box-pad-h box-marg-s">{t("AIdLWAb")}</h3>
@@ -244,17 +244,14 @@ export default function YakiPoints() {
               <>
                 {isLoaded && headerStats && (
                   <>
-                    {/* Page title */}
                     <div className="fit-container ">
                       <h3>{t("Ae2D51K")}</h3>
                     </div>
 
-                    {/* Level + tier card */}
                     <div
                       className="yp-card box-pad-h box-pad-v fx-centered fx-start-h"
                       style={{ columnGap: "24px" }}
                     >
-                      {/* Avatar */}
                       <div
                         style={{
                           width: 80,
@@ -276,7 +273,6 @@ export default function YakiPoints() {
                         )}
                       </div>
 
-                      {/* Level info */}
                       <div
                         className="fit-container fx-centered fx-col fx-start-v"
                         style={{ rowGap: "8px" }}
@@ -355,7 +351,6 @@ export default function YakiPoints() {
                       </div>
                     </div>
 
-                    {/* Consumable points card */}
                     <div
                       className="yp-card box-pad-h box-pad-v fx-centered fx-col"
                       style={{ rowGap: "16px" }}
@@ -407,7 +402,6 @@ export default function YakiPoints() {
                       </div>
                     </div>
 
-                    {/* Engagement chart card */}
                     <div
                       className="yp-card box-pad-h box-pad-v fx-centered fx-col"
                       style={{ rowGap: "16px" }}
@@ -484,7 +478,6 @@ export default function YakiPoints() {
                       <h4 className="p-secondary-c">{t("At2CFSI")}</h4>
                     </div>
 
-                    {/* One-time rewards */}
                     <div className="fit-container">
                       <p className="p-secondary-c">{t("A2Tafrd")}</p>
                     </div>
@@ -541,7 +534,6 @@ export default function YakiPoints() {
                       </div>
                     ))}
 
-                    {/* Repeated rewards */}
                     <div className="fit-container">
                       <p className="p-secondary-c">{t("A6gfLc1")}</p>
                     </div>

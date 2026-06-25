@@ -27,15 +27,8 @@ import { SelectTabs } from "./SelectTabs";
 import Overlay from "./Overlay";
 import Button from "./UI/Button";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper: set NDK signer after login
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Main LoginSignup component
-// ─────────────────────────────────────────────────────────────────────────────
 export default function LoginSignup({ exit }) {
-  const [tab, setTab] = useState("key"); // "key" | "extension" | "bunker"
+  const [tab, setTab] = useState("key");
   const tabs = ["key", "extension", "bunker"];
   const tabLabels = ["Key", "Extension", "Remote signer"];
   const activeTabIndex = tabs.indexOf(tab);
@@ -43,14 +36,12 @@ export default function LoginSignup({ exit }) {
   return (
     <Overlay exit={exit}>
       <div
-        className="bg-main-c box-pad-h box-pad-v fx-col fx-scattered slide-up"
+        className="box-pad-h box-pad-v fx-col fx-scattered"
         style={{
           maxHeight: "90vh",
           overflowY: "auto",
-          position: "relative",
           rowGap: "24px",
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         <h3>Connect to YakiPro</h3>
 
@@ -68,9 +59,6 @@ export default function LoginSignup({ exit }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Method 1: Login with nsec / npub / raw hex
-// ─────────────────────────────────────────────────────────────────────────────
 const KeyLoginScreen = ({ exit }) => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
@@ -83,7 +71,6 @@ const KeyLoginScreen = ({ exit }) => {
     setLoading(true);
 
     try {
-      // Read-only mode: npub
       if (input.startsWith("npub")) {
         const hex = getHex(input);
         const keys = { pub: hex };
@@ -93,7 +80,6 @@ const KeyLoginScreen = ({ exit }) => {
         return;
       }
 
-      // Full signer: nsec
       if (input.startsWith("nsec")) {
         const hex = getHex(input);
         if (hex) {
@@ -105,7 +91,6 @@ const KeyLoginScreen = ({ exit }) => {
           const meta = await fetchUserMetadata(keys.pub);
           saveAccountLocally(keys.pub, keys, meta);
 
-          // Backend Login
           const { login: apiLogin, checkUserConnected } =
             await import("@/Endpoionts/Auth");
           const { setIsConnected } = await import("@/Store/Slices/User");
@@ -127,7 +112,6 @@ const KeyLoginScreen = ({ exit }) => {
         }
       }
 
-      // Raw hex private key
       if (isValidHexKey(input)) {
         const pub = getPublicKey(hexToUint8Array(input));
         const keys = { sec: input, pub };
@@ -137,7 +121,6 @@ const KeyLoginScreen = ({ exit }) => {
         const meta = await fetchUserMetadata(keys.pub);
         saveAccountLocally(keys.pub, keys, meta);
 
-        // Backend Login
         const { login: apiLogin, checkUserConnected } =
           await import("@/Endpoionts/Auth");
         const { setIsConnected } = await import("@/Store/Slices/User");
@@ -158,7 +141,6 @@ const KeyLoginScreen = ({ exit }) => {
         return;
       }
 
-      // Raw hex pubkey (64 hex chars, not a valid private key)
       if (/^[0-9a-f]{64}$/i.test(input)) {
         const keys = { pub: input };
         dispatch(setUserKeys(keys));
@@ -166,7 +148,6 @@ const KeyLoginScreen = ({ exit }) => {
         const meta = await fetchUserMetadata(keys.pub);
         saveAccountLocally(keys.pub, keys, meta);
 
-        // Backend Login (Read-only)
         const { login: apiLogin, checkUserConnected } =
           await import("@/Endpoionts/Auth");
         const { setIsConnected } = await import("@/Store/Slices/User");
@@ -188,7 +169,7 @@ const KeyLoginScreen = ({ exit }) => {
       }
 
       dispatch(
-        setToast({ type: 2, desc: t("AC5ByUA") /* "Invalid private key!" */ }),
+        setToast({ type: 2, desc: t("AC5ByUA") }),
       );
     } catch (e) {
       console.log(e);
@@ -219,9 +200,6 @@ const KeyLoginScreen = ({ exit }) => {
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Method 2: Login with NIP-07 browser extension (Alby, nos2x, etc.)
-// ─────────────────────────────────────────────────────────────────────────────
 const ExtensionLoginScreen = ({ exit }) => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
@@ -240,7 +218,6 @@ const ExtensionLoginScreen = ({ exit }) => {
       const meta = await fetchUserMetadata(keys.pub);
       saveAccountLocally(keys.pub, keys, meta);
 
-      // Backend Login
       const { login: apiLogin, checkUserConnected } =
         await import("@/Endpoionts/Auth");
       const { setIsConnected } = await import("@/Store/Slices/User");
@@ -261,7 +238,7 @@ const ExtensionLoginScreen = ({ exit }) => {
     } catch (err) {
       console.error(err);
       dispatch(
-        setToast({ type: 2, desc: t("AiHLMRi") /* "Invalid public key!" */ }),
+        setToast({ type: 2, desc: t("AiHLMRi") }),
       );
     } finally {
       setLoading(false);
@@ -273,7 +250,7 @@ const ExtensionLoginScreen = ({ exit }) => {
       {hasExtension ? (
         <>
           <p className="gray-c p-centered">
-            {t("AvcFYqP") /* "Log in using an extension" */}
+            {t("AvcFYqP")}
           </p>
           <Button
             label={t("AvcFYqP")}
@@ -285,7 +262,7 @@ const ExtensionLoginScreen = ({ exit }) => {
       ) : (
         <>
           <p className="gray-c p-centered">
-            {t("AesMg52") /* "You don't appear to be using any extension..." */}
+            {t("AesMg52")}
           </p>
           <Button
             label="Get Alby"
@@ -307,9 +284,6 @@ const ExtensionLoginScreen = ({ exit }) => {
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Method 3: Login with NIP-46 remote signer (bunker://)
-// ─────────────────────────────────────────────────────────────────────────────
 const BunkerLoginScreen = ({ exit }) => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
@@ -324,7 +298,6 @@ const BunkerLoginScreen = ({ exit }) => {
     }
     setLoading(true);
     try {
-      // Generate a fresh ephemeral local key pair for the NIP-46 session
       const { generateSecretKey, getPublicKey } = await import("nostr-tools");
       const localSec = Buffer.from(generateSecretKey()).toString("hex");
       const localPub = getPublicKey(localSec);
@@ -333,7 +306,6 @@ const BunkerLoginScreen = ({ exit }) => {
       const signer = new NDKNip46Signer(ndkInstance, trimmed, localSigner);
       ndkInstance.signer = signer;
 
-      // NIP-46 needs to handshake — blockUntilReady resolves once the remote signer responds
       await signer.blockUntilReady();
 
       const remotePub = (await signer.user()).pubkey;
@@ -347,7 +319,6 @@ const BunkerLoginScreen = ({ exit }) => {
       const meta = await fetchUserMetadata(keys.pub);
       saveAccountLocally(keys.pub, keys, meta);
 
-      // Backend Login
       const { login: apiLogin, checkUserConnected } =
         await import("@/Endpoionts/Auth");
       const { setIsConnected } = await import("@/Store/Slices/User");
@@ -370,7 +341,7 @@ const BunkerLoginScreen = ({ exit }) => {
       dispatch(
         setToast({
           type: 2,
-          desc: t("AJY8vLC") /* "An error occurred while connecting..." */,
+          desc: t("AJY8vLC"),
         }),
       );
     } finally {
@@ -381,8 +352,8 @@ const BunkerLoginScreen = ({ exit }) => {
   return (
     <div className="fit-container fx-col" style={{ gap: "12px" }}>
       <p className="gray-c p-centered">
-        {t("A9eQr6B") /* "Remote signer" */} —{" "}
-        {t("AJdT1m0") /* "Use the below URL..." */}
+        {t("A9eQr6B")} —{" "}
+        {t("AJdT1m0")}
       </p>
       <input
         type="text"

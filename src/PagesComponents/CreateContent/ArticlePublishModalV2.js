@@ -26,7 +26,6 @@ function readTime(str) {
   return Math.max(1, Math.round(wordCount(str) / 200));
 }
 
-// image icon SVG
 const ImgIcon = () => (
   <svg
     width="48"
@@ -72,7 +71,6 @@ export default function ArticlePublishModalV2({
   const words = wordCount(postContent);
   const mins = readTime(postContent);
 
-  // ── Cover image upload ──────────────────────────────────────────────
   const uploadCover = async (file) => {
     if (!file?.type.startsWith("image/")) return;
     setIsCoverUploading(true);
@@ -89,7 +87,6 @@ export default function ArticlePublishModalV2({
     if (file) uploadCover(file);
   };
 
-  // ── Publish ─────────────────────────────────────────────────────────
   const publish = async (kind = 30023) => {
     if (!title?.trim()) {
       dispatch(setToast({ type: 2, desc: "Title is required." }));
@@ -118,8 +115,6 @@ export default function ArticlePublishModalV2({
       "![image]($&)",
     );
 
-    // Deep-clone every tag sub-array to break frozen references from
-    // Tiptap / Redux / NDK internals — avoids "object is not extensible" errors.
     const cloneTag = (t) => (Array.isArray(t) ? t.map(String) : t);
 
     const tags = [
@@ -171,7 +166,6 @@ export default function ArticlePublishModalV2({
   return (
     <Overlay exit={exit} width={600}>
       <div className="fx-centered fx-col fit-container fx-gap-v-l">
-        {/* ── Header ─────────────────────────────────────────────────── */}
         <div className="fit-container box-pad-h-m box-pad-v-m ">
           <h2 style={{ margin: 0 }}>Publish article</h2>
           <p>
@@ -183,7 +177,6 @@ export default function ArticlePublishModalV2({
           </p>
         </div>
 
-        {/* ── Title ──────────────────────────────────────────────────── */}
         <div className="fit-container fx-col box-pad-h-m">
           <input
             type="text"
@@ -202,7 +195,6 @@ export default function ArticlePublishModalV2({
           />
         </div>
 
-        {/* ── Cover image ────────────────────────────────────────────── */}
         <div
           className="fit-container fx-col box-pad-h-m"
           style={{ gap: "8px" }}
@@ -302,7 +294,6 @@ export default function ArticlePublishModalV2({
           )}
         </div>
 
-        {/* ── Summary ────────────────────────────────────────────────── */}
         <div
           className="fit-container fx-col box-pad-h-m"
           style={{ gap: "6px" }}
@@ -332,7 +323,6 @@ export default function ArticlePublishModalV2({
           />
         </div>
 
-        {/* ── Tags ───────────────────────────────────────────────────── */}
         <div
           className="fit-container fx-col box-pad-h-m "
           style={{ gap: "8px" }}
@@ -372,7 +362,6 @@ export default function ArticlePublishModalV2({
           )}
         </div>
 
-        {/* ── Actions ────────────────────────────────────────────────── */}
         <div
           className="fit-container fx-scattered box-pad-h-m box-pad-v-m "
           style={{

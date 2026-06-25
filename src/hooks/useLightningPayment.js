@@ -27,7 +27,6 @@ export default function useLightningPayment(pubkey) {
           es.close();
         }
       } catch {
-        // heartbeat or non-JSON frame — ignore
       }
     };
 

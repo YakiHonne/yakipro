@@ -10,7 +10,6 @@ export default function AnalyticsProvider({ pubkey, children }) {
   useEffect(() => {
     if (!pubkey) return;
 
-    // Reset to idle so stale phase from a previous session doesn't interfere
     store.dispatch(setSyncPhase("idle"));
 
     const ndk = getNDK();

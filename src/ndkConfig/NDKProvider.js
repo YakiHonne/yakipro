@@ -23,12 +23,10 @@ export default function NDKProvider({ children }) {
       })
       .catch((err) => {
         console.error("[NDK] Connection error:", err);
-        // Still expose the ndk instance even if connect fails
         setNdk(instance);
       });
 
     return () => {
-      // NDK does not expose a disconnect method — connections auto-close
     };
   }, []);
 
@@ -39,12 +37,6 @@ export default function NDKProvider({ children }) {
   );
 }
 
-/**
- * Hook to access the NDK instance and connection state.
- *
- * @example
- * const { ndk, isConnected } = useNDKContext();
- */
 export function useNDKContext() {
   const ctx = useContext(NDKContext);
   if (!ctx) {

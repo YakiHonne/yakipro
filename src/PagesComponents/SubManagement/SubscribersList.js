@@ -87,15 +87,16 @@ export default function SubscribersList() {
           <h3 className="p-primary-c">{t("A2mdxcf")}</h3>
         </div>
         <div className="fx-scattered fit-container">
-          <SelectTabs
-            tabs={[t("AH90wGL"), t("A14HHPP")]}
-            selectedTab={tab}
-            setSelectedTab={setTab}
-          />
+          <div>
+            <SelectTabs
+              tabs={[t("AH90wGL"), t("A14HHPP")]}
+              selectedTab={tab}
+              setSelectedTab={setTab}
+            />
+          </div>
           {tab === 1 && (
             <Button
               leftIcon={"plus"}
-              size="s"
               type="primary"
               label={t("A6rkFum")}
               onClick={() => setShowAddSubscriber(true)}

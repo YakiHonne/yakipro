@@ -3,7 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 const publishersSlice = createSlice({
   name: "publishers",
   initialState: {
-    toPublish: false, // { kind, content, tags, ... }
+    toPublish: false,
     isPublishing: false,
     toast: [],
   },

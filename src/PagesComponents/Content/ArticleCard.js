@@ -8,7 +8,7 @@ import DeleteWarning from "@/Components/DeleteWarning";
 import RawEventDisplay from "@/Components/RawEventDisplay";
 import { setToast } from "@/Store/Slices/Extras";
 import { InitEvent } from "@/Helpers/Encryptions";
-import { publishEvent } from "@/Helpers/Helpers";
+import { publishEvent, removeEventFromCache } from "@/Helpers/Helpers";
 import { updateNoteDraft } from "@/Helpers/NoteHelpers";
 
 function formatDate(ts) {
@@ -40,12 +40,11 @@ const ThreeDots = () => (
 function OptionItem({ icon, label, danger, onClick }) {
   return (
     <div
-      className="fx-centered fx-start-h fx-gap-h-s box-pad-h-s box-pad-v-s round-corner pointer bg-hover"
-      style={{ color: danger ? "var(--color-red-main)" : "inherit", gap: 10 }}
+      className="pointer fx-centered fx-start-h fit-container box-pad-h-s box-pad-v-s option-no-scale"
       onClick={onClick}
     >
-      <Icon name={icon} size={16} />
-      <span style={{ fontSize: "0.875rem" }}>{label}</span>
+      <Icon name={icon} size={24} isColored={danger} />
+      <p className={danger ? "p-red-c" : ""}>{label}</p>
     </div>
   );
 }
@@ -95,6 +94,7 @@ export default function ArticleCard({ event, onDelete }) {
       });
       if (!signed) return;
       await publishEvent(signed);
+      await removeEventFromCache(event);
       dispatch(setToast({ type: 1, desc: isDraft ? "Draft deleted" : "Article deleted" }));
       onDelete?.(event.id);
     } catch {

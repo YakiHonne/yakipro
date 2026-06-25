@@ -2,10 +2,10 @@ import React from "react";
 import { useDispatch } from "react-redux";
 import { setToast } from "@/Store/Slices/Extras";
 import Icon from "@/Components/Icon";
+import Overlay from "@/Components/Overlay";
 
 export default function RawEventDisplay({ event, exit }) {
   const dispatch = useDispatch();
-  console.log(event);
   const json = JSON.stringify(event?.rawEvent() || event, null, 2);
 
   const handleCopy = () => {
@@ -14,24 +14,15 @@ export default function RawEventDisplay({ event, exit }) {
   };
 
   return (
-    <div
-      className="fixed-container box-pad-h fx-centered"
-      onClick={(e) => {
-        e.stopPropagation();
-        exit();
-      }}
-    >
+    <Overlay exit={exit} width={560}>
       <div
-        className="box-pad-h box-pad-v border-all bg-main-c round-corner-l slide-up fx-col pos-relatvie"
+        className="box-pad-h box-pad-v fx-col"
         style={{
-          width: "min(100%, 560px)",
-          maxHeight: "85vh",
           position: "relative",
           display: "flex",
           flexDirection: "column",
           gap: 12,
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         <div
           className="close pos-absolute pos-top-16 pos-right-16 box-pad-s"
@@ -44,7 +35,6 @@ export default function RawEventDisplay({ event, exit }) {
           <h3>Raw event</h3>
         </div>
 
-        {/* Meta summary */}
         <div
           className="fit-container sc-s-18 bg-sp box-pad-h-m box-pad-v-m fx-col fx-start-v"
           style={{ gap: 6 }}
@@ -62,7 +52,6 @@ export default function RawEventDisplay({ event, exit }) {
           </div>
         </div>
 
-        {/* JSON block */}
         <div
           className="fit-container sc-s-18 bg-sp"
           style={{
@@ -72,7 +61,6 @@ export default function RawEventDisplay({ event, exit }) {
             flex: 1,
           }}
         >
-          {/* Sticky header bar */}
           <div
             className="sc-s-18 box-pad-v-s box-pad-h-m fit-container fx-scattered"
             style={{
@@ -107,6 +95,6 @@ export default function RawEventDisplay({ event, exit }) {
           </pre>
         </div>
       </div>
-    </div>
+    </Overlay>
   );
 }

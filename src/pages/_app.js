@@ -6,6 +6,8 @@ import "@/styles/animation.css";
 import "@/styles/breakpoints.css";
 import "@/Components/UI/UI.css";
 import "@/Components/Layout/Layout.css";
+import "@/Components/Layout/TopNavbar.css";
+import "@/Components/Orb/Orb.css";
 import "katex/dist/katex.css";
 import "@uiw/react-md-editor/markdown-editor.css";
 import "@/styles/tiptap.css";

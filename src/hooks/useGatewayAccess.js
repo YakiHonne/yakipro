@@ -5,15 +5,10 @@ import { InitEvent } from "@/Helpers/Encryptions";
 import { setToast } from "@/Store/Slices/Extras";
 import { getRelayMetadata } from "@/Cache/relayMetadataCache";
 
-// In-memory cache for Gateway Access, Follow Lists, and Direct Subscribers
 let gatewayAccessCache = {};
 let gatewayFollowListCache = {};
 let gatewayDirectSubscribersCache = {};
 
-/**
- * useGatewayAccess - Hook to manage gateway-specific access and follow lists.
- * @param {string} gatewayPubkey - The public key of the gateway relay.
- */
 export default function useGatewayAccess(gatewayPubkey) {
   const dispatch = useDispatch();
   const userKeys = useSelector((state) => state.userKeys);
@@ -74,9 +69,6 @@ export default function useGatewayAccess(gatewayPubkey) {
     }
   }, [aTagValue, getPremiumRelays]);
 
-  /**
-   * Fetches the Kind 3000 follow list event for the user from the gateway.
-   */
   const fetchGatewayFollowList = useCallback(async () => {
     if (!gatewayPubkey || !userKeys?.pub) return;
 
@@ -138,9 +130,6 @@ export default function useGatewayAccess(gatewayPubkey) {
     }
   }, [gatewayPubkey, userKeys?.pub, getPremiumRelays]);
 
-  /**
-   * Publishes a Kind 1163 access event to the gateway.
-   */
   const publishGatewayAccess = async () => {
     if (!aTagValue) {
       dispatch(setToast({ type: 2, desc: "Authentication required" }));
@@ -200,10 +189,6 @@ export default function useGatewayAccess(gatewayPubkey) {
     fetchGatewayFollowList,
   ]);
 
-  /**
-   * Removes a subscriber from the directSubscribers list and updates the cache.
-   * Publishes a deletion event to revoke relay access for that pubkey.
-   */
   const removeDirectSubscriber = useCallback(
     async (id) => {
       if (!gatewayPubkey || !userKeys?.pub) return;
@@ -234,7 +219,6 @@ export default function useGatewayAccess(gatewayPubkey) {
         }
       } catch (err) {
         console.error("[useGatewayAccess] Error removing subscriber:", err);
-        // Rollback optimistic update on failure
         setDirectSubscribers(directSubscribers);
         gatewayDirectSubscribersCache[cacheKey] = directSubscribers;
         dispatch(setToast({ type: 2, desc: "Failed to remove subscriber" }));
@@ -249,10 +233,6 @@ export default function useGatewayAccess(gatewayPubkey) {
     ],
   );
 
-  /**
-   * Adds a subscriber by pubkey, publishes a Kind 1163 event for them,
-   * and immediately prepends them to the directSubscribers list.
-   */
   const addDirectSubscriber = useCallback(
     async (subscriberPubkey) => {
       if (!gatewayPubkey || !userKeys?.pub) return null;

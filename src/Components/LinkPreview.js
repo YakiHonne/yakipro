@@ -77,7 +77,6 @@ function LinkPreview({ url }) {
 
   if (loading) return <SkeletonCard />;
 
-  // No metadata or failed → plain link
   if (!meta || meta === NOT_FOUND) {
     return (
       <a
@@ -130,7 +129,6 @@ function LinkPreview({ url }) {
           maxWidth: "100%",
         }}
       >
-        {/* Thumbnail */}
         {coverImage ? (
           <div
             style={{
@@ -160,9 +158,7 @@ function LinkPreview({ url }) {
           </div>
         )}
 
-        {/* Text section */}
         <div style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 4, minWidth: 0, flex: 1 }}>
-          {/* Domain + favicon */}
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             {favicon && (
               <img
@@ -176,7 +172,6 @@ function LinkPreview({ url }) {
             </span>
           </div>
 
-          {/* Title */}
           <span style={{
             fontSize: "0.88rem", fontWeight: 600,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
@@ -185,7 +180,6 @@ function LinkPreview({ url }) {
             {title}
           </span>
 
-          {/* Description */}
           {description && (
             <span style={{
               fontSize: "0.78rem", color: "var(--color-text-secondary)",

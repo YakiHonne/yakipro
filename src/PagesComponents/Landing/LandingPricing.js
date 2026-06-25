@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Icon from "@/Components/Icon";
+import { useTranslation } from "react-i18next";
 
 function useReveal() {
   useEffect(() => {
@@ -22,6 +23,7 @@ function useReveal() {
 }
 
 function Nav() {
+  const { t } = useTranslation();
   return (
     <nav className="lp-nav">
       <Link
@@ -47,143 +49,123 @@ function Nav() {
       </Link>
       <div className="lp-nav-links">
         <Link href="/home" className="lp-nav-link">
-          Home
+          {t("ALPg051")}
         </Link>
         <a href="#plans" className="lp-nav-link">
-          Plans
+          {t("APrc003")}
         </a>
         <a href="#compare" className="lp-nav-link">
-          Compare
+          {t("APrc004")}
         </a>
         <a href="#faq" className="lp-nav-link">
-          FAQ
+          {t("APrc005")}
         </a>
       </div>
       <div className="lp-nav-actions">
-        <Link href="/" className="lp-btn lp-btn-outline lp-btn-sm">
-          Sign in
+        <Link href="/login" className="lp-btn lp-btn-outline lp-btn-sm">
+          {t("ALPg010")}
         </Link>
-        <Link href="/" className="lp-btn lp-btn-primary lp-btn-sm">
-          Get started
+        <Link href="/login" className="lp-btn lp-btn-primary lp-btn-sm">
+          {t("APrc006")}
         </Link>
       </div>
     </nav>
   );
 }
 
-const PLANS = [
-  {
-    id: "creator",
-    name: "Creator",
-    price: "9",
-    sats: "18,000",
-    period: "/ month",
-    desc: "For writers who want to publish, monetize, and understand their audience.",
-    cta: "Get Creator",
-    highlighted: false,
-    features: [
-      { text: "Unlimited articles & notes publishing", dim: false },
-      { text: "Nostr-native identity (npub / nsec)", dim: false },
-      { text: "Premium content gating (NIP-63)", dim: false },
-      { text: "Subscriber management", dim: false },
-      { text: "Lightning paywall — no commission", dim: false },
-      { text: "Creator Analytics — up to 3 months", dim: false },
-      { text: "50 GB Blossom media storage", dim: false },
-      { text: "AI Writing Assistant", dim: true },
-      { text: "Second Reader AI (5 personas)", dim: true },
-      { text: "Energy Mapper", dim: true },
-    ],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "19",
-    sats: "38,000",
-    period: "/ month",
-    desc: "For serious creators who want AI in their corner and the full analytics picture.",
-    cta: "Get Pro",
-    highlighted: true,
-    badge: "Most popular",
-    features: [
-      { text: "Everything in Creator", dim: false },
-      { text: "AI Writing Assistant — unlimited", dim: false },
-      { text: "Second Reader AI (all 5 personas)", dim: false },
-      { text: "Energy Mapper — per-sentence emotion graph", dim: false },
-      { text: "Inline diff viewer — accept / reject changes", dim: false },
-      { text: "Analytics — up to 3 years of history", dim: false },
-      { text: "Click-through bar drill-down per note/article", dim: false },
-      { text: "100 GB Blossom media storage", dim: false },
-      { text: "Early access to new features", dim: false },
-    ],
-  },
-];
+function usePlans(t) {
+  return [
+    {
+      id: "creator",
+      name: t("APrc009"),
+      price: "9",
+      sats: "18,000",
+      period: ` / ${t("APrc031")}`,
+      desc: t("APrc010"),
+      cta: t("APrc011"),
+      highlighted: false,
+      features: [
+        { text: t("APrc012"), dim: false },
+        { text: t("APrc013"), dim: false },
+        { text: t("APrc014"), dim: false },
+        { text: t("APrc015"), dim: false },
+        { text: t("APrc016"), dim: false },
+        { text: t("APrc017"), dim: false },
+        { text: t("APrc018"), dim: false },
+        { text: t("APrc056"), dim: false },
+        { text: t("ALPg021"), dim: true },
+        { text: t("ALPg028"), dim: true },
+        { text: t("ALPg035"), dim: true },
+      ],
+    },
+    {
+      id: "pro",
+      name: t("APrc019"),
+      price: "19",
+      sats: "38,000",
+      period: ` / ${t("APrc055")}`,
+      desc: t("APrc020"),
+      cta: t("APrc021"),
+      highlighted: true,
+      features: [
+        { text: t("APrc022"), dim: false },
+        { text: t("APrc023"), dim: false },
+        { text: t("APrc024"), dim: false },
+        { text: t("APrc025"), dim: false },
+        { text: t("APrc026"), dim: false },
+        { text: t("APrc027"), dim: false },
+        { text: t("APrc028"), dim: false },
+        { text: t("APrc029"), dim: false },
+        { text: t("APrc030"), dim: false },
+      ],
+    },
+  ];
+}
 
-const COMPARE_ROWS = [
-  { label: "Articles & Notes publishing", creator: true, pro: true },
-  { label: "Nostr-native identity", creator: true, pro: true },
-  { label: "Premium content gating", creator: true, pro: true },
-  { label: "Subscriber management", creator: true, pro: true },
-  { label: "Lightning paywall", creator: true, pro: true },
-  { label: "Blossom media storage", creator: "50 GB", pro: "100 GB" },
-  { label: "Creator Analytics history", creator: "3 months", pro: "3 years" },
-  { label: "Drill-down bar click (note/article)", creator: false, pro: true },
-  { label: "AI Writing Assistant", creator: false, pro: "Unlimited" },
-  { label: "Second Reader AI", creator: false, pro: "5 personas" },
-  { label: "Energy Mapper (note emotion graph)", creator: false, pro: true },
-  { label: "Inline diff — accept / reject", creator: false, pro: true },
-];
+function useCompareRows(t) {
+  return [
+    { label: t("APrc035"), creator: true, pro: true },
+    { label: t("APrc036"), creator: true, pro: true },
+    { label: t("APrc037"), creator: true, pro: true },
+    { label: t("APrc015"), creator: true, pro: true },
+    { label: t("APrc016"), creator: true, pro: true },
+    { label: t("APrc038"), creator: "50 GB", pro: "100 GB" },
+    { label: t("APrc039"), creator: "3 months", pro: "3 years" },
+    { label: t("APrc040"), creator: false, pro: true },
+    { label: t("ALPg021"), creator: false, pro: "Unlimited" },
+    { label: t("APrc041"), creator: false, pro: "5 personas" },
+    { label: t("APrc042"), creator: false, pro: true },
+    { label: t("APrc043"), creator: false, pro: true },
+  ];
+}
 
-const FAQ_ITEMS = [
-  {
-    q: "Do I need a Nostr account?",
-    a: "Yes — your keypair (npub / nsec) is your identity on YakiPro. You can generate one in-app or import an existing one. Your private key is never stored on our servers.",
-  },
-  {
-    q: "How do Lightning payments work?",
-    a: "Premium content is gated via NIP-63. Your subscribers pay you directly via Lightning invoice — we never touch the funds. You keep 100% of every sat.",
-  },
-  {
-    q: "What is Blossom storage?",
-    a: "Blossom is a Nostr-native media hosting protocol. YakiPro gives you a dedicated Blossom server for images and files used in your articles — 50 GB on Creator, 100 GB on Pro.",
-  },
-  {
-    q: "Can I switch plans?",
-    a: "Yes, upgrade or downgrade at any time. Your published content, subscriber list, and analytics history are always yours regardless of plan.",
-  },
-  {
-    q: "Is my content portable?",
-    a: "Completely. Every article is a signed Nostr event on relays you control. You can read and republish your content with any Nostr-compatible client — YakiPro is just one window.",
-  },
-  {
-    q: "Can I pay in Bitcoin?",
-    a: "Yes. Pay via Lightning and get a 10% discount on any plan. Invoices are generated instantly — no custodial wallets required.",
-  },
-];
+function useFaqItems(t) {
+  return [
+    { q: t("APrc045"), a: t("APrc046") },
+    { q: t("APrc047"), a: t("APrc048") },
+    { q: t("APrc049"), a: t("APrc050") },
+    { q: t("APrc051"), a: t("APrc052") },
+    { q: t("APrc053"), a: t("APrc054") },
+  ];
+}
 
 function CellValue({ value }) {
   if (value === true)
-    return (
-      <span style={{ color: "#2FBF71", fontWeight: 900, fontSize: "1rem" }}>
-        ✓
-      </span>
-    );
+    return <span className="lp-compare-yes">Yes</span>;
   if (value === false)
-    return (
-      <span style={{ color: "rgba(139,148,158,0.3)", fontSize: "0.9rem" }}>
-        –
-      </span>
-    );
-  return (
-    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8b9cf4" }}>
-      {value}
-    </span>
-  );
+    return <span className="lp-compare-no">–</span>;
+  return <span className="lp-compare-value">{value}</span>;
 }
 
 export default function LandingPricing() {
   useReveal();
+  const { t } = useTranslation();
   const [openFaq, setOpenFaq] = useState(null);
   const [isLn, setIsLn] = useState(false);
+
+  const PLANS = usePlans(t);
+  const COMPARE_ROWS = useCompareRows(t);
+  const FAQ_ITEMS = useFaqItems(t);
 
   return (
     <div className="lp-root">
@@ -191,72 +173,12 @@ export default function LandingPricing() {
 
       {/* ══ Hero ══════════════════════════════════════════════════════════════ */}
       <section className="lp-pricing-hero">
-        {/* Animated glow */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: -60,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 800,
-            height: 320,
-            background:
-              "radial-gradient(ellipse at 50% 100%, rgba(247,88,22,0.16) 0%, transparent 65%)",
-            pointerEvents: "none",
-          }}
-        />
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <span
-            className="lp-pill"
-            style={{ display: "inline-flex", marginBottom: 20 }}
-          >
-            ⚡ Pay in fiat or sats · 10% off with Lightning
-          </span>
-          <h1
-            style={{
-              color: "#E6EDF3",
-              fontSize: "clamp(2.2rem, 6vw, 4rem)",
-              fontWeight: 900,
-              letterSpacing: "-0.04em",
-              margin: "12px 0 16px",
-              lineHeight: 1.08,
-            }}
-          >
-            Simple, honest pricing.
-          </h1>
-          <p
-            style={{
-              color: "#8B949E",
-              fontSize: "1.1rem",
-              margin: 0,
-              maxWidth: 480,
-              marginInline: "auto",
-            }}
-          >
-            No algorithms. No ads. No commission on your earnings. Pay for what
-            you need.
-          </p>
-        </div>
+        <h1 className="lp-pricing-hero-title">{t("APrc001")}</h1>
+        <p className="lp-pricing-hero-sub">{t("APrc002")}</p>
       </section>
 
       {/* ══ Plans ═════════════════════════════════════════════════════════════ */}
-      <section
-        id="plans"
-        className="lp-section"
-        style={{ background: "#0D1117" }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: -60,
-            right: -60,
-            width: 440,
-            height: 440,
-            background:
-              "radial-gradient(ellipse at center, rgba(247,88,22,0.09) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
+      <section id="plans" className="lp-section">
         <div className="lp-section-inner">
           <div
             style={{
@@ -270,13 +192,13 @@ export default function LandingPricing() {
                 className={`lp-pricing-toggle-btn${!isLn ? " active" : ""}`}
                 onClick={() => setIsLn(false)}
               >
-                $ USD
+                {t("APrc007")}
               </button>
               <button
                 className={`lp-pricing-toggle-btn${isLn ? " active" : ""}`}
                 onClick={() => setIsLn(true)}
               >
-                ⚡ Sats
+                {t("APrc008")}
               </button>
             </div>
           </div>
@@ -322,25 +244,6 @@ export default function LandingPricing() {
                       </>
                     )}
                   </div>
-                  <div className="lp-plan-sats">
-                    <span>⚡</span>
-                    {isLn ? (
-                      <span>~${plan.price} / month</span>
-                    ) : (
-                      <span>~{plan.sats} sats / month</span>
-                    )}
-                    {!isLn && (
-                      <span
-                        style={{
-                          color: "rgba(139,148,158,0.4)",
-                          fontSize: "0.68rem",
-                          fontWeight: 400,
-                        }}
-                      >
-                        · 10% off with Lightning
-                      </span>
-                    )}
-                  </div>
                   <p className="lp-plan-desc">{plan.desc}</p>
                 </div>
 
@@ -352,10 +255,17 @@ export default function LandingPricing() {
                       key={f.text}
                       className={`lp-plan-feature${f.dim ? " lp-plan-feature-dim" : ""}`}
                     >
-                      <span className="lp-plan-feature-icon">
-                        {f.dim ? "–" : "✓"}
-                      </span>
-                      {f.text}
+                      {f.dim ? (
+                        <span className="lp-plan-feature-dash">–</span>
+                      ) : (
+                        <Icon
+                          name="check"
+                          v={2}
+                          size={14}
+                          className="lp-plan-feature-check"
+                        />
+                      )}
+                      <span>{f.text}</span>
                     </li>
                   ))}
                 </ul>
@@ -363,49 +273,12 @@ export default function LandingPricing() {
                 <Link
                   href="/login"
                   className={`lp-btn lp-btn-lg${plan.highlighted ? " lp-btn-primary" : " lp-btn-outline"}`}
-                  style={{ width: "100%", borderRadius: 8 }}
+                  style={{ width: "100%" }}
                 >
                   {plan.cta}
                 </Link>
               </div>
             ))}
-          </div>
-
-          <div
-            className="lp-reveal lp-reveal-delay-1"
-            style={{
-              maxWidth: 860,
-              margin: "28px auto 0",
-              padding: "16px 22px",
-              borderRadius: 10,
-              background: "rgba(247,88,22,0.06)",
-              border: "1px solid rgba(247,88,22,0.15)",
-              display: "flex",
-              alignItems: "center",
-              gap: 14,
-            }}
-          >
-            <span style={{ fontSize: "1.4rem", flexShrink: 0 }}>⚡</span>
-            <p
-              style={{
-                margin: 0,
-                fontSize: "0.875rem",
-                color: "rgba(139,148,158,0.85)",
-                lineHeight: 1.55,
-              }}
-            >
-              {isLn ? (
-                "⚡ Sats prices already include a 10% Lightning discount."
-              ) : (
-                <>
-                  <strong style={{ color: "#E6EDF3" }}>
-                    Pay with Bitcoin Lightning
-                  </strong>{" "}
-                  and get a 10% discount on any plan. Invoices are generated
-                  instantly — no custodial wallets, no KYC.
-                </>
-              )}
-            </p>
           </div>
         </div>
       </section>
@@ -413,35 +286,29 @@ export default function LandingPricing() {
       <div className="lp-divider-line" />
 
       {/* ══ Compare table ═════════════════════════════════════════════════════ */}
-      <section
-        id="compare"
-        className="lp-section"
-        style={{ background: "#0D1117" }}
-      >
+      <section id="compare" className="lp-section">
         <div className="lp-section-inner">
           <div
             className="lp-reveal"
             style={{ textAlign: "center", marginBottom: 40 }}
           >
-            <span className="lp-section-label">Compare plans</span>
-            <h2 className="lp-section-title" style={{ color: "#E6EDF3" }}>
-              Everything side by side
-            </h2>
+            <span className="lp-section-label">{t("APrc004")}</span>
+            <h2 className="lp-section-title">{t("APrc033")}</h2>
           </div>
 
           <div className="lp-compare-table lp-reveal lp-reveal-delay-1">
-            {/* Header */}
             <div className="lp-compare-row header">
-              <div className="lp-compare-cell header-cell">Feature</div>
-              <div className="lp-compare-cell center header-cell">Creator</div>
+              <div className="lp-compare-cell header-cell">{t("APrc034")}</div>
+              <div className="lp-compare-cell center header-cell">
+                {t("APrc009")}
+              </div>
               <div
-                className="lp-compare-cell center header-cell"
-                style={{ color: "#F75816" }}
+                className="lp-compare-cell center header-cell lp-compare-cell-pro"
               >
-                Pro
+                {t("APrc019")}
               </div>
             </div>
-            {COMPARE_ROWS.map((row, i) => (
+            {COMPARE_ROWS.map((row) => (
               <div key={row.label} className="lp-compare-row">
                 <div className="lp-compare-cell">{row.label}</div>
                 <div className="lp-compare-cell center">
@@ -459,32 +326,14 @@ export default function LandingPricing() {
       <div className="lp-divider-line" />
 
       {/* ══ FAQ ═══════════════════════════════════════════════════════════════ */}
-      <section
-        id="faq"
-        className="lp-section"
-        style={{ background: "#0D1117" }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            bottom: -60,
-            left: -60,
-            width: 400,
-            height: 400,
-            background:
-              "radial-gradient(ellipse at center, rgba(105,123,216,0.09) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
+      <section id="faq" className="lp-section">
         <div className="lp-section-inner">
           <div
             className="lp-reveal"
             style={{ textAlign: "center", marginBottom: 40 }}
           >
-            <span className="lp-section-label">FAQ</span>
-            <h2 className="lp-section-title" style={{ color: "#E6EDF3" }}>
-              Common questions
-            </h2>
+            <span className="lp-section-label">{t("APrc005")}</span>
+            <h2 className="lp-section-title">{t("APrc044")}</h2>
           </div>
 
           <div className="lp-faq lp-reveal lp-reveal-delay-1">
@@ -509,92 +358,23 @@ export default function LandingPricing() {
         </div>
       </section>
 
-      {/* ══ Footer CTA ════════════════════════════════════════════════════════ */}
-      <section className="lp-footer-cta">
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%,-50%)",
-            width: 700,
-            height: 350,
-            background:
-              "radial-gradient(ellipse at center, rgba(247,88,22,0.14) 0%, transparent 65%)",
-            pointerEvents: "none",
-          }}
-        />
-        <div className="lp-footer-cta-inner">
-          <h2
-            className="lp-reveal"
-            style={{
-              color: "#E6EDF3",
-              fontSize: "clamp(2rem,5vw,3rem)",
-              margin: 0,
-              letterSpacing: "-0.03em",
-              fontWeight: 900,
-            }}
-          >
-            Start owning
-            <br />
-            your writing today.
-          </h2>
-          <p
-            className="lp-reveal lp-reveal-delay-1"
-            style={{ color: "rgba(139,148,158,0.8)", margin: 0 }}
-          >
-            Choose a plan and publish your first article on Nostr in minutes.
-          </p>
-          <div
-            className="lp-reveal lp-reveal-delay-2"
-            style={{
-              display: "flex",
-              gap: 12,
-              flexWrap: "wrap",
-              justifyContent: "center",
-            }}
-          >
-            <Link href="/" className="lp-btn lp-btn-primary lp-btn-lg">
-              Get started
-            </Link>
-            <Link href="/home" className="lp-btn lp-btn-outline lp-btn-lg">
-              Learn more
-            </Link>
-          </div>
-          <div className="lp-footer-links lp-reveal lp-reveal-delay-3">
-            <Link href="/home" className="lp-footer-link">
-              Home
-            </Link>
-            <a href="#" className="lp-footer-link">
-              GitHub
-            </a>
-            <a href="#" className="lp-footer-link">
-              Nostr
-            </a>
-            <a href="#" className="lp-footer-link">
-              ⚡ Support
-            </a>
-          </div>
-        </div>
-      </section>
-
       <footer className="lp-footer-nav">
         <div className="lp-footer-nav-inner">
           <span className="lp-footer-copy">
-            © {new Date().getFullYear()} YakiPro. Built on Nostr.
+            © {new Date().getFullYear()} YakiPro.
           </span>
           <div className="lp-footer-nav-links">
             <Link href="/home" className="lp-footer-link">
-              Home
+              {t("ALPg051")}
             </Link>
             <Link href="/pricing" className="lp-footer-link">
-              Pricing
+              {t("ALog013")}
             </Link>
             <a href="#" className="lp-footer-link">
-              Privacy
+              {t("ALPg052")}
             </a>
             <a href="#" className="lp-footer-link">
-              Terms
+              {t("ALPg053")}
             </a>
           </div>
         </div>

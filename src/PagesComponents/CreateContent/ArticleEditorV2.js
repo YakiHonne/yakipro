@@ -11,11 +11,13 @@ import Superscript from "@tiptap/extension-superscript";
 import Subscript from "@tiptap/extension-subscript";
 import { Markdown } from "tiptap-markdown";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import { TableKit } from "@tiptap/extension-table";
 import { all, createLowlight } from "lowlight";
 import Mathematics from "tiptap-math";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import NostrEntityExtension from "@/Extensions/NostrEntityExtension";
+import { pdfFileToMarkdown } from "@/Helpers/PdfToMarkdown";
 import { useSelector } from "react-redux";
 import { FileUpload } from "@/Helpers/FileUpload";
 import ArticlePublishModalV2 from "./ArticlePublishModalV2";
@@ -25,10 +27,12 @@ import SecondReaderPanel from "./SecondReaderPanel";
 import { AIDiffExtension } from "@/Extensions/AIDiffExtension";
 import useLastEditedParagraph from "@/hooks/useLastEditedParagraph";
 import Button from "@/Components/UI/Button";
+import DropDown from "@/Components/UI/DropDown";
+import Icon from "@/Components/Icon";
+import Spinner from "@/Components/Spinner";
 import { SelectTabs } from "@/Components/SelectTabs";
 import PremiumFeatureGate from "@/Components/PremiumFeatureGate";
 
-// ─── Draft helpers (per-user key) ────────────────────────────────────
 const draftKey = (pub) => `yp-article-draft-v2-${pub || "anon"}`;
 const getDraft = (pub) => {
   try {
@@ -43,15 +47,14 @@ const saveDraft = (pub, t, c) => {
       draftKey(pub),
       JSON.stringify({ title: t, content: c, savedAt: Date.now() }),
     );
-  } catch {}
+  } catch { }
 };
 const clearDraft = (pub) => {
   try {
     localStorage.removeItem(draftKey(pub));
-  } catch {}
+  } catch { }
 };
 
-// ─── SVG icons (16×16, stroke-based) ─────────────────────────────────
 const ic = (children, extra = {}) => (
   <svg
     width="16"
@@ -180,6 +183,23 @@ const I = {
       <line x1="4" y1="12" x2="20" y2="12" strokeWidth="2.5" />
     </>,
   ),
+  table: ic(
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="3" y1="15" x2="21" y2="15" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+    </>,
+  ),
+  trash: ic(
+    <>
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </>,
+  ),
   alL: ic(
     <>
       <line x1="3" y1="6" x2="21" y2="6" />
@@ -236,7 +256,6 @@ const I = {
   chevron: ic(<polyline points="6 9 12 15 18 9" />),
 };
 
-// ─── Single toolbar button ────────────────────────────────────────────
 function Tb({ icon, onClick, active, disabled, title }) {
   return (
     <button
@@ -255,7 +274,6 @@ function Tb({ icon, onClick, active, disabled, title }) {
 
 const Sep = () => <span className="tiptap-toolbar-sep" />;
 
-// ─── Toolbar ──────────────────────────────────────────────────────────
 function Toolbar({ editor, onImageUpload, isUploading }) {
   const [showLink, setShowLink] = useState(false);
   const [linkVal, setLinkVal] = useState("");
@@ -267,7 +285,6 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
   const headingsRef = useRef(null);
   const nostrRef = useRef(null);
 
-  // ── Subscribe to editor state (reactive active/disabled states) ──────
   const s = useEditorState({
     editor,
     selector: (ctx) => {
@@ -295,6 +312,7 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
           linkHref: "",
           canUndo: false,
           canRedo: false,
+          inTable: false,
         };
       return {
         bold: e.isActive("bold"),
@@ -320,11 +338,11 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
         linkHref: e.getAttributes("link").href ?? "",
         canUndo: e.can().undo(),
         canRedo: e.can().redo(),
+        inTable: e.isActive("table"),
       };
     },
   });
 
-  // Close insert / headings / nostr dropdowns on outside click
   useEffect(() => {
     const handler = (e) => {
       if (insertRef.current && !insertRef.current.contains(e.target))
@@ -363,7 +381,6 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
 
   return (
     <div className="tiptap-toolbar">
-      {/* History */}
       <Tb
         icon={I.undo}
         onClick={() => editor.chain().focus().undo().run()}
@@ -378,7 +395,6 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
       />
       <Sep />
 
-      {/* Block type */}
       <div className="tiptap-insert-wrap" ref={headingsRef}>
         <button
           className={`tiptap-insert-btn${showHeadings ? " is-open" : ""}`}
@@ -420,7 +436,6 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
       </div>
       <Sep />
 
-      {/* Lists */}
       <Tb
         icon={I.ul}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -435,7 +450,6 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
       />
       <Sep />
 
-      {/* Inline formatting */}
       <Tb
         icon={I.bold}
         onClick={() => editor.chain().focus().toggleBold().run()}
@@ -474,7 +488,6 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
       />
       <Sep />
 
-      {/* Super / subscript */}
       <Tb
         icon={I.sup}
         onClick={() => editor.chain().focus().toggleSuperscript().run()}
@@ -490,7 +503,6 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
 
       <Sep />
 
-      {/* Link */}
       <Tb
         icon={s.link ? I.unlink : I.link}
         active={s.link}
@@ -507,7 +519,6 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
       />
       <Sep />
 
-      {/* Alignment */}
       <Tb
         icon={I.alL}
         onClick={() => editor.chain().focus().setTextAlign("left").run()}
@@ -533,7 +544,6 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
         title="Justify"
       />
 
-      {/* Insert */}
       <div className="tiptap-insert-wrap" ref={insertRef}>
         <button
           className={`tiptap-insert-btn${showInsert ? " is-open" : ""}`}
@@ -623,11 +633,24 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
             >
               {I.hr} Divider
             </button>
+            <button
+              className="tiptap-insert-item"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                editor
+                  .chain()
+                  .focus()
+                  .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                  .run();
+                setShowInsert(false);
+              }}
+            >
+              {I.table} Table
+            </button>
           </div>
         )}
       </div>
 
-      {/* Link URL input */}
       {showLink && (
         <div className="tiptap-link-row">
           <input
@@ -668,7 +691,6 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
         </div>
       )}
 
-      {/* Nostr entity address input */}
       {showNostr && (
         <div className="tiptap-link-row" ref={nostrRef}>
           <input
@@ -708,35 +730,108 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
           </button>
         </div>
       )}
+
+      {s.inTable && (
+        <div className="tiptap-table-toolbar">
+          <button
+            className="tiptap-table-btn"
+            title="Add column before"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().addColumnBefore().run();
+            }}
+          >
+            +Col ←
+          </button>
+          <button
+            className="tiptap-table-btn"
+            title="Add column after"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().addColumnAfter().run();
+            }}
+          >
+            +Col →
+          </button>
+          <button
+            className="tiptap-table-btn"
+            title="Delete column"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().deleteColumn().run();
+            }}
+          >
+            -Col
+          </button>
+          <span className="tiptap-toolbar-sep" />
+          <button
+            className="tiptap-table-btn"
+            title="Add row before"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().addRowBefore().run();
+            }}
+          >
+            +Row ↑
+          </button>
+          <button
+            className="tiptap-table-btn"
+            title="Add row after"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().addRowAfter().run();
+            }}
+          >
+            +Row ↓
+          </button>
+          <button
+            className="tiptap-table-btn"
+            title="Delete row"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().deleteRow().run();
+            }}
+          >
+            -Row
+          </button>
+          <span className="tiptap-toolbar-sep" />
+          <button
+            className="tiptap-table-btn tiptap-table-btn-danger"
+            title="Delete table"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().deleteTable().run();
+            }}
+          >
+            {I.trash} Delete table
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-// ─── Code highlighting ───────────────────────────────────────────────
 const lowlight = createLowlight(all);
 
-// ─── Main component ───────────────────────────────────────────────────
 export default function ArticleEditorV2({ editEvent = null }) {
   const userKeys = useSelector((state) => state.userKeys);
   const subscription = useSelector((state) => state.subscription);
   const isPremiumPlan = subscription?.status?.plan === "premium" && subscription?.status?.active;
   const pub = userKeys?.pub ?? "anon";
 
-  // In edit mode, skip local draft entirely
   const initialDraft = useRef(null);
   if (initialDraft.current === null)
     initialDraft.current = editEvent ? {} : getDraft(pub);
   const draft = initialDraft.current;
 
-  // Pre-populate metadata from the event being edited
   const editMeta = editEvent
     ? {
-        title: editEvent.tags?.find((t) => t[0] === "title")?.[1] ?? "",
-        summary: editEvent.tags?.find((t) => t[0] === "summary")?.[1] ?? "",
-        image: editEvent.tags?.find((t) => t[0] === "image")?.[1] ?? "",
-        identifier: editEvent.tags?.find((t) => t[0] === "d")?.[1] ?? "",
-        publishedAt: editEvent.created_at,
-      }
+      title: editEvent.tags?.find((t) => t[0] === "title")?.[1] ?? "",
+      summary: editEvent.tags?.find((t) => t[0] === "summary")?.[1] ?? "",
+      image: editEvent.tags?.find((t) => t[0] === "image")?.[1] ?? "",
+      identifier: editEvent.tags?.find((t) => t[0] === "d")?.[1] ?? "",
+      publishedAt: editEvent.created_at,
+    }
     : null;
 
   const [imetas, setImetas] = useState([]);
@@ -748,9 +843,7 @@ export default function ArticleEditorV2({ editEvent = null }) {
   const [diffHunks, setDiffHunks] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
-  // "idle" | "saving" | "saved"
   const [saveStatus, setSaveStatus] = useState("idle");
-  // Show restore banner when a non-empty draft was found on mount
   const [showRestored, setShowRestored] = useState(
     !!(draft.title || draft.content),
   );
@@ -758,7 +851,6 @@ export default function ArticleEditorV2({ editEvent = null }) {
   const savedTimer = useRef(null);
   const srSuppressInvalidationRef = useRef(false);
 
-  // Debounced persist — waits 1 s after last change before writing
   const scheduleSave = useCallback(
     (t, c) => {
       setSaveStatus("saving");
@@ -782,6 +874,7 @@ export default function ArticleEditorV2({ editEvent = null }) {
       }),
       CodeBlockLowlight.configure({ lowlight }),
       Mathematics.configure({ evaluation: true }),
+      TableKit.configure({ table: { resizable: true } }),
       NostrEntityExtension,
       Markdown.configure({
         html: false,
@@ -806,8 +899,6 @@ export default function ArticleEditorV2({ editEvent = null }) {
         onHunkUpdate: (hunks) => setDiffHunks([...hunks]),
         onDiffEnd: (finalMarkdown) => {
           setDiffHunks(null);
-          // Suppress Second Reader invalidation — the diff was user-approved,
-          // not a fresh edit that would make existing reactions stale.
           srSuppressInvalidationRef.current = true;
           setTimeout(() => editor?.commands.setContent(finalMarkdown), 0);
         },
@@ -817,8 +908,6 @@ export default function ArticleEditorV2({ editEvent = null }) {
     content: "",
   });
 
-  // Load existing article in edit mode, otherwise restore from draft.
-  // Deferred to avoid flushSync-inside-render errors from Tiptap.
   useEffect(() => {
     if (!editor) return;
     const content = editEvent ? (editEvent.content || "") : (draft.content || "");
@@ -828,14 +917,12 @@ export default function ArticleEditorV2({ editEvent = null }) {
     }, 0);
   }, [editor]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-dismiss restore banner after 4 s
   useEffect(() => {
     if (!showRestored) return;
     const t = setTimeout(() => setShowRestored(false), 700);
     return () => clearTimeout(t);
   }, [showRestored]);
 
-  // Debounced save on editor content change (disabled in edit mode)
   useEffect(() => {
     if (!editor || editEvent) return;
     const fn = () => scheduleSave("", editor.storage.markdown.getMarkdown());
@@ -843,7 +930,6 @@ export default function ArticleEditorV2({ editEvent = null }) {
     return () => editor.off("update", fn);
   }, [editor, scheduleSave, editEvent]);
 
-  // Cleanup timers on unmount
   useEffect(
     () => () => {
       clearTimeout(saveTimer.current);
@@ -852,7 +938,6 @@ export default function ArticleEditorV2({ editEvent = null }) {
     [],
   );
 
-  // Image upload
   const uploadImage = useCallback(
     async (file) => {
       setIsUploading(true);
@@ -876,7 +961,6 @@ export default function ArticleEditorV2({ editEvent = null }) {
     input.click();
   }, [uploadImage]);
 
-  // Paste image → upload
   useEffect(() => {
     const fn = (e) => {
       const item = Array.from(e.clipboardData?.items ?? []).find((i) =>
@@ -953,6 +1037,56 @@ export default function ArticleEditorV2({ editEvent = null }) {
     setShowRestored(false);
   };
 
+  const mdImportRef = useRef(null);
+
+  const handleMdExport = () => {
+    const md = getMarkdown();
+    if (!md) return;
+    const blob = new Blob([md], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "article.md";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleMdImport = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const md = ev.target?.result;
+      if (typeof md === "string") editor?.commands.setContent(md);
+    };
+    reader.readAsText(file);
+  };
+
+  const pdfImportRef = useRef(null);
+  const [isPdfParsing, setIsPdfParsing] = useState(false);
+
+  const handlePdfImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setIsPdfParsing(true);
+    try {
+      const { markdown, images } = await pdfFileToMarkdown(file);
+      editor?.commands.setContent(markdown);
+
+      for (const blob of images) {
+        const imgFile = new File([blob], "pdf-image.png", { type: "image/png" });
+        editor?.chain().focus("end").run();
+        await uploadImage(imgFile);
+      }
+    } catch (err) {
+      console.error("[ArticleEditorV2] PDF import failed:", err);
+    } finally {
+      setIsPdfParsing(false);
+    }
+  };
+
   return (
     <>
       {showPublishModal && (
@@ -969,56 +1103,116 @@ export default function ArticleEditorV2({ editEvent = null }) {
       )}
 
       <div className="fit-container fx-col" style={{ gap: "1rem" }}>
-        {/* Draft restored banner */}
-
-        {/* Top bar */}
         <div
-          className="fit-container fx-scattered fx-wrap"
+          className="fit-container fx-scattered "
           style={{ gap: "8px" }}
         >
-          <SelectTabs
-            selectedTab={showSecondReader ? 0 : showAIPanel ? 1 : -1}
-            tabs={["✦ Second Reader", "✦ Ask AI"]}
-            setSelectedTab={(value) => {
-              if (!isPremiumPlan) {
-                setShowAIGate(true);
-                return;
-              }
-              if (value === 0 && !showSecondReader) {
-                setShowSecondReader(true);
-                setShowAIPanel(false);
-              } else if (value === 0 && showSecondReader) {
-                setShowSecondReader(false);
-              } else if (value === 1 && !showAIPanel) {
-                setShowAIPanel(true);
-                setShowSecondReader(false);
-              } else if (value === 1 && showAIPanel) {
-                setShowAIPanel(false);
-              }
-            }}
-          />
-
+          <div>
+            <SelectTabs
+              selectedTab={showSecondReader ? 0 : showAIPanel ? 1 : -1}
+              tabs={["✦ Second Reader", "✦ Ask AI"]}
+              setSelectedTab={(value) => {
+                if (!isPremiumPlan) {
+                  setShowAIGate(true);
+                  return;
+                }
+                if (value === 0 && !showSecondReader) {
+                  setShowSecondReader(true);
+                  setShowAIPanel(false);
+                } else if (value === 0 && showSecondReader) {
+                  setShowSecondReader(false);
+                } else if (value === 1 && !showAIPanel) {
+                  setShowAIPanel(true);
+                  setShowSecondReader(false);
+                } else if (value === 1 && showAIPanel) {
+                  setShowAIPanel(false);
+                }
+              }}
+            />
+          </div>
           <div className="fx-centered" style={{ gap: "8px" }}>
             <div className="fx-centered" style={{ gap: "10px" }}>
-              {showRestored && (
-                <Button
-                  type="secondary"
-                  label="Restoring session"
-                  loading={true}
-                  onClick={() => setShowRestored(false)}
-                />
-              )}
+
+
+              <input
+                ref={mdImportRef}
+                type="file"
+                accept=".md,.markdown,text/markdown"
+                style={{ display: "none" }}
+                onChange={handleMdImport}
+              />
+              <input
+                ref={pdfImportRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                style={{ display: "none" }}
+                onChange={handlePdfImport}
+              />
+              <DropDown
+                options={[
+                  <div
+                    key="import"
+                    className="pointer fx-centered fx-start-h fit-container box-pad-h-s box-pad-v-s option-no-scale"
+                    onClick={() => mdImportRef.current?.click()}
+                  >
+                    <Icon v={2} name="file_upload" size={20} />
+                    <p>Import markdown</p>
+                  </div>,
+                  <div
+                    key="import-pdf"
+                    className="pointer fx-centered fx-start-h fit-container box-pad-h-s box-pad-v-s option-no-scale"
+                    onClick={() => !isPdfParsing && pdfImportRef.current?.click()}
+                  >
+                    <Icon v={2} name="file_upload" size={20} />
+                    <p>{isPdfParsing ? "Parsing PDF…" : "Import PDF"}</p>
+                  </div>,
+                  <div
+                    key="export"
+                    className="pointer fx-centered fx-start-h fit-container box-pad-h-s box-pad-v-s option-no-scale"
+                    onClick={handleMdExport}
+                  >
+                    <Icon v={2} name="file_download" size={20} />
+                    <p>Export markdown</p>
+                  </div>,
+                ]}
+              >
+                <div
+                  className="btn btn-normal btn-gray bg-dropdown fx-centered pointer"
+                  style={{
+                    borderRadius: "50%",
+                    width: "44px",
+                    height: "44px",
+                    padding: 0,
+                    flexShrink: 0,
+                  }}
+                  title="More options"
+                >
+                  <Icon v={2} name="more_horizontal" size={18} />
+                </div>
+              </DropDown>
 
               {getMarkdown() && (
                 <>
-                  <Button
-                    rightIcon={"trash"}
-                    size="m"
-                    type="gray"
-                    loading={saveStatus === "saving"}
-                    onClick={handleClear}
-                  />
-                  {/* <p className="p-secondary-c">|</p> */}
+                  <div
+                    className="btn btn-normal btn-gray bg-dropdown fx-centered pointer"
+                    style={{
+                      borderRadius: "50%",
+                      width: "44px",
+                      height: "44px",
+                      padding: 0,
+                      flexShrink: 0,
+                      opacity: saveStatus === "saving" ? 0.7 : 1,
+                      cursor: saveStatus === "saving" ? "not-allowed" : "pointer",
+                    }}
+                    onClick={() => saveStatus !== "saving" && handleClear()}
+                    title="Clear editor"
+                  >
+                    {saveStatus === "saving" ? (
+                      <Spinner size={18} />
+                    ) : (
+                      <Icon v={2} name="trash_full" size={18} />
+                    )}
+                  </div>
                 </>
               )}
             </div>
@@ -1052,7 +1246,6 @@ export default function ArticleEditorV2({ editEvent = null }) {
           </div>
         </div>
 
-        {/* Editor shell with sticky toolbar */}
         <div className="tiptap-shell fit-container">
           <Toolbar
             editor={editor}

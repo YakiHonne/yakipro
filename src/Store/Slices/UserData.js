@@ -1,6 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-// ─── User Keys ───────────────────────────────────────────────────────────────
 const userKeysSlice = createSlice({
   name: "userKeys",
   initialState: null,
@@ -10,7 +9,6 @@ const userKeysSlice = createSlice({
   },
 });
 
-// ─── User Metadata (profile) ─────────────────────────────────────────────────
 const userMetadataSlice = createSlice({
   name: "userMetadata",
   initialState: null,
@@ -19,7 +17,6 @@ const userMetadataSlice = createSlice({
   },
 });
 
-// ─── User Relays ─────────────────────────────────────────────────────────────
 const userRelaysSlice = createSlice({
   name: "userRelays",
   initialState: [],
@@ -28,7 +25,6 @@ const userRelaysSlice = createSlice({
   },
 });
 
-// ─── User Followings ─────────────────────────────────────────────────────────
 const userFollowingsSlice = createSlice({
   name: "userFollowings",
   initialState: [],
@@ -37,7 +33,6 @@ const userFollowingsSlice = createSlice({
   },
 });
 
-// ─── User Muted List ─────────────────────────────────────────────────────────
 const userMutedListSlice = createSlice({
   name: "userMutedList",
   initialState: { userMutedList: [], allTags: [] },
@@ -46,7 +41,6 @@ const userMutedListSlice = createSlice({
   },
 });
 
-// ─── User Bookmarks ──────────────────────────────────────────────────────────
 const userBookmarksSlice = createSlice({
   name: "userBookmarks",
   initialState: [],
@@ -55,7 +49,6 @@ const userBookmarksSlice = createSlice({
   },
 });
 
-// ─── User Interest List ──────────────────────────────────────────────────────
 const userInterestListSlice = createSlice({
   name: "userInterestList",
   initialState: [],
@@ -64,7 +57,6 @@ const userInterestListSlice = createSlice({
   },
 });
 
-// ─── User Blossom Servers ─────────────────────────────────────────────────────
 const userBlossomServersSlice = createSlice({
   name: "userBlossomServers",
   initialState: [],

@@ -2,13 +2,6 @@
 
 import { illustrationsUrls } from "@/Content/AssetsURLs";
 
-/**
- * Illustration component — renders a decorative illustration via background-image.
- *
- * @param {string}   name    - Key from illustrationsUrls registry
- * @param {number}   size    - Width and height in px (default 300)
- * @param {function} onClick - Optional click handler
- */
 export default function Illustration({ name, size = 300, onClick }) {
   const src = illustrationsUrls[name];
 

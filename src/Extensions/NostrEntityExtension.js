@@ -2,10 +2,6 @@ import { Node, mergeAttributes, ReactNodeViewRenderer, NodeViewWrapper } from "@
 import React from "react";
 import Nip19Preview from "@/Components/Nip19Preview";
 
-/**
- * NodeView renderer — wraps the Nip19Preview component in a block node.
- * Clicking the node is intentionally non-editable; it behaves like an embed.
- */
 function NostrEntityView({ node, selected }) {
   const { addr } = node.attrs;
   return (
@@ -26,16 +22,6 @@ function NostrEntityView({ node, selected }) {
   );
 }
 
-/**
- * Tiptap extension: renders any nip-19 address (npub, nprofile, naddr, note1, nevent)
- * as a rich embed card inside the article editor.
- *
- * Insert via:
- *   editor.chain().focus().insertNostrEntity({ addr: "naddr1…" }).run()
- *
- * Serialised to Markdown as:   nostr:<addr>
- * Parsed back from Markdown via the addInputRules / paste handler.
- */
 const nostrSchemaRe =
   /\b(naddr1|note1|nevent1|npub1|nprofile1)[a-zA-Z0-9]+\b/;
 
@@ -81,12 +67,6 @@ const NostrEntityExtension = Node.create({
     };
   },
 
-  /**
-   * tiptap-markdown integration:
-   *  • serialize  → writes  `nostr:<addr>`  as a standalone paragraph
-   *  • parse      → converts any paragraph whose text matches a nip-19 token
-   *                 back into a <div data-nostr-entity="…"> so parseHTML picks it up
-   */
   addStorage() {
     return {
       markdown: {
@@ -98,7 +78,6 @@ const NostrEntityExtension = Node.create({
           updateDOM(element) {
             const nostrRe =
               /(?:nostr:)?(naddr1|note1|nevent1|npub1|nprofile1)[a-zA-Z0-9]+/g;
-            // Walk every <p> — if its entire text content is a nostr token, replace it
             element.querySelectorAll("p").forEach((p) => {
               const text = p.textContent.trim();
               const match = text.match(
@@ -117,7 +96,6 @@ const NostrEntityExtension = Node.create({
     };
   },
 
-  /** Input rule: typing `nostr:<addr>` + space auto-converts to embed */
   addInputRules() {
     return [
       {

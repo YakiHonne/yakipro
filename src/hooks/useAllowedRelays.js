@@ -3,9 +3,6 @@ import { getAllowedRelays, addAllowedRelays } from "@/Endpoionts/Relays";
 
 let allowedRelaysCache = null;
 
-/**
- * useAllowedRelays - Hook to manage the user's allowed and delegated relay list.
- */
 export default function useAllowedRelays() {
   const [allowedRelays, setAllowedRelays] = useState(allowedRelaysCache);
   const [isLoading, setIsLoading] = useState(false);

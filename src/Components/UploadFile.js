@@ -5,6 +5,7 @@ import { FileUpload } from "@/Helpers/FileUpload";
 import { nanoid } from "nanoid";
 import Icon from "./Icon";
 import Spinner from "./Spinner";
+import Overlay from "./Overlay";
 
 export default function UploadFile({
   kind = "image/*,video/*,audio/*",
@@ -85,36 +86,31 @@ export default function UploadFile({
   return (
     <>
       {pastedImgURL && (
-        <div className="fixed-container fx-centered box-pad-h">
+        <Overlay exit={() => handlePastedImage(false)} width={550}>
           <div
-            className="sc-s-18 bg-sp slide-up"
-            style={{ width: "min(100%, 550px)" }}
-          >
-            <div
-              style={{
-                aspectRatio: "16/9",
-                backgroundImage: `url(${pastedImgURL})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-              className="fit-container"
-            />
-            <div className="box-pad-h-m box-pad-v-m fx-centered">
-              <button
-                className="btn btn-gst btn-full"
-                onClick={() => handlePastedImage(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-normal btn-full"
-                onClick={() => handlePastedImage(true)}
-              >
-                Upload
-              </button>
-            </div>
+            style={{
+              aspectRatio: "16/9",
+              backgroundImage: `url(${pastedImgURL})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+            className="fit-container"
+          />
+          <div className="box-pad-h-m box-pad-v-m fx-centered">
+            <button
+              className="btn btn-gst btn-full"
+              onClick={() => handlePastedImage(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-normal btn-full"
+              onClick={() => handlePastedImage(true)}
+            >
+              Upload
+            </button>
           </div>
-        </div>
+        </Overlay>
       )}
       <label
         htmlFor={inputID}
@@ -140,7 +136,7 @@ export default function UploadFile({
             )}
           </div>
         ) : (
-          <Icon name="image" size={24} />
+          <Icon v={2} name="image_01" opacity=".5" size={24} />
         )}
       </label>
     </>

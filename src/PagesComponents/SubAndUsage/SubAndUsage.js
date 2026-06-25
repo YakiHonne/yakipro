@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import useSubscription from "@/hooks/useSubscription";
+import useUsage from "@/hooks/useUsage";
 import Icon from "@/Components/Icon";
+import ProgressBar from "@/Components/ProgressBar";
 import Overlay from "@/Components/Overlay";
 import Spinner from "@/Components/Spinner";
 import Button from "@/Components/UI/Button";
+import { SelectTabs } from "@/Components/SelectTabs";
 import { setForcePaywall } from "@/Store/Slices/Subscription";
 import { useDispatch } from "react-redux";
-
-// ─── Config ──────────────────────────────────────────────────────────────────
 
 const PLANS = [
   {
@@ -18,7 +19,7 @@ const PLANS = [
     sats: "18,000",
     period: "/ month",
     desc: "For writers who want to publish, monetize, and understand their audience.",
-    cta: "Get Creator",
+    cta: "Get Basic",
     highlighted: false,
     features: [
       { text: "Unlimited articles & notes publishing", dim: false },
@@ -26,10 +27,10 @@ const PLANS = [
       { text: "Premium content gating (NIP-63)", dim: false },
       { text: "Subscriber management", dim: false },
       { text: "Lightning paywall — no commission", dim: false },
-      { text: "Creator Analytics — up to 3 months", dim: false },
+      { text: "Basic Analytics — up to 3 months", dim: false },
       { text: "50 GB Blossom media storage", dim: false },
       { text: "AI Writing Assistant", dim: true },
-      { text: "Second Reader AI (5 personas)", dim: true },
+      { text: "Second Reader AI", dim: true },
       { text: "Energy Mapper", dim: true },
     ],
   },
@@ -41,14 +42,14 @@ const PLANS = [
     sats: "38,000",
     period: "/ month",
     desc: "For serious creators who want AI in their corner and the full analytics picture.",
-    cta: "Get Pro",
+    cta: "Upgrade",
     highlighted: true,
     badge: "Most popular",
     features: [
-      { text: "Everything in Creator", dim: false },
-      { text: "AI Writing Assistant — unlimited", dim: false },
-      { text: "Second Reader AI (all 5 personas)", dim: false },
-      { text: "Energy Mapper — per-sentence emotion graph", dim: false },
+      { text: "Everything in Basic", dim: false },
+      { text: "AI Writing Assistant — 60 requests/week", dim: false },
+      { text: "Second Reader AI — 30 requests/week (all 5 personas)", dim: false },
+      { text: "Energy Mapper — 20 requests/week", dim: false },
       { text: "Inline diff viewer — accept / reject changes", dim: false },
       { text: "Analytics — up to 3 years of history", dim: false },
       { text: "Click-through bar drill-down per note/article", dim: false },
@@ -57,8 +58,6 @@ const PLANS = [
     ],
   },
 ];
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const fmtDate = (ts) => {
   if (!ts) return "N/A";
@@ -69,9 +68,27 @@ const fmtDate = (ts) => {
   });
 };
 
-const planOrder = (id) => PLANS.findIndex((p) => p.id === id);
+const fmtResetIn = (ts) => {
+  if (!ts) return null;
+  const diffMs = ts * 1000 - Date.now();
+  if (diffMs <= 0) return "Resets shortly";
+  const minutes = Math.round(diffMs / 60000);
+  if (minutes < 60) return `Resets in ~${minutes} minute${minutes === 1 ? "" : "s"}`;
+  const hours = Math.round(diffMs / 3600000);
+  if (hours < 24) return `Resets in ~${hours} hour${hours === 1 ? "" : "s"}`;
+  const days = Math.round(diffMs / 86400000);
+  return `Resets in ~${days} day${days === 1 ? "" : "s"}`;
+};
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+const USAGE_ORDER = [
+  "chat-articles",
+  "second-reader",
+  "energy-mapper",
+  "translate-lt",
+  "wallet-creation",
+];
+
+const planOrder = (id) => PLANS.findIndex((p) => p.id === id);
 
 function PlanBadge({ plan }) {
   const colors = {
@@ -140,6 +157,119 @@ function SkeletonCard() {
   );
 }
 
+function UsageRow({ item, onUpgrade }) {
+  const { label, period_type, limit, percentage, reset_at } = item;
+  const isUnlimited = limit === -1;
+  const isLocked = limit === 0;
+  const resetText =
+    !isUnlimited && (period_type === "weekly" || period_type === "daily")
+      ? fmtResetIn(reset_at)
+      : null;
+
+  return (
+    <div
+      className="fit-container fx-centered fx-col fx-start-v"
+      style={{ rowGap: "10px" }}
+    >
+      <div className="fit-container fx-scattered">
+        <p style={{ fontWeight: 600 }}>{label}</p>
+        {isUnlimited ? (
+          <span className="p-secondary-c">Unlimited</span>
+        ) : isLocked ? null : (
+          <span className="p-secondary-c">{percentage}% used</span>
+        )}
+      </div>
+
+      {isLocked ? (
+        <div className="fit-container fx-scattered round-corner box-pad-h-m box-pad-v-s">
+          <div className="fx-centered" style={{ columnGap: "8px" }}>
+            <Icon name="lock" v={2} size={16} />
+            <p className="p-secondary-c">This feature is locked</p>
+          </div>
+          <button className="btn btn-gst" onClick={onUpgrade}>
+            Upgrade
+          </button>
+        </div>
+      ) : isUnlimited ? null : (
+        <ProgressBar percentage={percentage} full />
+      )}
+
+      {resetText && (
+        <div className="fx-centered" style={{ columnGap: "6px" }}>
+          <span className="p-secondary-c">{resetText}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UsageView({ onUpgrade }) {
+  const { usage, loading, error, fetch } = useUsage();
+
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
+
+  if (loading) {
+    return (
+      <div
+        className="fx-centered fx-col fit-container"
+        style={{ rowGap: "16px" }}
+      >
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        className="yp-card box-pad-h-m box-pad-v-m fx-centered fx-col"
+        style={{ rowGap: "12px" }}
+      >
+        <Icon name="warning" size={32} />
+        <p className="p-secondary-c p-centered">
+          Failed to load usage data. Please try again.
+        </p>
+        <button className="btn btn-gst" onClick={fetch}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!usage) return null;
+
+  const entries = USAGE_ORDER.map(
+    (key) => usage.usage?.[key] && { key, ...usage.usage[key] },
+  ).filter(Boolean);
+
+  return (
+    <div
+      className="yp-card box-pad-h-m box-pad-v-m fx-centered fx-col fx-start-v"
+      style={{ rowGap: "24px" }}
+    >
+      <div className="fit-container fx-scattered">
+        <h4>Usage</h4>
+        <PlanBadge plan={usage.plan || "free"} />
+      </div>
+      {entries.map((item, i) => (
+        <React.Fragment key={item.key}>
+          {i > 0 && (
+            <div
+              className="fit-container"
+              style={{ borderTop: "1px solid var(--color-divider)" }}
+            />
+          )}
+          <UsageRow item={item} onUpgrade={onUpgrade} />
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
 function CancelConfirmModal({ endDate, onConfirm, onClose, loading }) {
   return (
     <Overlay exit={onClose} width={440}>
@@ -189,8 +319,6 @@ function CancelConfirmModal({ endDate, onConfirm, onClose, loading }) {
     </Overlay>
   );
 }
-
-// ─── Cards ────────────────────────────────────────────────────────────────────
 
 function CurrentPlanCard({ status, onCancel, onResume, cancelling, resuming }) {
   const dispatch = useDispatch();
@@ -445,7 +573,11 @@ function ActionsCard({ status, onChangePlan, changingPlan }) {
                     className={`lp-plan-feature${f.dim ? " lp-plan-feature-dim" : ""}`}
                   >
                     <span className="lp-plan-feature-icon">
-                      {f.dim ? "–" : "✓"}
+                      {f.dim ? (
+                        "–"
+                      ) : (
+                        <Icon name="check" v={2} size={16} isBoldThemeColor />
+                      )}
                     </span>
                     {f.text}
                   </li>
@@ -538,9 +670,9 @@ function PaymentHistoryCard({ history }) {
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
-
-export default function SubscriptionSection() {
+export default function SubAndUsage() {
+  const dispatch = useDispatch();
+  const [selectedTab, setSelectedTab] = useState(0);
   const {
     status,
     loading,
@@ -597,74 +729,86 @@ export default function SubscriptionSection() {
       className="fx-centered fx-col fit-container"
       style={{ rowGap: "16px" }}
     >
-      <CurrentPlanCard
-        status={status}
-        onCancel={cancel}
-        onResume={resume}
-        cancelling={cancelling}
-        resuming={resuming}
-      />
-      <PendingChangeCard
-        status={status}
-        onCancelChange={cancelChange}
-        cancellingChange={cancellingChange}
-      />
-      <ActionsCard
-        status={status}
-        onChangePlan={changePlan}
-        changingPlan={changingPlan}
-      />
-      {status.active && status.last_payment_method && (
-        <div
-          className="fit-container round-corner-m box-pad-h-m box-pad-v-m"
-          style={{
-            background: "var(--color-orange-side)",
-            display: "flex",
-            columnGap: "14px",
-            alignItems: "flex-start",
-          }}
-        >
-          {/* Lamp icon */}
-          <div
-            style={{
-              flexShrink: 0,
-              width: "60px",
-              height: "60px",
-              borderRadius: "10px",
-              background: "var(--color-primary-light)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <svg
-              width="40"
-              height="40"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--color-primary-accent)"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M9 21h6" />
-              <path d="M12 3a6 6 0 0 1 6 6c0 2.22-1.2 4.16-3 5.2V17a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1v-2.8C7.2 13.16 6 11.22 6 9a6 6 0 0 1 6-6z" />
-              <path d="M10 17h4" />
-            </svg>
-          </div>
+      <div>
+        <SelectTabs
+          tabs={["Subscription", "Usage"]}
+          selectedTab={selectedTab}
+          setSelectedTab={setSelectedTab}
+        />
+      </div>
 
-          {/* Text */}
-          <div className="fx-centered fx-col fx-start-v fx-gap-v">
-            <h4 className="p-centered">Note:</h4>
-            <p className="p-secondary-c">
-              {status.last_payment_method === "lightning"
-                ? "You can upgrade your plan or switch payment methods once your current billing cycle ends."
-                : "Changing your payment method requires a cancellation of your current subscription, then simply resubscribe once your current billing cycle ends."}
-            </p>
-          </div>
-        </div>
+      {selectedTab === 1 ? (
+        <UsageView onUpgrade={() => dispatch(setForcePaywall(true))} />
+      ) : (
+        <>
+          <CurrentPlanCard
+            status={status}
+            onCancel={cancel}
+            onResume={resume}
+            cancelling={cancelling}
+            resuming={resuming}
+          />
+          <PendingChangeCard
+            status={status}
+            onCancelChange={cancelChange}
+            cancellingChange={cancellingChange}
+          />
+          <ActionsCard
+            status={status}
+            onChangePlan={changePlan}
+            changingPlan={changingPlan}
+          />
+          {status.active && status.last_payment_method && (
+            <div
+              className="fit-container round-corner-m box-pad-h-m box-pad-v-m"
+              style={{
+                background: "var(--color-orange-side)",
+                display: "flex",
+                columnGap: "14px",
+                alignItems: "flex-start",
+              }}
+            >
+              <div
+                style={{
+                  flexShrink: 0,
+                  width: "60px",
+                  height: "60px",
+                  borderRadius: "10px",
+                  background: "var(--color-primary-light)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <svg
+                  width="40"
+                  height="40"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--color-primary-accent)"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 21h6" />
+                  <path d="M12 3a6 6 0 0 1 6 6c0 2.22-1.2 4.16-3 5.2V17a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1v-2.8C7.2 13.16 6 11.22 6 9a6 6 0 0 1 6-6z" />
+                  <path d="M10 17h4" />
+                </svg>
+              </div>
+
+              <div className="fx-centered fx-col fx-start-v fx-gap-v">
+                <h4 className="p-centered">Note:</h4>
+                <p className="p-secondary-c">
+                  {status.last_payment_method === "lightning"
+                    ? "You can upgrade your plan or switch payment methods once your current billing cycle ends."
+                    : "Changing your payment method requires a cancellation of your current subscription, then simply resubscribe once your current billing cycle ends."}
+                </p>
+              </div>
+            </div>
+          )}
+          <PaymentHistoryCard history={status.history} />
+        </>
       )}
-      <PaymentHistoryCard history={status.history} />
     </div>
   );
 }

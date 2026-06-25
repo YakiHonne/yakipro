@@ -29,9 +29,6 @@ import { getSubscriptionStatus } from "@/Endpoionts/subscription";
 const ACCOUNTS_KEY = "yaki-accounts";
 const AUTH_KEY = "_nostruserkeys";
 
-/**
- * Applies the appropriate NDK signer based on saved keys.
- */
 export const applySignerToNDK = async (keys) => {
   try {
     if (keys.ext) {
@@ -45,7 +42,6 @@ export const applySignerToNDK = async (keys) => {
       await signer.blockUntilReady();
     }
 
-    // Set auth policy after signer is ready
     ndkInstance.relayAuthDefaultPolicy = NDKRelayAuthPolicies.signIn({
       ndk: ndkInstance,
     });
@@ -54,18 +50,13 @@ export const applySignerToNDK = async (keys) => {
   }
 };
 
-/**
- * Saves or updates an account in the local list of connected accounts.
- */
 export const saveAccountLocally = (pubkey, keys, metadata = null) => {
   try {
     const accountsRaw = localStorage.getItem(ACCOUNTS_KEY);
     let accounts = accountsRaw ? JSON.parse(accountsRaw) : [];
 
-    // Remove existing entry for this pubkey if it exists
     accounts = accounts.filter((acc) => acc.pubkey !== pubkey);
 
-    // Add new entry at the beginning
     accounts.unshift({
       pubkey,
       keys,
@@ -73,7 +64,6 @@ export const saveAccountLocally = (pubkey, keys, metadata = null) => {
       lastActive: Date.now(),
     });
 
-    // Limit to last 10 accounts
     accounts = accounts.slice(0, 10);
 
     localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
@@ -82,9 +72,6 @@ export const saveAccountLocally = (pubkey, keys, metadata = null) => {
   }
 };
 
-/**
- * Fetches user metadata and followings from Nostr.
- */
 export const fetchUserMetadata = async (pubkey) => {
   try {
     const user = ndkInstance.getUser({ pubkey });
@@ -95,7 +82,6 @@ export const fetchUserMetadata = async (pubkey) => {
     const metadata = user?.profile || {};
     store.dispatch(setUserMetadata(metadata));
 
-    // Also fetch Kind 3 (contact list) to get followings
     const followEvent = await ndkInstance.fetchEvent({
       kinds: [3],
       authors: [pubkey],
@@ -108,7 +94,6 @@ export const fetchUserMetadata = async (pubkey) => {
       store.dispatch(setUserFollowings(followings));
     }
 
-    // Fetch Kind 10002 (relay list)
     const relayEvent = await ndkInstance.fetchEvent({
       kinds: [10002],
       authors: [pubkey],
@@ -153,9 +138,6 @@ const fetchBlossomServers = (pubkey) => {
   }
 };
 
-/**
- * Initializes the application by checking for a connected account.
- */
 export const initAppAccount = async () => {
   try {
     const authRaw = localStorage.getItem(AUTH_KEY);
@@ -170,22 +152,16 @@ export const initAppAccount = async () => {
       return;
     }
 
-    // Apply signer to NDK
     await applySignerToNDK(keys);
 
-    // Set keys in store
     store.dispatch(setUserKeys(keys));
 
-    // Fetch and update metadata
     const metadata = await fetchUserMetadata(keys.pub);
 
-    // Update local accounts list with latest metadata
     saveAccountLocally(keys.pub, keys, metadata);
 
-    // Fetch blossom servers (kind 10063)
     fetchBlossomServers(keys.pub);
 
-    // Backend connection check — resolve loading once we know connection status
     try {
       const res = await checkUserConnected();
       if (res && res !== false) {
@@ -210,7 +186,6 @@ export const initAppAccount = async () => {
       }
     } finally {
       store.dispatch(setLoadingConnectedUser(false));
-      // Fetch subscription status after login — fail-open (don't block the user)
       getSubscriptionStatus()
         .then((data) => store.dispatch(setSubscriptionStatus(data)))
         .catch(() => store.dispatch(setSubscriptionStatus(null)));
@@ -221,9 +196,6 @@ export const initAppAccount = async () => {
   }
 };
 
-/**
- * Logs out the current user.
- */
 export const logoutUser = () => {
   try {
     localStorage.removeItem(AUTH_KEY);

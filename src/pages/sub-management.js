@@ -1,17 +1,12 @@
-import dynamic from "next/dynamic";
-import React from "react";
+export default function SubManagementRedirect() {
+  return null;
+}
 
-const ClientComponent = dynamic(
-  () => import("@/PagesComponents/SubManagement/SubManagement"),
-  {
-    ssr: false,
-  },
-);
-
-export default function index() {
-  return (
-    <div>
-      <ClientComponent />
-    </div>
-  );
+export async function getServerSideProps() {
+  return {
+    redirect: {
+      destination: "/subscription",
+      permanent: false,
+    },
+  };
 }

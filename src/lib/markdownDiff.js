@@ -1,7 +1,3 @@
-/**
- * Splits markdown into paragraph-level blocks separated by blank lines.
- * Code fences are kept together as a single block.
- */
 function splitBlocks(md) {
   const lines = md.split("\n");
   const blocks = [];
@@ -22,21 +18,15 @@ function splitBlocks(md) {
   return blocks.filter((b) => b.trim() !== "");
 }
 
-/**
- * Longest Common Subsequence on two arrays, comparing by value.
- * Returns the LCS as an array of [indexA, indexB] pairs.
- */
 function lcs(a, b) {
   const m = a.length;
   const n = b.length;
-  // Build DP table
   const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
       dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
     }
   }
-  // Backtrack
   const pairs = [];
   let i = m, j = n;
   while (i > 0 && j > 0) {
@@ -52,13 +42,6 @@ function lcs(a, b) {
   return pairs.reverse();
 }
 
-/**
- * Compares two markdown strings block by block.
- *
- * @param {string} originalMd
- * @param {string} proposedMd
- * @returns {Array<{type:'unchanged'|'changed'|'added'|'removed', original:string, proposed:string, id:string}>}
- */
 export function diffMarkdownBlocks(originalMd, proposedMd) {
   const orig = splitBlocks(originalMd);
   const prop = splitBlocks(proposedMd);
@@ -68,7 +51,6 @@ export function diffMarkdownBlocks(originalMd, proposedMd) {
   let oi = 0, pi = 0, hunkIdx = 0;
 
   for (const [ai, bi] of common) {
-    // Drain unmatched blocks before this common pair
     const removedSlice = orig.slice(oi, ai);
     const addedSlice = prop.slice(pi, bi);
 
@@ -85,13 +67,11 @@ export function diffMarkdownBlocks(originalMd, proposedMd) {
       }
     }
 
-    // The common block itself
     hunks.push({ type: "unchanged", original: orig[ai], proposed: prop[bi], id: `hunk_${hunkIdx++}` });
     oi = ai + 1;
     pi = bi + 1;
   }
 
-  // Remaining blocks after the last common pair
   const remOrig = orig.slice(oi);
   const remProp = prop.slice(pi);
   const maxRem = Math.max(remOrig.length, remProp.length);

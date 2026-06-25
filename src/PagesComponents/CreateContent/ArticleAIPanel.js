@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { askArticleAI } from "@/Endpoionts/ArticleAI";
 import Button from "@/Components/UI/Button";
 import aiChatDb from "@/lib/aiChatDb";
@@ -7,8 +8,6 @@ let msgIdCounter = 0;
 const nextId = () => ++msgIdCounter;
 
 const SESSION_ID = "article-editor";
-
-// ─── Persist helpers ──────────────────────────────────────────────────────────
 
 async function loadSession() {
   try {
@@ -34,8 +33,6 @@ async function clearSession() {
     await aiChatDb.sessions.delete(SESSION_ID);
   } catch {}
 }
-
-// ─── Message bubble components ────────────────────────────────────────────────
 
 function UserBubble({ text }) {
   return (
@@ -65,8 +62,6 @@ function AIBubble({ msg }) {
   );
 }
 
-// ─── Main panel ───────────────────────────────────────────────────────────────
-
 export default function ArticleAIPanel({
   isOpen,
   onClose,
@@ -79,17 +74,20 @@ export default function ArticleAIPanel({
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sessionLoaded, setSessionLoaded] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
   const closeTimerRef = useRef(null);
   const prefillTimerRef = useRef(null);
   const sendRef = useRef(null);
 
-  // Load persisted session on mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     loadSession().then((saved) => {
       if (saved.length > 0) {
-        // Restore counter so new IDs don't collide with saved ones
         const maxId = saved.reduce((m, msg) => Math.max(m, msg.id ?? 0), 0);
         if (maxId >= msgIdCounter) msgIdCounter = maxId + 1;
         setMessages(saved);
@@ -102,24 +100,19 @@ export default function ArticleAIPanel({
     };
   }, []);
 
-  // Persist whenever messages change (skip until initial load is done)
   useEffect(() => {
     if (!sessionLoaded) return;
     saveSession(messages);
   }, [messages, sessionLoaded]);
 
-  // Auto-submit prefill when panel opens with a prefill message
   useEffect(() => {
     if (!isOpen || !prefillMessage) return;
     setInput(prefillMessage);
     clearTimeout(prefillTimerRef.current);
     prefillTimerRef.current = setTimeout(() => {
-      // handleSend reads `input` via closure — set directly and trigger via ref
       setInput((current) => {
         if (current.trim()) {
-          // Trigger send on next tick so state is committed
           setTimeout(() => {
-            // Call handleSend indirectly by dispatching a synthetic submit
             sendRef.current?.();
           }, 0);
         }
@@ -129,12 +122,10 @@ export default function ArticleAIPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, prefillMessage]);
 
-  // Scroll to bottom whenever messages change or loading state changes
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isAILoading]);
 
-  // Auto-grow textarea
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
@@ -176,7 +167,6 @@ export default function ArticleAIPanel({
     }
   }, [input, isAILoading, getMarkdown, onClose, onDiffReady, setIsAILoading]);
 
-  // Keep ref current so the prefill timer can call it
   sendRef.current = handleSend;
 
   const handleClear = useCallback(() => {
@@ -191,9 +181,10 @@ export default function ArticleAIPanel({
     }
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <>
-      {/* Backdrop */}
       <div
         className="ai-panel-backdrop"
         style={{
@@ -205,7 +196,6 @@ export default function ArticleAIPanel({
           onClose();
         }}
       >
-        {/* Slide-in panel */}
         <div
           className="ai-panel"
           style={{ transform: isOpen ? "translateY(0)" : "translateY(100%)" }}
@@ -219,12 +209,10 @@ export default function ArticleAIPanel({
             <div></div>
           </div>
 
-          {/* Header */}
           <div className="fit-container fx-centered box-pad-v-s">
             <h3>Ask YakiAI</h3>
           </div>
 
-          {/* Messages */}
           <div className="ai-panel-messages">
             {messages.length === 0 && !isAILoading && (
               <div className="ai-empty-state">
@@ -250,7 +238,6 @@ export default function ArticleAIPanel({
             <div ref={bottomRef} />
           </div>
 
-          {/* Input area */}
           <div className="ai-panel-input-area">
             <textarea
               ref={textareaRef}
@@ -288,6 +275,7 @@ export default function ArticleAIPanel({
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.getElementById("portal-root") || document.body,
   );
 }

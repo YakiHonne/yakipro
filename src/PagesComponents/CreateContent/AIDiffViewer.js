@@ -1,15 +1,14 @@
 import React from "react";
 
-// Strip the most common markdown syntax for readable plain-text preview
 function renderText(md) {
   if (!md) return "";
   return md
-    .replace(/^#{1,6}\s+/gm, "")      // headings
-    .replace(/\*\*(.+?)\*\*/g, "$1")  // bold
-    .replace(/\*(.+?)\*/g, "$1")      // italic
-    .replace(/`{3}[\s\S]*?`{3}/g, (m) => m) // keep code fences as-is
-    .replace(/`(.+?)`/g, "$1")        // inline code
-    .replace(/\[(.+?)\]\(.+?\)/g, "$1") // links → label
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/`{3}[\s\S]*?`{3}/g, (m) => m)
+    .replace(/`(.+?)`/g, "$1")
+    .replace(/\[(.+?)\]\(.+?\)/g, "$1")
     .trim();
 }
 
@@ -74,13 +73,11 @@ function HunkBlock({ hunk, onAccept, onReject }) {
     case "changed":
       return (
         <>
-          {/* Old version — red, no buttons */}
           <div
             className={`ai-diff-block ai-diff-removed${resolved ? " ai-diff-resolved" : ""}`}
           >
             {renderText(hunk.original)}
           </div>
-          {/* New version — green, with buttons */}
           <div
             className={`ai-diff-block ai-diff-added${resolved ? " ai-diff-resolved" : ""}`}
           >
@@ -106,7 +103,6 @@ export default function AIDiffViewer({ hunks, onAccept, onReject }) {
 
   return (
     <div className="ai-diff-viewer">
-      {/* Summary bar */}
       <div className="ai-diff-summary">
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span className="ai-spark">✦</span>

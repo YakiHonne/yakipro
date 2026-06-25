@@ -2,6 +2,20 @@ import { useState } from "react";
 import FileViewer from "./FileViewer";
 import OpsModal from "./OpsModal";
 import Button from "@/Components/UI/Button";
+import DropDown from "@/Components/UI/DropDown";
+import Icon from "@/Components/Icon";
+
+function OptionItem({ icon, label, danger, onClick }) {
+  return (
+    <div
+      className="pointer fx-centered fx-start-h fit-container box-pad-h-s box-pad-v-s option-no-scale"
+      onClick={onClick}
+    >
+      <Icon name={icon} size={24} isColored={danger} />
+      <p className={danger ? "p-red-c" : ""}>{label}</p>
+    </div>
+  );
+}
 
 function formatBytes(bytes) {
   if (!bytes) return "";
@@ -85,7 +99,6 @@ export default function BlobCard({
   refreshLists,
 }) {
   const [ops, setOps] = useState(null); // "mirror" | "delete" | null
-  const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -229,96 +242,52 @@ export default function BlobCard({
             type="gray"
           />
 
-          <div style={{ position: "relative" }}>
-            <div onClick={() => setMenuOpen((v) => !v)}>•••</div>
-            {menuOpen && (
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "calc(100% + 4px)",
-                  right: 0,
-                  background: "var(--color-primary-bg)",
-                  border: "1px solid var(--color-divider)",
-                  borderRadius: "var(--radius-md)",
-                  boxShadow: "0 8px 24px var(--color-shadow-strong)",
-                  zIndex: 10,
-                  minWidth: "150px",
-                  overflow: "hidden",
+          <DropDown
+            options={[
+              <OptionItem
+                key="open"
+                icon="eye-opened"
+                label="Open"
+                onClick={() => setShowPreview(true)}
+              />,
+              <OptionItem
+                key="download"
+                icon="download"
+                label="Download"
+                onClick={() => {
+                  const a = document.createElement("a");
+                  a.href = blob.url;
+                  a.download = blob.sha256;
+                  a.click();
                 }}
-                onMouseLeave={() => setMenuOpen(false)}
-              >
-                {[
-                  {
-                    label: "Open",
-                    action: () => {
-                      setShowPreview(true);
-                      setMenuOpen(false);
-                    },
-                  },
-                  {
-                    label: "Download",
-                    action: () => {
-                      const a = document.createElement("a");
-                      a.href = blob.url;
-                      a.download = blob.sha256;
-                      a.click();
-                    },
-                  },
-                  {
-                    label: copied === "sha" ? "Copied!" : "Copy SHA-256",
-                    action: () => copy(blob.sha256, "sha"),
-                  },
-                  ...(canMirror
-                    ? [
-                        {
-                          label: "Mirror",
-                          action: () => {
-                            setOps("mirror");
-                            setMenuOpen(false);
-                          },
-                        },
-                      ]
-                    : []),
-                  {
-                    label: "Delete",
-                    action: () => {
-                      setOps("delete");
-                      setMenuOpen(false);
-                    },
-                    danger: true,
-                  },
-                ].map(({ label, action, danger }) => (
-                  <button
-                    key={label}
-                    onClick={action}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      padding: "9px 14px",
-                      textAlign: "left",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: "0.83rem",
-                      color: danger
-                        ? "var(--color-red-main)"
-                        : "var(--color-text)",
-                      transition: "background 0.1s",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background =
-                        "var(--color-surface-hover)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "none")
-                    }
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+              />,
+              <OptionItem
+                key="copy-sha"
+                icon="copy"
+                label={copied === "sha" ? "Copied!" : "Copy SHA-256"}
+                onClick={() => copy(blob.sha256, "sha")}
+              />,
+              ...(canMirror
+                ? [
+                    <OptionItem
+                      key="mirror"
+                      icon="link"
+                      label="Mirror"
+                      onClick={() => setOps("mirror")}
+                    />,
+                  ]
+                : []),
+              <OptionItem
+                key="delete"
+                icon="trash"
+                label="Delete"
+                danger
+                onClick={() => setOps("delete")}
+              />,
+            ]}
+          >
+            <div className="round-icon-small pointer fx-centered">•••</div>
+          </DropDown>
         </div>
       </div>
     </>

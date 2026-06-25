@@ -1,17 +1,11 @@
 import { Extension } from "@tiptap/core";
 import { diffMarkdownBlocks } from "@/lib/markdownDiff";
 
-/**
- * Rebuilds the final markdown from resolved hunks.
- * accepted/unchanged → use proposed (or original for unchanged)
- * rejected           → use original
- */
 function buildFinalMarkdown(hunks) {
   return hunks
     .map((h) => {
       if (h.type === "unchanged") return h.original;
       if (h.status === "rejected") return h.original;
-      // accepted or added → use proposed; removed + accepted → drop the block
       if (h.type === "removed") return h.status === "accepted" ? "" : h.original;
       return h.proposed;
     })
@@ -58,7 +52,6 @@ export const AIDiffExtension = Extension.create({
           editor.storage.aiDiff.hunks = hunks;
           editor.storage.aiDiff.originalMd = originalMd;
 
-          // Fire callback — React will render AIDiffViewer instead of EditorContent
           editor.options.extensions
             .find((e) => e.name === "aiDiff")
             ?.options.onDiffStart(hunks);

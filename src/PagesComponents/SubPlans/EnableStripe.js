@@ -42,7 +42,7 @@ export default function EnableStripe({ exit }) {
 
   return (
     <Overlay exit={exit}>
-      <div className="fit-container fx-col fx-centered fx-gap-v-m box-pad-h-m box-pad-v-m round-corner-m border-all">
+      <div className="fit-container fx-col fx-centered fx-gap-v-m box-pad-h-m box-pad-v-m">
         <div className="fx-centered fx-col">
           <h1>{t("AHhPGax")}</h1>
           <p className="box-pad-h p-centered p-secondary-c">{t("AOsxQxu")}</p>

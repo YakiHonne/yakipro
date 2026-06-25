@@ -22,10 +22,8 @@ export default function Publishing() {
         event.content = content;
         event.tags = tags;
 
-        // Sign the event (uses the signer set during login)
         await event.sign();
 
-        // Publish to user's relays (or default relays if none set)
         const relays = userRelays.length > 0 ? userRelays : undefined;
         const publishedTo = await event.publish(relays);
 
@@ -45,5 +43,5 @@ export default function Publishing() {
     }
   }, [toPublish, userRelays, dispatch]);
 
-  return null; // This is a logic-only component that stays active in _app.js
+  return null;
 }

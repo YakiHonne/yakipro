@@ -1,16 +1,17 @@
 import React from "react";
 
-export default function Spinner({ size = 20, color = "var(--color-primary-accent)" }) {
+export default function Spinner({ size = 20, color = "var(--color-primary-text)" }) {
   return (
-    <div
-      className="fx-centered"
+    <span
       style={{
+        display: "inline-block",
         width: size,
         height: size,
-        border: `2px solid ${color}`,
-        borderTop: "2px solid transparent",
+        border: "2px solid rgba(255, 255, 255, 0.25)",
+        borderTopColor: color,
         borderRadius: "50%",
-        animation: "rotate 1s linear infinite",
+        animation: "login-spin 0.7s linear infinite",
+        verticalAlign: "middle",
       }}
     />
   );

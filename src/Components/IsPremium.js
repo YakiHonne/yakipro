@@ -11,8 +11,7 @@ import Overlay from "./Overlay";
 import QRCode from "react-qr-code";
 import axios from "axios";
 import useLightningPayment from "@/hooks/useLightningPayment";
-
-// ── Data (mirrored from LandingPricing) ───────────────────────────────────────
+import Icon from "./Icon";
 
 const PLANS = [
   {
@@ -70,11 +69,11 @@ const COMPARE_ROWS = [
   { label: "Subscriber management", creator: true, pro: true },
   { label: "Lightning paywall", creator: true, pro: true },
   { label: "Blossom media storage", creator: "50 GB", pro: "100 GB" },
-  { label: "Creator Analytics history", creator: "3 months", pro: "3 years" },
-  { label: "Drill-down bar click (note/article)", creator: false, pro: true },
-  { label: "AI Writing Assistant", creator: false, pro: "Unlimited" },
-  { label: "Second Reader AI", creator: false, pro: "5 personas" },
-  { label: "Energy Mapper (note emotion graph)", creator: false, pro: true },
+  { label: "Analytics history", creator: "3 months", pro: "3 years" },
+  { label: "Drill-down bar click", creator: false, pro: true },
+  { label: "AI Writing Assistant", creator: false, pro: "60/week" },
+  { label: "Second Reader AI", creator: false, pro: "30/week" },
+  { label: "Energy Mapper", creator: false, pro: "20/week" },
   { label: "Inline diff — accept / reject", creator: false, pro: true },
 ];
 
@@ -105,15 +104,9 @@ const FAQ_ITEMS = [
   },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 function CellValue({ value }) {
   if (value === true)
-    return (
-      <span style={{ color: "#2FBF71", fontWeight: 900, fontSize: "1rem" }}>
-        ✓
-      </span>
-    );
+    return <Icon name="check" size={20} v={2} isBoldThemeColor />;
   if (value === false)
     return (
       <span style={{ color: "rgba(139,148,158,0.3)", fontSize: "0.9rem" }}>
@@ -121,7 +114,13 @@ function CellValue({ value }) {
       </span>
     );
   return (
-    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8b9cf4" }}>
+    <span
+      style={{
+        fontSize: "0.75rem",
+        fontWeight: 700,
+        color: "var(--color-primary-accent)",
+      }}
+    >
       {value}
     </span>
   );
@@ -145,8 +144,6 @@ function useReveal(dep) {
     return () => io.disconnect();
   }, [dep]);
 }
-
-// ── Sub-sections (reuse lp-* classes from landing.css) ────────────────────────
 
 function WaitingDots() {
   return (
@@ -189,10 +186,10 @@ function LightningInvoiceOverlay({
 
   const expiryDate = data?.next_subscription
     ? new Date(data.next_subscription * 1000).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
     : null;
 
   if (status === "paid") {
@@ -259,7 +256,6 @@ function LightningInvoiceOverlay({
         className="fx-centered fx-col box-pad-h box-pad-v"
         style={{ rowGap: "24px" }}
       >
-        {/* Header */}
         <div
           className="fx-centered fx-col fit-container"
           style={{ rowGap: "6px", textAlign: "center" }}
@@ -290,7 +286,6 @@ function LightningInvoiceOverlay({
           </p>
         </div>
 
-        {/* QR */}
         <div
           style={{
             background: "#ffffff",
@@ -303,7 +298,6 @@ function LightningInvoiceOverlay({
           <QRCode value={invoice} size={220} />
         </div>
 
-        {/* Copy row */}
         <div
           className="fit-container fx-scattered round-corner border-all border-hover box-pad-h-m box-pad-v-s"
           style={{ cursor: "pointer", columnGap: "12px" }}
@@ -331,7 +325,6 @@ function LightningInvoiceOverlay({
           </span>
         </div>
 
-        {/* Waiting indicator */}
         <div
           className="fx-centered round-corner box-pad-h-m box-pad-v-s fit-container"
           style={{
@@ -348,7 +341,6 @@ function LightningInvoiceOverlay({
           </p>
         </div>
 
-        {/* Error — non-blocking, shown below waiting bar */}
         {status === "error" && (
           <p
             className="p-secondary-c"
@@ -358,7 +350,6 @@ function LightningInvoiceOverlay({
           </p>
         )}
 
-        {/* Cancel */}
         <Button
           type="gray"
           size="m"
@@ -524,7 +515,11 @@ function PricingCards({ isLn, setIsLn, userPub }) {
                     className={`lp-plan-feature${f.dim ? " lp-plan-feature-dim" : ""}`}
                   >
                     <span className="lp-plan-feature-icon">
-                      {f.dim ? "–" : "✓"}
+                      {f.dim ? (
+                        "–"
+                      ) : (
+                        <Icon name="check" size={20} v={2} isBoldThemeColor />
+                      )}
                     </span>
                     {f.text}
                   </li>
@@ -685,8 +680,6 @@ function FaqSection() {
   );
 }
 
-// ── User hero header ──────────────────────────────────────────────────────────
-
 function UserHero({ metadata }) {
   const name = metadata?.display_name || metadata?.name || "Creator";
   const image = metadata?.picture || metadata?.image;
@@ -698,7 +691,6 @@ function UserHero({ metadata }) {
       <div className="ip-hero-glow ip-hero-glow-2" />
 
       <div className="ip-hero-inner">
-        {/* Avatar + identity */}
         <div className="ip-hero-identity">
           <div className="ip-hero-avatar-wrap">
             {image ? (
@@ -725,43 +717,24 @@ function UserHero({ metadata }) {
           </div>
         </div>
 
-        {/* Divider */}
         <div className="ip-hero-divider" />
 
-        {/* Pitch copy */}
         <div className="ip-hero-copy">
           <h1 className="ip-hero-title">
-            You're one plan away from
+            Publishing tools built for
             <br />
-            <em>owning your creative future.</em>
+            <em>creators who own their work.</em>
           </h1>
           <p className="ip-hero-sub">
-            Your keys, your content, your revenue. Join thousands of creators
-            publishing on Nostr — censorship-resistant, Lightning-native, and
-            fully yours.
+            Pick a plan that matches how you publish — from Nostr-native
+            basics to AI-assisted writing, audience analytics, and Lightning
+            monetization.
           </p>
-
-          {/* Social proof chips */}
-          <div className="ip-hero-chips">
-            {[
-              "No commission on earnings",
-              "Cancel anytime",
-              "Pay in sats or fiat",
-              "Self-sovereign identity",
-            ].map((t) => (
-              <span key={t} className="ip-hero-chip">
-                <span className="ip-hero-chip-dot" />
-                {t}
-              </span>
-            ))}
-          </div>
         </div>
       </div>
     </div>
   );
 }
-
-// ── Main wrapper ──────────────────────────────────────────────────────────────
 
 function PricingOverlay({ trialEnded, onBack }) {
   const userMetadata = useSelector((state) => state.userMetadata);
@@ -776,7 +749,7 @@ function PricingOverlay({ trialEnded, onBack }) {
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 500,
+        zIndex: 1000003,
         width: "100vw",
         height: "100dvh",
         overflowY: "auto",
@@ -784,10 +757,9 @@ function PricingOverlay({ trialEnded, onBack }) {
         animation: "slideUpFull .35s cubic-bezier(.4,0,.2,1) both",
       }}
     >
-      {/* Back button — only shown when voluntarily opened from the banner */}
       {onBack && (
         <div
-          style={{ position: "fixed", top: "20px", left: "20px", zIndex: 600 }}
+          style={{ position: "fixed", top: "20px", left: "20px", zIndex: 1000004 }}
         >
           <Button
             size="m"
@@ -802,7 +774,6 @@ function PricingOverlay({ trialEnded, onBack }) {
 
       <UserHero metadata={userMetadata} />
 
-      {/* Trial-ended callout — only when hard-blocked */}
       {trialEnded && (
         <div
           style={{ maxWidth: 860, margin: "32px auto 0", padding: "0 20px" }}
@@ -876,33 +847,29 @@ export default function IsPremium({ children }) {
 
   const forcePaywall = subscription.forcePaywall;
 
-  // Auth done but subscription not back yet — hold to prevent flash
   if (subPending) {
     return (
       <div
         style={{
           width: "100vw",
           height: "100dvh",
-          background: "#0D1117",
+          background: "#000000",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <div className="ip-spinner" />
+        <Spinner size={24} />
       </div>
     );
   }
 
   return (
     <>
-      {/* Always render children — overlay sits on top */}
       {children}
 
-      {/* Hard block: access_blocked — full-page takeover, no back button */}
       {isBlocked && <PricingOverlay trialEnded={true} onBack={null} />}
 
-      {/* Voluntary: banner "Upgrade now" — overlay with back button */}
       {!isBlocked && forcePaywall && (
         <PricingOverlay
           trialEnded={false}

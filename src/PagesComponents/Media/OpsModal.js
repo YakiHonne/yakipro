@@ -1,10 +1,12 @@
 import Spinner from "@/Components/Spinner";
+import Icon from "@/Components/Icon";
 import {
   deleteBlossomFile,
   generateAuthorizationHeaderForBlossomServer,
   mirrorBlossomServerFileUpload,
 } from "@/Helpers/Helpers";
 import { useState } from "react";
+import Overlay from "@/Components/Overlay";
 
 export default function OpsModal({
   ops,
@@ -70,49 +72,17 @@ export default function OpsModal({
   const label = isDelete ? "Delete" : "Mirror";
 
   return (
-    <div
-      className="fx-centered"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.5)",
-        zIndex: 1001,
-        padding: "16px",
-      }}
-      onClick={exit}
-    >
-      <div
-        style={{
-          background: "var(--color-primary-bg)",
-          borderRadius: "var(--radius-xl)",
-          width: "100%",
-          maxWidth: "420px",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-        className="border-all"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Overlay exit={exit} width={420}>
+      <div>
         {/* Header */}
         <div
           className="fx-scattered fx-centered box-pad-h-s box-pad-v-s"
           style={{ borderBottom: "1px solid var(--color-divider)" }}
         >
           <h4 style={{ margin: 0 }}>{label} file</h4>
-          <button
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "1.4rem",
-              color: "var(--color-secondary-text)",
-              lineHeight: 1,
-            }}
-            onClick={exit}
-          >
-            ×
-          </button>
+          <div className="close" onClick={exit}>
+            <div />
+          </div>
         </div>
 
         <div
@@ -151,7 +121,7 @@ export default function OpsModal({
                     gap: "10px",
                     padding: "10px 14px",
                     borderRadius: "var(--radius-md)",
-                    border: `1px solid ${checked ? (isDelete ? "var(--color-red-main)" : "var(--color-primary-light)") : "var(--color-divider)"}`,
+                    border: `1px solid ${checked ? (isDelete ? "var(--color-red-main)" : "var(--color-primary-accent)") : "var(--color-divider)"}`,
 
                     cursor: "pointer",
                     transition: "all 0.15s",
@@ -177,16 +147,34 @@ export default function OpsModal({
                   >
                     {new URL(serverUrl).hostname}
                   </span>
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => {}}
+                  <div
                     style={{
-                      accentColor: isDelete
-                        ? "var(--color-red-main)"
-                        : "var(--color-primary-accent)",
+                      width: "18px",
+                      height: "18px",
+                      flexShrink: 0,
+                      borderRadius: "4px",
+                      border: `1.5px solid ${checked ? (isDelete ? "var(--color-red-main)" : "var(--color-primary-accent)") : "var(--color-divider)"}`,
+                      background: checked
+                        ? isDelete
+                          ? "var(--color-red-main)"
+                          : "var(--color-primary-accent)"
+                        : "transparent",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.15s",
                     }}
-                  />
+                  >
+                    {checked && (
+                      <Icon
+                        name="check"
+                        v={2}
+                        size={12}
+                        isColored
+                        className="checkbox-check-icon"
+                      />
+                    )}
+                  </div>
                 </div>
               );
             })
@@ -209,6 +197,6 @@ export default function OpsModal({
           </div>
         </div>
       </div>
-    </div>
+    </Overlay>
   );
 }

@@ -9,8 +9,6 @@ export function parseSatsFromZap(event) {
     const decoded = bech32.decode(invoice, 2000)
     const words = decoded.words
 
-    // The amount is encoded in the human-readable part
-    // Format: lnbc<amount><multiplier>...
     const hrp = decoded.prefix
     const match = hrp.match(/^ln\w+?(\d+)([munp]?)$/)
     if (!match) return 0

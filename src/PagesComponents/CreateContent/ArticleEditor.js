@@ -110,7 +110,6 @@ export default function ArticleEditor() {
       )}
 
       <div className="fit-container fx-col" style={{ gap: "1rem" }}>
-        {/* Toolbar */}
         <div className="fit-container fx-scattered fx-wrap" style={{ gap: "8px" }}>
           <div className="fx-centered" style={{ gap: "8px" }}>
             <button
@@ -135,7 +134,6 @@ export default function ArticleEditor() {
           </button>
         </div>
 
-        {/* Title */}
         <textarea
           ref={titleRef}
           className="fit-container if if-no-border"
@@ -156,7 +154,6 @@ export default function ArticleEditor() {
           dir="auto"
         />
 
-        {/* MDEditor */}
         <div className="fit-container article" style={{ position: "relative" }}>
           <MDEditorWrapper
             dataColorMode={isDarkMode ? "dark" : "light"}

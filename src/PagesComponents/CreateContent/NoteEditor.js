@@ -21,6 +21,7 @@ import TextArea from "@/Components/UI/TextArea";
 import Button from "@/Components/UI/Button";
 import { InitEvent } from "@/Helpers/Encryptions";
 import { publishEvent } from "@/Helpers/Helpers";
+import { publishScheduledEvent } from "@/Helpers/EventSchedulerHelper";
 import { getRelayMetadata } from "@/Cache/relayMetadataCache";
 import PremiumFeatureGate from "@/Components/PremiumFeatureGate";
 
@@ -113,8 +114,14 @@ export default function NoteEditor() {
       ...(isPremium ? [["-"], ["nip63"]] : []),
     ];
 
-    const eventInitEx = await InitEvent({ kind: 1, content, tags });
+    const eventInitEx = await InitEvent({
+      kind: 1,
+      content,
+      tags,
+      created_at: scheduledAt,
+    });
     if (!eventInitEx) {
+      setIsLoading(false);
       return;
     }
 
@@ -126,7 +133,21 @@ export default function NoteEditor() {
       .map((r) => r.url);
 
     const relaysToPublish = isPremium ? premiumRelays : [];
-    const success = await publishEvent(eventInitEx, relaysToPublish);
+
+    if (scheduledAt) {
+      const scheduled = await publishScheduledEvent({
+        event: eventInitEx,
+        relays: relaysToPublish.length > 0 ? relaysToPublish : userRelays.map((r) => r.url),
+      });
+      if (!scheduled) {
+        dispatch(setToast({ type: 2, desc: "Failed to schedule note." }));
+        setIsLoading(false);
+        return;
+      }
+      dispatch(setToast({ type: 1, desc: "Note scheduled." }));
+    } else {
+      await publishEvent(eventInitEx, relaysToPublish);
+    }
 
     updateNoteDraft("");
     setNote("");
@@ -198,12 +219,14 @@ export default function NoteEditor() {
         className="fit-container fx-scattered box-pad-h-m box-pad-v-s"
         style={{ borderBottom: "1px solid var(--pale-gray)" }}
       >
-        <SelectTabs
-          tabs={["Write", "Preview"]}
-          selectedTab={selectedTab}
-          setSelectedTab={setSelectedTab}
+        <div>
+          <SelectTabs
+            tabs={["Write", "Preview"]}
+            selectedTab={selectedTab}
+            setSelectedTab={setSelectedTab}
           // small
-        />
+          />
+        </div>
         <Button
           size="m"
           label={"✦ Energy mapper"}
@@ -321,7 +344,7 @@ export default function NoteEditor() {
             title={scheduledAt ? "Change schedule" : "Schedule post"}
             onClick={() => setShowDatePicker(true)}
           >
-            <Icon name="calendar" size={22} />
+            <Icon v={2} name="calendar" opacity=".5" size={24} />
           </div>
           <div
             className="fx-centered fx-gap-h round-corner border-all box-pad-h-s box-pad-v-xs"

@@ -9,9 +9,6 @@ export default function useAuth() {
   const isConnected = useSelector((state) => state.isConnected);
   const loadingConnectedUser = useSelector((state) => state.loadingConnectedUser);
 
-  /**
-   * Connects the current Nostr user to the backend.
-   */
   const loginBackend = async (keys = userKeys) => {
     if (!keys || !keys.pub) {
       dispatch(setLoadingConnectedUser(false));
@@ -19,14 +16,12 @@ export default function useAuth() {
     }
 
     try {
-      // 1. Check if already connected
       const check = await checkUserConnected();
       if (check && check.success) {
         dispatch(setIsConnected(true));
         return true;
       }
 
-      // 2. Perform backend login
       const res = await apiLogin({ publicKey: keys.pub, userKeys: keys });
       if (res && res.success) {
         dispatch(setIsConnected(true));
@@ -44,9 +39,6 @@ export default function useAuth() {
     }
   };
 
-  /**
-   * Logs out from the backend.
-   */
   const logoutBackend = async () => {
     try {
       await apiLogout();

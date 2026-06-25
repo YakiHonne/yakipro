@@ -28,18 +28,14 @@ export class AnalyticsSyncEngine {
 
       await this._waitForConnection()
 
-      // Check how many events we've already processed for this pubkey
       const processedCount = await analyticsDb.processedEvents.count()
       const authoredCursor = await analyticsDb.syncCursors.get(
         `${this.pubkey}::authored`
       )
 
-      // Treat as first run if no cursor OR cursor exists but DB is empty
-      // (handles the case where cursor was written but backfill got 0 events)
       const isFirstRun = !authoredCursor || processedCount === 0
 
       if (isFirstRun) {
-        // Clear any stale cursors so backfill starts fresh
         await analyticsDb.syncCursors.clear()
         store.dispatch(setIsFirstRun(true))
         await this.fullBackfill()
@@ -97,8 +93,6 @@ export class AnalyticsSyncEngine {
 
     console.log(`[SyncEngine] backfill done — authored: ${authoredCount}, received: ${receivedCount}`)
 
-    // Only write cursor if we actually got events, so a relay timeout
-    // doesn't permanently mark the account as synced with 0 data
     if (authoredCount > 0 || receivedCount > 0) {
       const now = Math.floor(Date.now() / 1000)
       await analyticsDb.syncCursors.put({
@@ -123,19 +117,17 @@ export class AnalyticsSyncEngine {
     store.dispatch(setSyncPhase('done'))
   }
 
-  // Returns total events processed in this fetch
   async _paginatedFetch(baseFilters, label) {
     const now = Math.floor(Date.now() / 1000)
     const THREE_YEARS_AGO = now - 3 * 365 * 24 * 3600
     let until = now
     let totalProcessed = 0
     let page = 0
-    const MAX_PAGES = 200 // 200 × 200 = 40,000 events max
+    const MAX_PAGES = 200
 
     while (page < MAX_PAGES) {
       page++
 
-      // Progress based on how far back in time we've reached vs 3-year window
       const timePercent = Math.round(((now - until) / (now - THREE_YEARS_AGO)) * 90)
       store.dispatch(
         setSyncProgress({
@@ -282,7 +274,6 @@ export class AnalyticsSyncEngine {
       processedAt: Date.now(),
     })
 
-    // Use the event's own creation date so backfilled events land on the right day
     const dateKey = dateKeyFromTimestamp(event.created_at)
 
     switch (event.kind) {

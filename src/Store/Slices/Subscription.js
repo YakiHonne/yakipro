@@ -1,14 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-// null  = not yet fetched
-// false = fetch failed (fail-open)
-// {}    = fetched data
-
 const subscriptionSlice = createSlice({
   name: "subscription",
   initialState: {
-    status: null,   // the full API response object, null while loading
-    loaded: false,  // true once the first fetch completes (success or fail)
+    status: null,
+    loaded: false,
     forcePaywall: false,
   },
   reducers: {

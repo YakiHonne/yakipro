@@ -17,7 +17,7 @@ export default function useSubscription() {
 
   const [cancelling, setCancelling] = useState(false);
   const [resuming, setResuming] = useState(false);
-  const [changingPlan, setChangingPlan] = useState(null); // plan id being switched to
+  const [changingPlan, setChangingPlan] = useState(null);
   const [cancellingChange, setCancellingChange] = useState(false);
 
   const fetch = useCallback(async () => {

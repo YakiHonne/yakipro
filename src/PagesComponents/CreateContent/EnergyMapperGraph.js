@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { LineChart } from "@mui/x-charts/LineChart";
 
-// ─── Energy bracket helpers ───────────────────────────────────────────────────
-
 function energyColor(energy) {
   if (energy < 0.3) return "#ef4444";
   if (energy <= 0.6) return "#f59e0b";
@@ -36,8 +34,6 @@ function dominantColor(sentences) {
   return energyColor(avg);
 }
 
-// ─── Hover tooltip state via custom mark ─────────────────────────────────────
-
 function ChartTooltipContent({ sentence }) {
   if (!sentence) return null;
   return (
@@ -53,8 +49,6 @@ function ChartTooltipContent({ sentence }) {
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export default function EnergyMapperGraph({ data, isLoading, onClose }) {
   const [hoveredSentence, setHoveredSentence] = useState(null);
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
@@ -63,13 +57,11 @@ export default function EnergyMapperGraph({ data, isLoading, onClose }) {
 
   const gradColor = data ? dominantColor(data.sentences) : "#10b981";
 
-  // Build series data for MUI LineChart
   const xValues = data?.sentences.map((s) => s.index) ?? [];
   const yValues = data?.sentences.map((s) => s.energy) ?? [];
 
   return (
     <div className="energy-graph-wrap">
-      {/* ── Header ── */}
       <div className="energy-graph-header">
         <span className="energy-graph-title">Energy Map</span>
         <span className="energy-graph-summary">{data?.summary ?? ""}</span>
@@ -89,7 +81,6 @@ export default function EnergyMapperGraph({ data, isLoading, onClose }) {
         </>
       ) : (
         <>
-          {/* ── Chart ── */}
           <div className="energy-graph-chart" style={{ position: "relative" }}>
             <LineChart
               xAxis={[
@@ -142,7 +133,6 @@ export default function EnergyMapperGraph({ data, isLoading, onClose }) {
               }}
             />
 
-            {/* Custom colored dots overlaid via SVG-like absolute positioned divs */}
             <div
               style={{
                 position: "absolute",
@@ -153,11 +143,9 @@ export default function EnergyMapperGraph({ data, isLoading, onClose }) {
                 padding: "8px",
               }}
             >
-              {/* Dots are rendered by MUI internally; we rely on the area fill */}
             </div>
           </div>
 
-          {/* ── Sentence chips ── */}
           <div className="energy-chips-row">
             {data.sentences.map((s) => {
               const cs = chipStyle(s.energy);
@@ -183,7 +171,6 @@ export default function EnergyMapperGraph({ data, isLoading, onClose }) {
             })}
           </div>
 
-          {/* ── Chip hover tooltip — portalled to body to escape any overflow clipping ── */}
           {hoveredSentence &&
             createPortal(
               <div

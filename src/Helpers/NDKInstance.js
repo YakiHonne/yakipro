@@ -1,7 +1,6 @@
 import NDK from "@nostr-dev-kit/ndk";
 import NDKCacheAdapterDexie from "@nostr-dev-kit/ndk-cache-dexie";
 
-// Default relay list — configurable via env
 const DEFAULT_RELAYS = [
   "wss://nostr-01.yakihonne.com",
   "wss://relay.damus.io",
@@ -18,10 +17,8 @@ const ndkInstance = new NDK({
   enableOutboxModel: true,
 });
 
-// Connect on module load (Pages Router — safe, runs in browser only)
 await ndkInstance.connect(1000);
 
-// Attach Dexie cache adapter in the browser
 if (typeof window !== "undefined") {
   ndkInstance.cacheAdapter = new NDKCacheAdapterDexie({
     dbName: "yakipro-ndk-store",
@@ -32,9 +29,6 @@ if (typeof window !== "undefined") {
 
 export { ndkInstance };
 
-/**
- * Adds new relay URLs to the NDK instance without duplicating existing ones.
- */
 export const addExplicitRelays = (relayList) => {
   try {
     if (!Array.isArray(relayList)) return;

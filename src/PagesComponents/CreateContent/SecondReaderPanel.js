@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useDispatch } from "react-redux";
 import {
   analyzeFullArticle,
@@ -8,8 +9,6 @@ import { PERSONAS } from "@/Content/SecondReaderPersonas";
 import aiChatDb from "@/lib/aiChatDb";
 import { setToast } from "@/Store/Slices/Extras";
 
-// ─── Simple hash to detect article changes ────────────────────────────────────
-
 function hashString(str) {
   let h = 0;
   for (let i = 0; i < str.length; i++) {
@@ -18,10 +17,6 @@ function hashString(str) {
   return String(h);
 }
 
-// ─── Persistence helpers ──────────────────────────────────────────────────────
-
-// Load without hash validation — invalidation is handled separately
-// once the editor has fully restored its content.
 async function loadStoredReactions(personaId) {
   try {
     const row = await aiChatDb.secondReaderReactions.get(personaId);
@@ -48,8 +43,6 @@ async function deleteStoredReactions(personaId) {
     await aiChatDb.secondReaderReactions.delete(personaId);
   } catch {}
 }
-
-// ─── Persona Picker ───────────────────────────────────────────────────────────
 
 function PersonaPicker({ onSelect, isAnalyzing, onClose, lastUsedPersonaId }) {
   return (
@@ -149,15 +142,11 @@ function PersonaPicker({ onSelect, isAnalyzing, onClose, lastUsedPersonaId }) {
   );
 }
 
-// ─── Sentiment icon ───────────────────────────────────────────────────────────
-
 function SentimentIcon({ sentiment }) {
   if (sentiment === "positive") return <span>👍</span>;
   if (sentiment === "negative") return <span>👎</span>;
   return <span>💬</span>;
 }
-
-// ─── Single reaction card ─────────────────────────────────────────────────────
 
 function ReactionCard({ reaction, onFocus, onFix, onIgnore }) {
   const isIgnored = reaction.status === "ignored";
@@ -211,8 +200,6 @@ function ReactionCard({ reaction, onFocus, onFix, onIgnore }) {
   );
 }
 
-// ─── Active Reader ────────────────────────────────────────────────────────────
-
 function ActiveReader({
   persona,
   reactions,
@@ -242,7 +229,6 @@ function ActiveReader({
         position: "relative",
       }}
     >
-      {/* ── Top header bar ── */}
       <div
         style={{
           display: "flex",
@@ -256,7 +242,6 @@ function ActiveReader({
         {!reduced && <h4>Second reader</h4>}
         {reduced && <div></div>}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {/* Clear reactions */}
           {reactions.length > 0 && (
             <button
               className="sr-switch-btn"
@@ -272,7 +257,6 @@ function ActiveReader({
             </button>
           )}
 
-          {/* Reduce / expand toggle */}
           <div
             className={reduced ? "enlarge" : "reduce"}
             onClick={onToggleReduced}
@@ -291,7 +275,6 @@ function ActiveReader({
         </div>
       </div>
 
-      {/* ── Reactions list — hidden when reduced ── */}
       {!reduced && (
         <div className="sr-reactions">
           {activeReactions.length === 0 && resolvedReactions.length === 0 ? (
@@ -334,7 +317,6 @@ function ActiveReader({
         </div>
       )}
 
-      {/* ── Persona footer — always visible ── */}
       <div className="sr-active-footer">
         <div className="sr-active-avatar-wrap">
           <div
@@ -353,7 +335,6 @@ function ActiveReader({
             }}
           >
             <div>
-              {/* Name + live analyzing indicator side by side */}
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <p className="p-caps-s" style={{ margin: 0 }}>
                   {persona.name}
@@ -380,8 +361,6 @@ function ActiveReader({
   );
 }
 
-// ─── Main panel ───────────────────────────────────────────────────────────────
-
 export default function SecondReaderPanel({
   isOpen,
   onClose,
@@ -396,6 +375,11 @@ export default function SecondReaderPanel({
   const dispatch = useDispatch();
   const [view, setView] = useState("picker");
   const [reduced, setReduced] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [activePersona, setActivePersona] = useState(() => {
     try {
       const id = localStorage.getItem("sr-last-persona");
@@ -407,15 +391,10 @@ export default function SecondReaderPanel({
   const [reactions, setReactions] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAnalyzingParagraph, setIsAnalyzingParagraph] = useState(false);
-  // In-memory cache so switching personas doesn't re-fetch
   const reactionsCache = useRef({});
-  // Snapshot of article content taken when reactions were last generated.
-  // Used ONLY to detect deliberate user edits — never on page load.
   const baseMarkdownRef = useRef(null);
-  // Debounce timer for edit-based invalidation
   const invalidateTimerRef = useRef(null);
 
-  // On mount: load stored reactions for the restored persona immediately.
   useEffect(() => {
     if (!activePersona) return;
     loadStoredReactions(activePersona.id).then((stored) => {
@@ -426,10 +405,8 @@ export default function SecondReaderPanel({
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // once on mount only
+  }, []);
 
-  // Listen to the editor's update event directly — reliable, fires on every
-  // content change whether from user input or programmatic setContent.
   useEffect(() => {
     if (!editor) return;
 
@@ -437,14 +414,11 @@ export default function SecondReaderPanel({
       const md = getMarkdown();
       if (!md.trim()) return;
 
-      // Capture baseline on first non-empty content (editor restored from draft)
       if (baseMarkdownRef.current === null) {
         baseMarkdownRef.current = md;
         return;
       }
 
-      // Suppress if this update came from an accepted AI diff — clear flag,
-      // update baseline, do NOT start the invalidation timer.
       if (suppressInvalidationRef?.current) {
         suppressInvalidationRef.current = false;
         baseMarkdownRef.current = md;
@@ -452,7 +426,6 @@ export default function SecondReaderPanel({
         return;
       }
 
-      // Content changed since baseline → debounce invalidation
       if (md !== baseMarkdownRef.current) {
         clearTimeout(invalidateTimerRef.current);
         invalidateTimerRef.current = setTimeout(() => {
@@ -474,7 +447,6 @@ export default function SecondReaderPanel({
     };
   }, [editor, getMarkdown, suppressInvalidationRef]);
 
-  // ── Select persona ────────────────────────────────────────────────────
   const handleSelectPersona = useCallback(
     async (persona) => {
       const persistPersona = (p) => {
@@ -483,7 +455,6 @@ export default function SecondReaderPanel({
         } catch {}
       };
 
-      // 1. Check in-memory cache first
       if (reactionsCache.current[persona.id]) {
         persistPersona(persona);
         setActivePersona(persona);
@@ -492,8 +463,6 @@ export default function SecondReaderPanel({
         return;
       }
 
-      // 2. Check IndexedDB — always trust stored reactions; invalidation
-      //    is handled by the edit-detection effect, not here.
       const stored = await loadStoredReactions(persona.id);
       if (stored && stored.reactions.length > 0) {
         reactionsCache.current[persona.id] = stored.reactions;
@@ -504,7 +473,6 @@ export default function SecondReaderPanel({
         return;
       }
 
-      // 3. Full analysis — guard: need at least 50 words
       const article = getMarkdown();
       const wordCount = article.trim().split(/\s+/).filter(Boolean).length;
       if (wordCount < 50) {
@@ -525,7 +493,6 @@ export default function SecondReaderPanel({
           status: null,
         }));
         reactionsCache.current[persona.id] = loaded;
-        // Store with a snapshot of the current markdown (informational only)
         await saveStoredReactions(persona.id, loaded, hashString(article));
         persistPersona(persona);
         setActivePersona(persona);
@@ -540,12 +507,9 @@ export default function SecondReaderPanel({
     [getMarkdown],
   );
 
-  // Keep a ref to activePersona so the persist effect always sees the latest
-  // value without needing it in the dependency array.
   const activePersonaRef = useRef(null);
   activePersonaRef.current = activePersona;
 
-  // ── Persist reactions whenever they change ────────────────────────────
   useEffect(() => {
     const persona = activePersonaRef.current;
     if (!persona) return;
@@ -557,7 +521,6 @@ export default function SecondReaderPanel({
     );
   }, [reactions]);
 
-  // ── Incremental paragraph analysis ───────────────────────────────────
   useEffect(() => {
     if (!activePersona || !lastEditedParagraph) return;
     const { index, text, before, after } = lastEditedParagraph;
@@ -594,11 +557,9 @@ export default function SecondReaderPanel({
     };
   }, [lastEditedParagraph, activePersona]);
 
-  // ── Fix: mark as fixed (keep in list), open AI chat ─────────────────
   const handleFix = useCallback(
     (reaction) => {
       const msg = `Fix paragraph ${reaction.paragraphIndex + 1}: ${reaction.comment}`;
-      // Mark as fixed so it stays in the list — do NOT remove it
       setReactions((prev) =>
         prev.map((r) => (r === reaction ? { ...r, status: "fixed" } : r)),
       );
@@ -608,7 +569,6 @@ export default function SecondReaderPanel({
     [onClose, onOpenAIChat],
   );
 
-  // ── Ignore: mark as read ─────────────────────────────────────────────
   const handleIgnore = useCallback((reaction) => {
     setReactions((prev) =>
       prev.map((r) => (r === reaction ? { ...r, status: "ignored" } : r)),
@@ -624,7 +584,9 @@ export default function SecondReaderPanel({
     setReactions([]);
   }, [activePersona]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className={`sr-panel${isOpen ? " is-open" : ""}`}
       style={{
@@ -656,6 +618,7 @@ export default function SecondReaderPanel({
           onToggleReduced={() => setReduced((r) => !r)}
         />
       )}
-    </div>
+    </div>,
+    document.getElementById("portal-root") || document.body,
   );
 }

@@ -11,7 +11,8 @@ export default function Select({
   full = false,
   className = "",
   style = {},
-  isColoredIcons = false
+  isColoredIcons = false,
+  label = false,
 }) {
   const selectedOption = useMemo(() => {
     if (!value) return null;
@@ -23,17 +24,14 @@ export default function Select({
     <div
       key={option.value}
       onClick={() => onChange && onChange(option.value)}
-      className="options-item"
-      style={{ cursor: "pointer", padding: "10px 16px" }}
+      className="pointer fx-scattered fit-container option-no-scale"
+      style={{ padding: "10px", borderRadius: "10px" }}
     >
       <div className="fx-centered fx-start-h fx-gap-h">
         {option.iconLeft && <Icon name={option.iconLeft} size={16} isColored={isColoredIcons} />}
-        <p
-          className={` ${value === option.value ? "orange-c" : "gray-c"}`}
-          style={{ margin: 0 }}
-        >
+        <div className={value === option.value ? "p-primary-c" : "gray-c"}>
           {option.display_name}
-        </p>
+        </div>
       </div>
       {option.iconRight && <Icon name={option.iconRight} size={16} isColored={isColoredIcons} />}
     </div>
@@ -42,17 +40,27 @@ export default function Select({
   return (
     <DropDown options={optionsList} full={full} disabled={disabled}>
       <div
-        className={`if fx-gap-h-l fx-scattered pointer ${disabled ? "if-disabled" : "bg-hover"
+        className={`if fx-col fx-start-v pointer ${disabled ? "if-disabled" : "bg-hover"
           } ${className}`}
         style={{
           width: full ? "100%" : "auto",
+          height: "auto",
+          minHeight: label ? "auto" : "2.5rem",
+          padding: ".5rem 1rem",
+          gap: label ? 0 : "4px",
+          justifyContent: "center",
           ...style,
         }}
       >
-        <p style={{ margin: 0 }}>
-          {selectedOption || placeholder || "Select..."}
-        </p>
-        <Icon name="arrow" size={12} />
+        {label && (
+          <p className="gray-c p-medium" style={{ margin: 0 }}>
+            {label}
+          </p>
+        )}
+        <div className="fit-container fx-scattered" style={{ gap: "8px" }}>
+          <div>{selectedOption || placeholder || "Select..."}</div>
+          <Icon name="arrow" size={12} />
+        </div>
       </div>
     </DropDown>
   );

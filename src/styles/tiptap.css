@@ -98,6 +98,46 @@
   border-color: var(--color-primary-accent);
 }
 
+/* ── Table editing toolbar ───────────────────────────────────────────── */
+.tiptap-table-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+  padding: 4px 2px 2px;
+}
+
+.tiptap-table-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--color-divider);
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+
+.tiptap-table-btn:hover {
+  background: var(--color-surface-hover);
+}
+
+.tiptap-table-btn-danger {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.tiptap-table-btn-danger:hover {
+  background: var(--color-error);
+  color: #fff;
+}
+
 /* ── Insert dropdown ─────────────────────────────────────────────────── */
 .tiptap-insert-wrap {
   position: relative;
@@ -503,6 +543,94 @@
   border-radius: 10px;
 }
 
+/* ── Tables ───────────────────────────────────────────────────────────── */
+.ProseMirror .tableWrapper {
+  margin: 1rem 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+/* App-wide rule hides all webkit scrollbars by default — opt back in
+   here so wide tables have a visible, mouse-draggable scrollbar. */
+.ProseMirror .tableWrapper::-webkit-scrollbar {
+  display: block;
+  height: 8px;
+}
+
+.ProseMirror .tableWrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ProseMirror .tableWrapper::-webkit-scrollbar-thumb {
+  background: var(--color-divider);
+  border-radius: 4px;
+}
+
+.ProseMirror .tableWrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--color-surface-hover);
+}
+
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+}
+
+.ProseMirror table td,
+.ProseMirror table th {
+  border: 1px solid var(--color-divider);
+  padding: 8px 12px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  width: 160px;
+  min-width: 160px;
+}
+
+.ProseMirror table td > *,
+.ProseMirror table th > * {
+  max-width: 100%;
+}
+
+.ProseMirror table td code,
+.ProseMirror table th code {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ProseMirror table th {
+  background: var(--color-surface-hover);
+  font-weight: 600;
+  text-align: left;
+}
+
+.ProseMirror table .selectedCell {
+  background: var(--color-surface-hover);
+}
+
+.ProseMirror table .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: var(--color-primary-accent);
+  pointer-events: none;
+}
+
+.ProseMirror table .grip-column,
+.ProseMirror table .grip-row {
+  background: var(--color-surface-hover);
+}
+
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
 /* ── btn-small (used by ArticleEditorV2 top bar) ─────────────────────── */
 .btn-small {
   font-size: 0.8rem;
@@ -524,7 +652,7 @@
   right: 0;
   top: 0;
   background: rgba(0, 0, 0, 0.45);
-  z-index: 9998;
+  z-index: 1000002;
   transition: opacity 0.25s ease;
   pointer-events: none;
   padding: 1rem;
@@ -544,7 +672,7 @@
   box-shadow: -8px 0 32px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
-  z-index: 9999;
+  z-index: 1000003;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
@@ -1012,7 +1140,7 @@
   right: 0;
   width: 450px;
   height: 100vh;
-  z-index: 200;
+  z-index: 1000003;
   display: flex;
   flex-direction: column;
   padding: 1rem;

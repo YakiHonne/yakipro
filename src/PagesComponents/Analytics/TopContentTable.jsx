@@ -61,9 +61,9 @@ export default function TopContentTable({ pubkey }) {
               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--color-text-secondary, #aaa)' }}>Content</th>
               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--color-text-secondary, #aaa)' }}>Kind</th>
               <SortHeader label="Date" sortId="publishedAt" />
-              <SortHeader label="❤️" sortId="reactionsCount" />
-              <SortHeader label="🔁" sortId="repostsCount" />
-              <SortHeader label="⚡" sortId="zapsCount" />
+              <SortHeader label="Reactions" sortId="reactionsCount" />
+              <SortHeader label="Reposts" sortId="repostsCount" />
+              <SortHeader label="Zaps" sortId="zapsCount" />
               <SortHeader label="Sats" sortId="zapsSats" />
             </tr>
           </thead>

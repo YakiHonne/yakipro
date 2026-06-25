@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import Icon from "@/Components/Icon";
 import Button from "./UI/Button";
+import Overlay from "./Overlay";
 
 export default function DeleteWarning({
   title,
@@ -12,12 +13,8 @@ export default function DeleteWarning({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="fixed-container fx-centered box-pad-h">
-      <section
-        className="fx-centered fx-col sc-s bg-sp box-pad-h box-pad-v fx-gap-v-m"
-        style={{ width: "450px" }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Overlay exit={exit} width={450}>
+      <div className="fx-centered fx-col box-pad-h box-pad-v fx-gap-v-m">
         <Icon name="warning" size={54} isColored />
 
         {title && (
@@ -42,7 +39,7 @@ export default function DeleteWarning({
             full={true}
           />
         </div>
-      </section>
-    </div>
+      </div>
+    </Overlay>
   );
 }

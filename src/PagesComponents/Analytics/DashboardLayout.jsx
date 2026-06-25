@@ -11,12 +11,12 @@ import { useProfileStats } from "@/hooks/analytics/useProfileStats";
 import PremiumFeatureGate from "@/Components/PremiumFeatureGate";
 
 const PERIOD_OPTIONS = [
-  { days: 7,    label: "7d" },
-  { days: 30,   label: "1m" },
-  { days: 90,   label: "3m" },
-  { days: 180,  label: "6m" },
-  { days: 365,  label: "1y" },
-  { days: 730,  label: "2y" },
+  { days: 7, label: "7d" },
+  { days: 30, label: "1m" },
+  { days: 90, label: "3m" },
+  { days: 180, label: "6m" },
+  { days: 365, label: "1y" },
+  { days: 730, label: "2y" },
   { days: 1095, label: "3y" },
 ];
 
@@ -114,9 +114,9 @@ export default function DashboardLayout({ pubkey }) {
   const [gateDrill, setGateDrill] = useState(false);
 
   const CHART_TITLES = {
-    zaps:      "Sats Earned",
+    zaps: "Sats Earned",
     reactions: "Engagement",
-    notes:     "Publishing Frequency",
+    notes: "Publishing Frequency",
   };
 
   const handleBarClick = (payload) => {
@@ -133,23 +133,14 @@ export default function DashboardLayout({ pubkey }) {
     <div
       style={{
         padding: "1.5rem",
-        height: "100vh",
-        overflowY: "scroll",
+        // height: "100vh",
+        // overflowY: "scroll",
         maxWidth: 1200,
         margin: "0 auto",
       }}
       className="no-scrollbar"
     >
-      <h1
-        style={{
-          margin: "0 0 1.5rem",
-
-          fontWeight: 700,
-          color: "var(--color-text-primary, #fff)",
-        }}
-      >
-        Creator Analytics
-      </h1>
+      <h1 className="box-pad-v-m">Creator Analytics</h1>
 
       {/* Stat Cards */}
       <div

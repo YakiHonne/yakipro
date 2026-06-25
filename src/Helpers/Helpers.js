@@ -12,8 +12,6 @@ import {
 import { setToast } from "@/Store/Slices/Extras";
 import { ndkInstance, relaysOnPlatform } from "./NDKInstance";
 
-// ─── Blossom helpers ─────────────────────────────────────────────────────────
-
 function encodeBase64URL(str) {
   return btoa(unescape(encodeURIComponent(str)))
     .replace(/\+/g, "-")
@@ -357,6 +355,16 @@ export const publishEvent = async (event, relays = []) => {
   });
 };
 
+export const removeEventFromCache = async (event) => {
+  try {
+    const ev = new NDKEvent(ndkInstance, event);
+    const cacheId = ev.tagId();
+    await ndkInstance.cacheAdapter?.deleteEventIds?.([cacheId]);
+  } catch (err) {
+    console.error("[removeEventFromCache]", err);
+  }
+};
+
 export const saveUsers = async (pubkeys) => {
   try {
     if (!pubkeys || pubkeys.length === 0) return;
@@ -391,9 +399,7 @@ export const saveUsers = async (pubkeys) => {
       const existingAuthors = currentState.nostrAuthors || [];
       const newAuthorsMap = new Map();
 
-      // Start with existing
       existingAuthors.forEach((a) => newAuthorsMap.set(a.pubkey, a));
-      // Overwrite/Add new
       parsedAuthors.forEach((a) => newAuthorsMap.set(a.pubkey, a));
 
       store.dispatch(setNostrAuthors(Array.from(newAuthorsMap.values())));

@@ -83,10 +83,9 @@ export default function WriteNote({ exit }) {
   return (
     <Overlay exit={exit} width={600}>
       <div
-        className="fx-centered fx-col bg-main-c fit-container box-pad-h box-pad-v"
+        className="fx-centered fx-col fit-container box-pad-h box-pad-v"
         style={{ gap: "1rem" }}
       >
-        {/* Header */}
         <div className="fit-container fx-scattered">
           <div className="fx-centered" style={{ gap: "12px" }}>
             <div
@@ -124,7 +123,6 @@ export default function WriteNote({ exit }) {
           </div> */}
         </div>
 
-        {/* Textarea */}
         <div className="fit-container" style={{ minHeight: "120px" }}>
           <TextArea
             ref={textareaRef}
@@ -134,7 +132,6 @@ export default function WriteNote({ exit }) {
           />
         </div>
 
-        {/* Footer */}
         <div
           className="fit-container fx-scattered"
           style={{
