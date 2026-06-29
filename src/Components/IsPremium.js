@@ -100,7 +100,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Can I pay in Bitcoin?",
-    a: "Yes. Pay via Lightning and get a 10% discount on any plan. Invoices are generated instantly — no custodial wallets required.",
+    a: "Yes. Pay via Lightning. Invoices are generated instantly — no custodial wallets required.",
   },
 ];
 
@@ -493,17 +493,6 @@ function PricingCards({ isLn, setIsLn, userPub }) {
                   ) : (
                     <span>~{plan.sats} sats / month</span>
                   )}
-                  {!isLn && (
-                    <span
-                      style={{
-                        color: "rgba(139,148,158,0.4)",
-                        fontSize: "0.68rem",
-                        fontWeight: 400,
-                      }}
-                    >
-                      · 10% off with Lightning
-                    </span>
-                  )}
                 </div>
                 <p className="lp-plan-desc">{plan.desc}</p>
               </div>
@@ -537,42 +526,6 @@ function PricingCards({ isLn, setIsLn, userPub }) {
           ))}
         </div>
 
-        <div
-          className="ip-reveal ip-reveal-d1"
-          style={{
-            maxWidth: 860,
-            margin: "28px auto 0",
-            padding: "16px 22px",
-            borderRadius: 10,
-            background: "rgba(247,88,22,0.06)",
-            border: "1px solid rgba(247,88,22,0.15)",
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-          }}
-        >
-          <span style={{ fontSize: "1.4rem", flexShrink: 0 }}>⚡</span>
-          <p
-            style={{
-              margin: 0,
-              fontSize: "0.875rem",
-              color: "rgba(139,148,158,0.85)",
-              lineHeight: 1.55,
-            }}
-          >
-            {isLn ? (
-              "⚡ Sats prices already include a 10% Lightning discount."
-            ) : (
-              <>
-                <strong style={{ color: "#E6EDF3" }}>
-                  Pay with Bitcoin Lightning
-                </strong>{" "}
-                and get a 10% discount on any plan. Invoices are generated
-                instantly — no custodial wallets, no KYC.
-              </>
-            )}
-          </p>
-        </div>
       </div>
 
       {lightningInvoice && activePlan && (

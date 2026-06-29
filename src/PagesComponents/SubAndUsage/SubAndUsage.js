@@ -125,7 +125,7 @@ function PaymentMethodIcon({ method }) {
         <span className="">Lightning</span>
       </span>
     );
-  if (method === "stripe")
+  if (method === "stripe" || method === "airwallex")
     return (
       <span className="fx-centered" style={{ columnGap: "4px" }}>
         <Icon name="wallet" size={20} />
@@ -324,8 +324,10 @@ function CurrentPlanCard({ status, onCancel, onResume, cancelling, resuming }) {
   const dispatch = useDispatch();
   const [showCancelModal, setShowCancelModal] = useState(false);
 
-  const isStripeActive =
-    status.last_payment_method === "stripe" && status.active;
+  const isCardActive =
+    (status.last_payment_method === "stripe" ||
+      status.last_payment_method === "airwallex") &&
+    status.active;
 
   return (
     <>
@@ -414,7 +416,7 @@ function CurrentPlanCard({ status, onCancel, onResume, cancelling, resuming }) {
           />
         )}
 
-        {isStripeActive && (
+        {isCardActive && (
           <>
             <div
               className="fit-container"
@@ -511,7 +513,10 @@ function PendingChangeCard({ status, onCancelChange, cancellingChange }) {
 }
 
 function ActionsCard({ status, onChangePlan, changingPlan }) {
-  if (status.last_payment_method !== "stripe" || !status.active) return null;
+  const isCardMethod =
+    status.last_payment_method === "stripe" ||
+    status.last_payment_method === "airwallex";
+  if (!isCardMethod || !status.active) return null;
 
   const hasPending = !!status.pending_plan;
   const currentPlanIdx = planOrder(status.plan);
