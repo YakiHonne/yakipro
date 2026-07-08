@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useRouter } from "next/router";
 import { logoutUser } from "@/Helpers/AccountInit";
-import { getSubscriptionLink } from "@/Endpoionts/payment";
+import { getPlans, getSubscriptionLink } from "@/Endpoionts/payment";
 import { setForcePaywall } from "@/Store/Slices/Subscription";
 import { copyText } from "@/Helpers/Helpers";
 import Spinner from "./Spinner";
@@ -12,55 +12,6 @@ import QRCode from "react-qr-code";
 import axios from "axios";
 import useLightningPayment from "@/hooks/useLightningPayment";
 import Icon from "./Icon";
-
-const PLANS = [
-  {
-    id: "basic",
-    price_id: "price_1TXxor8f5pgfcSH1UwpipjP6",
-    name: "Creator",
-    price: "9",
-    sats: "18,000",
-    period: "/ month",
-    desc: "For writers who want to publish, monetize, and understand their audience.",
-    cta: "Get Creator",
-    highlighted: false,
-    features: [
-      { text: "Unlimited articles & notes publishing", dim: false },
-      { text: "Nostr-native identity (npub / nsec)", dim: false },
-      { text: "Premium content gating (NIP-63)", dim: false },
-      { text: "Subscriber management", dim: false },
-      { text: "Lightning paywall — no commission", dim: false },
-      { text: "Creator Analytics — up to 3 months", dim: false },
-      { text: "50 GB Blossom media storage", dim: false },
-      { text: "AI Writing Assistant", dim: true },
-      { text: "Second Reader AI (5 personas)", dim: true },
-      { text: "Energy Mapper", dim: true },
-    ],
-  },
-  {
-    id: "premium",
-    price_id: "price_1TXyHO8f5pgfcSH1W1jqzsuk",
-    name: "Pro",
-    price: "19",
-    sats: "38,000",
-    period: "/ month",
-    desc: "For serious creators who want AI in their corner and the full analytics picture.",
-    cta: "Get Pro",
-    highlighted: true,
-    badge: "Most popular",
-    features: [
-      { text: "Everything in Creator", dim: false },
-      { text: "AI Writing Assistant — unlimited", dim: false },
-      { text: "Second Reader AI (all 5 personas)", dim: false },
-      { text: "Energy Mapper — per-sentence emotion graph", dim: false },
-      { text: "Inline diff viewer — accept / reject changes", dim: false },
-      { text: "Analytics — up to 3 years of history", dim: false },
-      { text: "Click-through bar drill-down per note/article", dim: false },
-      { text: "100 GB Blossom media storage", dim: false },
-      { text: "Early access to new features", dim: false },
-    ],
-  },
-];
 
 const COMPARE_ROWS = [
   { label: "Articles & Notes publishing", creator: true, pro: true },
@@ -363,9 +314,14 @@ function LightningInvoiceOverlay({
 }
 
 function PricingCards({ isLn, setIsLn, userPub }) {
+  const [plans, setPlans] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lightningInvoice, setLightningInvoice] = useState(null);
   const [activePlan, setActivePlan] = useState(null);
+
+  useEffect(() => {
+    getPlans().then(setPlans);
+  }, []);
 
   const generateLightningInvoice = async (plan) => {
     const lnAddr = process.env.NEXT_PUBLIC_YAKIPRO_LIGHTNING_ADDR;
@@ -377,9 +333,7 @@ function PricingCards({ isLn, setIsLn, userPub }) {
     const lnurlRes = await axios.get(lnurlpUrl);
     const callback = lnurlRes.data.callback;
 
-    const sats = parseInt(plan.sats.replace(/,/g, ""), 10);
-    const msats = 1 * 1000;
-    // const msats = sats * 1000;
+    const msats = plan.sats_price * 1000;
     const description = JSON.stringify({ plan: plan.id, pubkey: userPub });
 
     const invoiceRes = await axios.get(callback, {
@@ -399,10 +353,7 @@ function PricingCards({ isLn, setIsLn, userPub }) {
           setLightningInvoice(invoice);
         }
       } else {
-        await getSubscriptionLink({
-          price_id: product.price_id,
-          plan: product.id,
-        });
+        await getSubscriptionLink({ plan_id: product.id });
       }
     } catch (err) {
       console.error(err);
@@ -450,20 +401,22 @@ function PricingCards({ isLn, setIsLn, userPub }) {
         </div>
 
         <div className="lp-pricing-cards ip-reveal">
-          {PLANS.map((plan) => (
+          {plans.map((plan, idx) => {
+            const isHighlighted = idx === plans.length - 1;
+            return (
             <div
               key={plan.id}
-              className={`lp-plan-card${plan.highlighted ? " lp-plan-card-pro" : ""}`}
+              className={`lp-plan-card${isHighlighted ? " lp-plan-card-pro" : ""}`}
             >
-              {plan.badge && (
+              {isHighlighted && (
                 <div
                   style={{
                     position: "absolute",
-                    top: plan.highlighted ? 18 : 16,
+                    top: 18,
                     right: 20,
                   }}
                 >
-                  <span className="lp-plan-badge">{plan.badge}</span>
+                  <span className="lp-plan-badge">Most popular</span>
                 </div>
               )}
               <div>
@@ -475,55 +428,48 @@ function PricingCards({ isLn, setIsLn, userPub }) {
                         className="lp-plan-amount"
                         style={{ fontSize: "2.2rem" }}
                       >
-                        {plan.sats}
+                        {plan.sats_price?.toLocaleString()}
                       </span>
-                      <span className="lp-plan-period"> sats{plan.period}</span>
+                      <span className="lp-plan-period"> sats / month</span>
                     </>
                   ) : (
                     <>
-                      <span className="lp-plan-amount">${plan.price}</span>
-                      <span className="lp-plan-period">{plan.period}</span>
+                      <span className="lp-plan-amount">${plan.usd_price}</span>
+                      <span className="lp-plan-period"> / month</span>
                     </>
                   )}
                 </div>
                 <div className="lp-plan-sats">
                   <span>⚡</span>
                   {isLn ? (
-                    <span>~${plan.price} / month</span>
+                    <span>~${plan.usd_price} / month</span>
                   ) : (
-                    <span>~{plan.sats} sats / month</span>
+                    <span>~{plan.sats_price?.toLocaleString()} sats / month</span>
                   )}
                 </div>
-                <p className="lp-plan-desc">{plan.desc}</p>
               </div>
               <div className="lp-plan-divider" />
               <ul className="lp-plan-features">
-                {plan.features.map((f) => (
-                  <li
-                    key={f.text}
-                    className={`lp-plan-feature${f.dim ? " lp-plan-feature-dim" : ""}`}
-                  >
+                {(plan.perks || []).map((perk) => (
+                  <li key={perk} className="lp-plan-feature">
                     <span className="lp-plan-feature-icon">
-                      {f.dim ? (
-                        "–"
-                      ) : (
-                        <Icon name="check" size={20} v={2} isBoldThemeColor />
-                      )}
+                      <Icon name="check" size={20} v={2} isBoldThemeColor />
                     </span>
-                    {f.text}
+                    {perk}
                   </li>
                 ))}
               </ul>
               <button
-                className={`lp-btn lp-btn-lg${plan.highlighted ? " lp-btn-primary" : " lp-btn-outline"}`}
+                className={`lp-btn lp-btn-lg${isHighlighted ? " lp-btn-primary" : " lp-btn-outline"}`}
                 style={{ width: "100%", borderRadius: 8 }}
                 disabled={isLoading}
                 onClick={() => handleCheckout(plan)}
               >
-                {isLoading ? <Spinner size={14} /> : plan.cta}
+                {isLoading ? <Spinner size={14} /> : `Get ${plan.name}`}
               </button>
             </div>
-          ))}
+          );
+          })}
         </div>
 
       </div>
@@ -532,7 +478,7 @@ function PricingCards({ isLn, setIsLn, userPub }) {
         <LightningInvoiceOverlay
           invoice={lightningInvoice}
           planName={activePlan.name}
-          sats={activePlan.sats}
+          sats={activePlan.sats_price?.toLocaleString()}
           userPub={userPub}
           onClose={() => {
             setLightningInvoice(null);

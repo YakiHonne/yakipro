@@ -1,6 +1,5 @@
 import {
   enableStripe,
-  getPlans,
   getProviderLogin,
   getStripeAccount,
 } from "@/Endpoionts/payment";
@@ -44,8 +43,7 @@ export default function usePlans() {
       return;
     }
     setLoading(true);
-    const [apiPlans, provider, nostrPlans] = await Promise.all([
-      getPlans(),
+    const [provider, nostrPlans] = await Promise.all([
       getStripeAccount(),
       getSubData({
         filter: [
@@ -57,21 +55,15 @@ export default function usePlans() {
         ],
       }),
     ]);
-    const plansList = Array.isArray(apiPlans) ? apiPlans : [];
-    let f = plansList.find((_) => _.provider === "stripe-fiat");
-    let c = plansList.find((_) => _.provider === "stripe-crypto");
     let tags = nostrPlans.data.length > 0 ? nostrPlans.data[0].tags : [];
     let l = extractLightningPlans(tags);
 
-    let f_ = f ? f.pricing : [];
-    let c_ = c ? c.pricing : [];
-
     const processedPlans = {
-      fiat: f_,
-      crypto: c_,
+      fiat: provider?.pricing ?? [],
+      crypto: [],
       ln: l,
-      isFiatEnable: f?.active,
-      isCryptoEnabled: c?.active,
+      isFiatEnable: provider?.active ?? false,
+      isCryptoEnabled: false,
       isLnEnabled: l?.length > 0,
     };
 

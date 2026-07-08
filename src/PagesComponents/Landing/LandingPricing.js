@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Icon from "@/Components/Icon";
 import { useTranslation } from "react-i18next";
+import { getPlans } from "@/Endpoionts/payment";
 
 function useReveal() {
   useEffect(() => {
@@ -73,54 +74,6 @@ function Nav() {
   );
 }
 
-function usePlans(t) {
-  return [
-    {
-      id: "creator",
-      name: t("APrc009"),
-      price: "9",
-      sats: "18,000",
-      period: ` / ${t("APrc031")}`,
-      desc: t("APrc010"),
-      cta: t("APrc011"),
-      highlighted: false,
-      features: [
-        { text: t("APrc012"), dim: false },
-        { text: t("APrc013"), dim: false },
-        { text: t("APrc014"), dim: false },
-        { text: t("APrc015"), dim: false },
-        { text: t("APrc016"), dim: false },
-        { text: t("APrc017"), dim: false },
-        { text: t("APrc018"), dim: false },
-        { text: t("APrc056"), dim: false },
-        { text: t("ALPg021"), dim: true },
-        { text: t("ALPg028"), dim: true },
-        { text: t("ALPg035"), dim: true },
-      ],
-    },
-    {
-      id: "pro",
-      name: t("APrc019"),
-      price: "19",
-      sats: "38,000",
-      period: ` / ${t("APrc055")}`,
-      desc: t("APrc020"),
-      cta: t("APrc021"),
-      highlighted: true,
-      features: [
-        { text: t("APrc022"), dim: false },
-        { text: t("APrc023"), dim: false },
-        { text: t("APrc024"), dim: false },
-        { text: t("APrc025"), dim: false },
-        { text: t("APrc026"), dim: false },
-        { text: t("APrc027"), dim: false },
-        { text: t("APrc028"), dim: false },
-        { text: t("APrc029"), dim: false },
-        { text: t("APrc030"), dim: false },
-      ],
-    },
-  ];
-}
 
 function useCompareRows(t) {
   return [
@@ -162,8 +115,12 @@ export default function LandingPricing() {
   const { t } = useTranslation();
   const [openFaq, setOpenFaq] = useState(null);
   const [isLn, setIsLn] = useState(false);
+  const [PLANS, setPlans] = useState([]);
 
-  const PLANS = usePlans(t);
+  useEffect(() => {
+    getPlans().then(setPlans);
+  }, []);
+
   const COMPARE_ROWS = useCompareRows(t);
   const FAQ_ITEMS = useFaqItems(t);
 
@@ -204,20 +161,16 @@ export default function LandingPricing() {
           </div>
 
           <div className="lp-pricing-cards lp-reveal">
-            {PLANS.map((plan) => (
+            {PLANS.map((plan, idx) => {
+              const isHighlighted = idx === PLANS.length - 1;
+              return (
               <div
                 key={plan.id}
-                className={`lp-plan-card${plan.highlighted ? " lp-plan-card-pro" : ""}`}
+                className={`lp-plan-card${isHighlighted ? " lp-plan-card-pro" : ""}`}
               >
-                {plan.badge && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: plan.highlighted ? 18 : 16,
-                      right: 20,
-                    }}
-                  >
-                    <span className="lp-plan-badge">{plan.badge}</span>
+                {isHighlighted && (
+                  <div style={{ position: "absolute", top: 18, right: 20 }}>
+                    <span className="lp-plan-badge">Most popular</span>
                   </div>
                 )}
 
@@ -230,55 +183,45 @@ export default function LandingPricing() {
                           className="lp-plan-amount"
                           style={{ fontSize: "2.2rem" }}
                         >
-                          {plan.sats}
+                          {plan.sats_price?.toLocaleString()}
                         </span>
-                        <span className="lp-plan-period">
-                          {" "}
-                          sats{plan.period}
-                        </span>
+                        <span className="lp-plan-period"> sats / {t("APrc031")}</span>
                       </>
                     ) : (
                       <>
-                        <span className="lp-plan-amount">${plan.price}</span>
-                        <span className="lp-plan-period">{plan.period}</span>
+                        <span className="lp-plan-amount">${plan.usd_price}</span>
+                        <span className="lp-plan-period"> / {t("APrc031")}</span>
                       </>
                     )}
                   </div>
-                  <p className="lp-plan-desc">{plan.desc}</p>
                 </div>
 
                 <div className="lp-plan-divider" />
 
                 <ul className="lp-plan-features">
-                  {plan.features.map((f) => (
-                    <li
-                      key={f.text}
-                      className={`lp-plan-feature${f.dim ? " lp-plan-feature-dim" : ""}`}
-                    >
-                      {f.dim ? (
-                        <span className="lp-plan-feature-dash">–</span>
-                      ) : (
-                        <Icon
-                          name="check"
-                          v={2}
-                          size={14}
-                          className="lp-plan-feature-check"
-                        />
-                      )}
-                      <span>{f.text}</span>
+                  {(plan.perks || []).map((perk) => (
+                    <li key={perk} className="lp-plan-feature">
+                      <Icon
+                        name="check"
+                        v={2}
+                        size={14}
+                        className="lp-plan-feature-check"
+                      />
+                      <span>{perk}</span>
                     </li>
                   ))}
                 </ul>
 
                 <Link
                   href="/login"
-                  className={`lp-btn lp-btn-lg${plan.highlighted ? " lp-btn-primary" : " lp-btn-outline"}`}
+                  className={`lp-btn lp-btn-lg${isHighlighted ? " lp-btn-primary" : " lp-btn-outline"}`}
                   style={{ width: "100%" }}
                 >
-                  {plan.cta}
+                  {t("APrc006")}
                 </Link>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

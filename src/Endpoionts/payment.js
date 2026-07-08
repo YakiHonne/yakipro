@@ -9,14 +9,22 @@ export const enableStripe = async ({ country = "" }) => {
     return false;
   }
 };
+let _plansCache = null;
+
 export const getPlans = async () => {
+  if (_plansCache) return _plansCache;
   try {
-    const data = await axiosInstance.get("/api/v1/subplans");
-    return data.data;
+    const data = await axiosInstance.get("/api/v1/plans");
+    _plansCache = data.data?.plans ?? [];
+    return _plansCache;
   } catch (err) {
     console.log(err);
-    return false;
+    return [];
   }
+};
+
+export const clearPlansCache = () => {
+  _plansCache = null;
 };
 export const getStripeAccount = async () => {
   try {
@@ -75,16 +83,14 @@ export const changeStatus = async ({ method }) => {
   }
 };
 
-export const getSubscriptionLink = async ({ plan, price_id }) => {
+export const getSubscriptionLink = async ({ plan_id }) => {
   try {
     const data = await axiosInstance.post("/api/v1/subscription-link", {
-      plan,
-      price_id,
+      plan_id,
     });
-    let url = data.data.url;
-    if (url) {
-      window.open(url);
-    }
+    const url = data.data?.url;
+    if (url) window.open(url);
+    return data.data;
   } catch (err) {
     console.log(err);
     return false;

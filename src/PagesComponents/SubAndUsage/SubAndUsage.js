@@ -9,55 +9,7 @@ import Button from "@/Components/UI/Button";
 import { SelectTabs } from "@/Components/SelectTabs";
 import { setForcePaywall } from "@/Store/Slices/Subscription";
 import { useDispatch } from "react-redux";
-
-const PLANS = [
-  {
-    id: "basic",
-    price_id: "price_1TXxor8f5pgfcSH1UwpipjP6",
-    name: "Basic",
-    price: "9",
-    sats: "18,000",
-    period: "/ month",
-    desc: "For writers who want to publish, monetize, and understand their audience.",
-    cta: "Get Basic",
-    highlighted: false,
-    features: [
-      { text: "Unlimited articles & notes publishing", dim: false },
-      { text: "Nostr-native identity (npub / nsec)", dim: false },
-      { text: "Premium content gating (NIP-63)", dim: false },
-      { text: "Subscriber management", dim: false },
-      { text: "Lightning paywall — no commission", dim: false },
-      { text: "Basic Analytics — up to 3 months", dim: false },
-      { text: "50 GB Blossom media storage", dim: false },
-      { text: "AI Writing Assistant", dim: true },
-      { text: "Second Reader AI", dim: true },
-      { text: "Energy Mapper", dim: true },
-    ],
-  },
-  {
-    id: "premium",
-    price_id: "price_1TXyHO8f5pgfcSH1W1jqzsuk",
-    name: "Premium",
-    price: "19",
-    sats: "38,000",
-    period: "/ month",
-    desc: "For serious creators who want AI in their corner and the full analytics picture.",
-    cta: "Upgrade",
-    highlighted: true,
-    badge: "Most popular",
-    features: [
-      { text: "Everything in Basic", dim: false },
-      { text: "AI Writing Assistant — 60 requests/week", dim: false },
-      { text: "Second Reader AI — 30 requests/week (all 5 personas)", dim: false },
-      { text: "Energy Mapper — 20 requests/week", dim: false },
-      { text: "Inline diff viewer — accept / reject changes", dim: false },
-      { text: "Analytics — up to 3 years of history", dim: false },
-      { text: "Click-through bar drill-down per note/article", dim: false },
-      { text: "100 GB Blossom media storage", dim: false },
-      { text: "Early access to new features", dim: false },
-    ],
-  },
-];
+import { getPlans } from "@/Endpoionts/payment";
 
 const fmtDate = (ts) => {
   if (!ts) return "N/A";
@@ -88,7 +40,7 @@ const USAGE_ORDER = [
   "wallet-creation",
 ];
 
-const planOrder = (id) => PLANS.findIndex((p) => p.id === id);
+// planOrder is injected per-render via closure in ActionsCard
 
 function PlanBadge({ plan }) {
   const colors = {
@@ -512,12 +464,13 @@ function PendingChangeCard({ status, onCancelChange, cancellingChange }) {
   );
 }
 
-function ActionsCard({ status, onChangePlan, changingPlan }) {
+function ActionsCard({ status, onChangePlan, changingPlan, plans }) {
   const isCardMethod =
     status.last_payment_method === "stripe" ||
     status.last_payment_method === "airwallex";
-  if (!isCardMethod || !status.active) return null;
+  if (!isCardMethod || !status.active || plans.length === 0) return null;
 
+  const planOrder = (id) => plans.findIndex((p) => p.id === id);
   const hasPending = !!status.pending_plan;
   const currentPlanIdx = planOrder(status.plan);
 
@@ -528,11 +481,12 @@ function ActionsCard({ status, onChangePlan, changingPlan }) {
     >
       <h4>Manage plans</h4>
       <div className="fx-centered fit-container fx-stretch fx-gap-h">
-        {PLANS.map((plan) => {
+        {plans.map((plan, idx) => {
           const isCurrent = plan.id === status.plan;
           const targetIdx = planOrder(plan.id);
           const isUpgrade = targetIdx > currentPlanIdx;
           const isLoading = changingPlan === plan.id;
+          const isHighlighted = idx === plans.length - 1;
 
           return (
             <div
@@ -562,29 +516,21 @@ function ActionsCard({ status, onChangePlan, changingPlan }) {
               <div>
                 <div className="lp-plan-name">{plan.name}</div>
                 <div className="lp-plan-price-row">
-                  <span className="lp-plan-amount">${plan.price}</span>
-                  <span className="p-secondary-c">{plan.period}</span>
+                  <span className="lp-plan-amount">${plan.usd_price}</span>
+                  <span className="p-secondary-c"> / month</span>
                 </div>
                 <div className="p-primary-c">
-                  <span>~{plan.sats} sats / month</span>
+                  <span>~{plan.sats_price?.toLocaleString()} sats / month</span>
                 </div>
-                <p className="lp-plan-desc">{plan.desc}</p>
               </div>
               <div className="lp-plan-divider" />
               <ul className="lp-plan-features">
-                {plan.features.map((f) => (
-                  <li
-                    key={f.text}
-                    className={`lp-plan-feature${f.dim ? " lp-plan-feature-dim" : ""}`}
-                  >
+                {(plan.perks || []).map((perk) => (
+                  <li key={perk} className="lp-plan-feature">
                     <span className="lp-plan-feature-icon">
-                      {f.dim ? (
-                        "–"
-                      ) : (
-                        <Icon name="check" v={2} size={16} isBoldThemeColor />
-                      )}
+                      <Icon name="check" v={2} size={16} isBoldThemeColor />
                     </span>
-                    {f.text}
+                    {perk}
                   </li>
                 ))}
               </ul>
@@ -597,7 +543,7 @@ function ActionsCard({ status, onChangePlan, changingPlan }) {
                 }
               >
                 <button
-                  className={`lp-btn lp-btn-lg${plan.highlighted ? " lp-btn-primary" : " lp-btn-outline"}`}
+                  className={`lp-btn lp-btn-lg${isHighlighted ? " lp-btn-primary" : " lp-btn-outline"}`}
                   style={{
                     width: "100%",
                     borderRadius: 8,
@@ -678,6 +624,12 @@ function PaymentHistoryCard({ history }) {
 export default function SubAndUsage() {
   const dispatch = useDispatch();
   const [selectedTab, setSelectedTab] = useState(0);
+  const [plans, setPlans] = useState([]);
+
+  useEffect(() => {
+    getPlans().then(setPlans);
+  }, []);
+
   const {
     status,
     loading,
@@ -762,6 +714,7 @@ export default function SubAndUsage() {
             status={status}
             onChangePlan={changePlan}
             changingPlan={changingPlan}
+            plans={plans}
           />
           {status.active && status.last_payment_method && (
             <div

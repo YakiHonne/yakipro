@@ -32,6 +32,7 @@ import Icon from "@/Components/Icon";
 import Spinner from "@/Components/Spinner";
 import { SelectTabs } from "@/Components/SelectTabs";
 import PremiumFeatureGate from "@/Components/PremiumFeatureGate";
+import { useTranslation } from "react-i18next";
 
 const draftKey = (pub) => `yp-article-draft-v2-${pub || "anon"}`;
 const getDraft = (pub) => {
@@ -814,6 +815,7 @@ function Toolbar({ editor, onImageUpload, isUploading }) {
 const lowlight = createLowlight(all);
 
 export default function ArticleEditorV2({ editEvent = null }) {
+  const { t } = useTranslation();
   const userKeys = useSelector((state) => state.userKeys);
   const subscription = useSelector((state) => state.subscription);
   const isPremiumPlan = subscription?.status?.plan === "premium" && subscription?.status?.active;
@@ -1156,7 +1158,7 @@ export default function ArticleEditorV2({ editEvent = null }) {
                     onClick={() => mdImportRef.current?.click()}
                   >
                     <Icon v={2} name="file_upload" size={20} />
-                    <p>Import markdown</p>
+                    <p>{t("AGoog17")}</p>
                   </div>,
                   <div
                     key="import-pdf"
@@ -1164,7 +1166,7 @@ export default function ArticleEditorV2({ editEvent = null }) {
                     onClick={() => !isPdfParsing && pdfImportRef.current?.click()}
                   >
                     <Icon v={2} name="file_upload" size={20} />
-                    <p>{isPdfParsing ? "Parsing PDF…" : "Import PDF"}</p>
+                    <p>{isPdfParsing ? t("AGoog18") : t("AGoog19")}</p>
                   </div>,
                   <div
                     key="export"
@@ -1172,7 +1174,7 @@ export default function ArticleEditorV2({ editEvent = null }) {
                     onClick={handleMdExport}
                   >
                     <Icon v={2} name="file_download" size={20} />
-                    <p>Export markdown</p>
+                    <p>{t("AGoog20")}</p>
                   </div>,
                 ]}
               >
@@ -1237,7 +1239,7 @@ export default function ArticleEditorV2({ editEvent = null }) {
             /> */}
 
             <Button
-              label={"Publish article"}
+              label={t("AGoog21")}
               size="m"
               type="primary"
               onClick={() => setShowPublishModal(true)}

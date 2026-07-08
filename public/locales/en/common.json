@@ -2091,5 +2091,10 @@
   "AGoog13": "Something went wrong",
   "AGoog14": "Could not register with enough operators ({{succeeded}}/{{threshold}}). Please try again.",
   "AGoog15": "Account confirmation timed out. Please try again.",
-  "AGoog16": "Copy"
+  "AGoog16": "Copy",
+  "AGoog17": "Import markdown",
+  "AGoog18": "Parsing PDF…",
+  "AGoog19": "Import PDF",
+  "AGoog20": "Export markdown",
+  "AGoog21": "Publish article"
 }
