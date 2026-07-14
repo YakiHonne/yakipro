@@ -11,7 +11,7 @@ import Overlay from "./Overlay";
 import QRCode from "react-qr-code";
 import axios from "axios";
 import useLightningPayment from "@/hooks/useLightningPayment";
-import Icon from "./Icon";
+import Icon from "./LucideIcon";
 
 const COMPARE_ROWS = [
   { label: "Articles & Notes publishing", creator: true, pro: true },
@@ -22,9 +22,9 @@ const COMPARE_ROWS = [
   { label: "Blossom media storage", creator: "50 GB", pro: "100 GB" },
   { label: "Analytics history", creator: "3 months", pro: "3 years" },
   { label: "Drill-down bar click", creator: false, pro: true },
-  { label: "AI Writing Assistant", creator: false, pro: "60/week" },
-  { label: "Second Reader AI", creator: false, pro: "30/week" },
-  { label: "Energy Mapper", creator: false, pro: "20/week" },
+  { label: "AI Writing Assistant", creator: false, pro: "weekly limit" },
+  { label: "Second Reader AI", creator: false, pro: "weekly limit" },
+  { label: "Energy Mapper", creator: false, pro: "weekly limit" },
   { label: "Inline diff — accept / reject", creator: false, pro: true },
 ];
 
@@ -404,71 +404,71 @@ function PricingCards({ isLn, setIsLn, userPub }) {
           {plans.map((plan, idx) => {
             const isHighlighted = idx === plans.length - 1;
             return (
-            <div
-              key={plan.id}
-              className={`lp-plan-card${isHighlighted ? " lp-plan-card-pro" : ""}`}
-            >
-              {isHighlighted && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 18,
-                    right: 20,
-                  }}
-                >
-                  <span className="lp-plan-badge">Most popular</span>
-                </div>
-              )}
-              <div>
-                <div className="lp-plan-name">{plan.name}</div>
-                <div className="lp-plan-price-row">
-                  {isLn ? (
-                    <>
-                      <span
-                        className="lp-plan-amount"
-                        style={{ fontSize: "2.2rem" }}
-                      >
-                        {plan.sats_price?.toLocaleString()}
-                      </span>
-                      <span className="lp-plan-period"> sats / month</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="lp-plan-amount">${plan.usd_price}</span>
-                      <span className="lp-plan-period"> / month</span>
-                    </>
-                  )}
-                </div>
-                <div className="lp-plan-sats">
-                  <span>⚡</span>
-                  {isLn ? (
-                    <span>~${plan.usd_price} / month</span>
-                  ) : (
-                    <span>~{plan.sats_price?.toLocaleString()} sats / month</span>
-                  )}
-                </div>
-              </div>
-              <div className="lp-plan-divider" />
-              <ul className="lp-plan-features">
-                {(plan.perks || []).map((perk) => (
-                  <li key={perk} className="lp-plan-feature">
-                    <span className="lp-plan-feature-icon">
-                      <Icon name="check" size={20} v={2} isBoldThemeColor />
-                    </span>
-                    {perk}
-                  </li>
-                ))}
-              </ul>
-              <button
-                className={`lp-btn lp-btn-lg${isHighlighted ? " lp-btn-primary" : " lp-btn-outline"}`}
-                style={{ width: "100%", borderRadius: 8 }}
-                disabled={isLoading}
-                onClick={() => handleCheckout(plan)}
+              <div
+                key={plan.id}
+                className={`lp-plan-card${isHighlighted ? " lp-plan-card-pro" : ""}`}
               >
-                {isLoading ? <Spinner size={14} /> : `Get ${plan.name}`}
-              </button>
-            </div>
-          );
+                {isHighlighted && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 18,
+                      right: 20,
+                    }}
+                  >
+                    <span className="lp-plan-badge">Most popular</span>
+                  </div>
+                )}
+                <div>
+                  <div className="lp-plan-name">{plan.name}</div>
+                  <div className="lp-plan-price-row">
+                    {isLn ? (
+                      <>
+                        <span
+                          className="lp-plan-amount"
+                          style={{ fontSize: "2.2rem" }}
+                        >
+                          {plan.sats_price?.toLocaleString()}
+                        </span>
+                        <span className="lp-plan-period"> sats / month</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="lp-plan-amount">${plan.usd_price}</span>
+                        <span className="lp-plan-period"> / month</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="lp-plan-sats">
+                    <span>⚡</span>
+                    {isLn ? (
+                      <span>~${plan.usd_price} / month</span>
+                    ) : (
+                      <span>~{plan.sats_price?.toLocaleString()} sats / month</span>
+                    )}
+                  </div>
+                </div>
+                <div className="lp-plan-divider" />
+                <ul className="lp-plan-features">
+                  {(plan.perks || []).map((perk) => (
+                    <li key={perk} className="lp-plan-feature">
+                      <span className="lp-plan-feature-icon">
+                        <Icon name="check" size={20} v={2} isBoldThemeColor />
+                      </span>
+                      {perk}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  className={`lp-btn lp-btn-lg${isHighlighted ? " lp-btn-primary" : " lp-btn-outline"}`}
+                  style={{ width: "100%", borderRadius: 8 }}
+                  disabled={isLoading}
+                  onClick={() => handleCheckout(plan)}
+                >
+                  {isLoading ? <Spinner size={14} /> : `Get ${plan.name}`}
+                </button>
+              </div>
+            );
           })}
         </div>
 

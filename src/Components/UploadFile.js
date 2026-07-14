@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setToast } from "@/Store/Slices/Publishers";
 import { FileUpload } from "@/Helpers/FileUpload";
 import { nanoid } from "nanoid";
-import Icon from "./Icon";
+import Icon from "./LucideIcon";
 import Spinner from "./Spinner";
 import Overlay from "./Overlay";
 

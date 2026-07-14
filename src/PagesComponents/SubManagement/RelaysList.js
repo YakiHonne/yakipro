@@ -5,7 +5,7 @@ import useUserRelays from "@/hooks/useUserRelays";
 import useRelaysMetadata from "@/hooks/useRelaysMetadata";
 import useRelaysAccess from "@/hooks/useRelaysAccess";
 import useAllowedRelays from "@/hooks/useAllowedRelays";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import Button from "@/Components/UI/Button";
 import Spinner from "@/Components/Spinner";
 import LoadingScreen from "@/Components/LoadingScreen";

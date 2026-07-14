@@ -15,7 +15,7 @@ import { nip19 } from "nostr-tools";
 import { getNoteTree } from "@/Components/NotePreview";
 import { getSubData } from "@/Helpers/Helpers";
 import Overlay from "@/Components/Overlay";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 
 function intervalLabel(dateStr, bucket) {
   const d = parseISO(dateStr);

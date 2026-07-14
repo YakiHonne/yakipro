@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Grid } from "@giphy/react-components";
 import { GiphyFetch } from "@giphy/js-fetch-api";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 
 const gf = new GiphyFetch(process.env.NEXT_PUBLIC_GIPHY_API_KEY || "");
 

@@ -1,4 +1,4 @@
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import Spinner from "@/Components/Spinner";
 import React, { useMemo } from "react";
 

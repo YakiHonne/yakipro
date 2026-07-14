@@ -1,7 +1,7 @@
 import EmojiPicker from "emoji-picker-react";
 import { useTheme } from "next-themes";
 import React, { useEffect, useRef, useState } from "react";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 
 export default function Emojis({ setEmoji }) {
   const { resolvedTheme } = useTheme();

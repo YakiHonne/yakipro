@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/router";
-import Icon from "@/Components/Icon";
-import { iconsNames } from "@/Content/IconV2URL";
+import BrandIcon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import { logoutUser } from "@/Helpers/AccountInit";
 import useYakiPoints from "@/hooks/useYakiPoints";
 import LoginSignup from "../LoginSignup";
@@ -14,13 +14,13 @@ const minimizeKey = (key) => {
 };
 
 const navLinksLeft = [
-  { path: "/dashboard", label: "Dashboard", icon: iconsNames.chart_line },
-  { path: "/content", label: "Content", icon: iconsNames.file_blank },
+  { path: "/dashboard", label: "Dashboard", icon: "chart_line" },
+  { path: "/content", label: "Content", icon: "file_blank" },
 ];
 
 const navLinksRight = [
-  { path: "/media", label: "Media", icon: iconsNames.camera },
-  { path: "/subscription", label: "Subscription", icon: iconsNames.credit_card_01 },
+  { path: "/media", label: "Media", icon: "camera" },
+  { path: "/subscription", label: "Subscription", icon: "credit_card_01" },
 ];
 
 function PointsCircle({ size = 32, percentage = 0, level }) {
@@ -74,7 +74,7 @@ function MiniNavbar({ visible, pathname, userKeys, userMetadata, avatarRef, onAv
       onClick={onReveal}
     >
       <div className="uplift-mini-logo">
-        <Icon name="yaki-logomark" size={22} />
+        <BrandIcon name="yaki-logomark" size={22} />
       </div>
 
       <p className="uplift-mini-title">{title}</p>
@@ -189,7 +189,7 @@ export default function TopNavbar() {
       <nav className={`uplift-navbar${navHidden ? " uplift-navbar-hidden" : ""}`}>
         <div className="uplift-navbar-left">
           <div className="uplift-logo-btn" onClick={() => router.push("/")}>
-            <Icon name="yaki-logomark" size={36} />
+            <BrandIcon name="yaki-logomark" size={36} />
             <span className="uplift-logo-badge">pro</span>
           </div>
         </div>
@@ -216,7 +216,7 @@ export default function TopNavbar() {
               onClick={() => router.push("/create-content")}
             >
               <span className="uplift-plus-icon-wrap">
-                <Icon name={iconsNames.add_plus} size={20} v={2} opacity={1} />
+                <Icon name="add_plus" size={20} v={2} opacity={1} />
               </span>
             </button>
 
@@ -289,7 +289,7 @@ export default function TopNavbar() {
                 router.push("/settings");
               }}
             >
-              <Icon name={iconsNames.user_01} v={2} size={18} />
+              <Icon name="user_01" v={2} size={18} />
               <span className="uplift-dropdown-profile-name">
                 Profile
                 <span className="gray-c">
@@ -305,7 +305,7 @@ export default function TopNavbar() {
                 router.push("/sub-and-usage");
               }}
             >
-              <Icon name={iconsNames.credit_card_01} v={2} size={18} />
+              <Icon name="credit_card_01" v={2} size={18} />
               <span>Subscription &amp; usage</span>
             </div>
 
@@ -316,7 +316,7 @@ export default function TopNavbar() {
                 router.push("/yaki-points");
               }}
             >
-              <Icon name={iconsNames.star} v={2} size={18} />
+              <Icon name="star" v={2} size={18} />
               <span>Yaki points</span>
             </div>
 
@@ -327,7 +327,7 @@ export default function TopNavbar() {
                 router.push("/settings");
               }}
             >
-              <Icon name={iconsNames.settings} v={2} size={18} />
+              <Icon name="settings" v={2} size={18} />
               <span>Settings</span>
             </div>
 

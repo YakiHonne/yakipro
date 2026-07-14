@@ -1,4 +1,4 @@
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import useCloseContainer from "@/hooks/useCloseContainer";
 import React from "react";
 import { useTranslation } from "react-i18next";

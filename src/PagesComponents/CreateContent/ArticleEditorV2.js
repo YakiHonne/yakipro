@@ -28,7 +28,7 @@ import { AIDiffExtension } from "@/Extensions/AIDiffExtension";
 import useLastEditedParagraph from "@/hooks/useLastEditedParagraph";
 import Button from "@/Components/UI/Button";
 import DropDown from "@/Components/UI/DropDown";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import Spinner from "@/Components/Spinner";
 import { SelectTabs } from "@/Components/SelectTabs";
 import PremiumFeatureGate from "@/Components/PremiumFeatureGate";

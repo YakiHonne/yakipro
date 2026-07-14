@@ -5,7 +5,7 @@ import { nanoid } from "nanoid";
 import { extractNip19 } from "@/Helpers/NoteHelpers";
 import Overlay from "@/Components/Overlay";
 import UploadFile from "@/Components/UploadFile";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 
 const CLIENT_TAG = [
   "client",

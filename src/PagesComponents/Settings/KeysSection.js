@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import { getBech32 } from "@/Helpers/Encryptions";
 import { copyText } from "@/Helpers/Helpers";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import Button from "@/Components/UI/Button";
 
 const shortenKey = (key) =>

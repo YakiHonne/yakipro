@@ -4,7 +4,7 @@ import { useTheme } from "next-themes";
 import MDEditorWrapper from "@/Components/MDEditorWrapper";
 import ArticlePublishModal from "./ArticlePublishModal";
 import { FileUpload } from "@/Helpers/FileUpload";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 
 const DRAFT_KEY = "yp-article-draft";
 

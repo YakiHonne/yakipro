@@ -7,7 +7,7 @@ import {
   updateNoteDraft,
 } from "@/Helpers/NoteHelpers";
 import Overlay from "./Overlay";
-import Icon from "./Icon";
+import Icon from "./LucideIcon";
 import TextArea from "./UI/TextArea";
 
 const CLIENT_TAG = [

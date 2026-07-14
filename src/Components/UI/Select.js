@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import DropDown from "./DropDown";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 
 export default function Select({
   options = [],

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import Icon from "@/Components/Icon";
+import BrandIcon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import { useTranslation } from "react-i18next";
 import { getPlans } from "@/Endpoionts/payment";
 
@@ -37,7 +38,7 @@ function Nav() {
         }}
       >
         <div className="fx-centered fx-start-h fx-gap-h fit-container box-pad-v-s">
-          <Icon
+          <BrandIcon
             name="yakihonne-logo"
             width={100}
             height={64}

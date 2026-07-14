@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import useYakiPoints from "@/hooks/useYakiPoints";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import LoadingScreen from "@/Components/LoadingScreen";
 import PagePlaceholder from "@/Components/PlaceholderScreens/PagePlaceholder";
 import { pphValues } from "@/Content/PagesPlaceholdersValues";

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { getNoteTree } from "@/Components/NotePreview";
 import DropDown from "@/Components/UI/DropDown";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import DeleteWarning from "@/Components/DeleteWarning";
 import { setToast } from "@/Store/Slices/Extras";
 import { cancelScheduledEvent } from "@/Helpers/EventSchedulerHelper";

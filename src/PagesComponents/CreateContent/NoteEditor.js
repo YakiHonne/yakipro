@@ -16,7 +16,7 @@ import UploadFile from "@/Components/UploadFile";
 import Emojis from "@/Components/Emojis";
 import Gifs from "@/Components/Gifs";
 import DatePicker from "@/Components/DatePicker";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import TextArea from "@/Components/UI/TextArea";
 import Button from "@/Components/UI/Button";
 import { InitEvent } from "@/Helpers/Encryptions";

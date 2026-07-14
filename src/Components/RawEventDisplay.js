@@ -1,7 +1,7 @@
 import React from "react";
 import { useDispatch } from "react-redux";
 import { setToast } from "@/Store/Slices/Extras";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import Overlay from "@/Components/Overlay";
 
 export default function RawEventDisplay({ event, exit }) {

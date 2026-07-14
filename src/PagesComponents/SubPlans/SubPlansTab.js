@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import EnableStripe from "./EnableStripe";
 import LoadingData from "@/Components/LoadingData";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import Toggle from "@/Components/Toggle";
 import { StripeSupportedCountries } from "@/Content/StripeSupportedCountries";
 import FiatPricings from "./FiatPricings";

@@ -6,7 +6,7 @@ import { extractNip19 } from "@/Helpers/NoteHelpers";
 import { FileUpload } from "@/Helpers/FileUpload";
 import Overlay from "@/Components/Overlay";
 import Spinner from "@/Components/Spinner";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import Toggle from "@/Components/Toggle";
 import Button from "@/Components/UI/Button";
 import { InitEvent } from "@/Helpers/Encryptions";

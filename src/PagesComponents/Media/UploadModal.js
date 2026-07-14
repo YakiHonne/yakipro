@@ -1,5 +1,5 @@
 import Spinner from "@/Components/Spinner";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import {
   generateAuthorizationHeaderForBlossomServer,
   getHashFromFile,

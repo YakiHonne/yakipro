@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import { getPublicKey, generateSecretKey, nip19, finalizeEvent } from "nostr-tools";
 import Link from "next/link";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import Orb from "@/Components/Orb/Orb";
 import Overlay from "@/Components/Overlay";
 import Spinner from "@/Components/Spinner";

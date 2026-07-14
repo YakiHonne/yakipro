@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useRouter } from "next/router";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import { setForcePaywall } from "@/Store/Slices/Subscription";
 import Button from "./UI/Button";
 

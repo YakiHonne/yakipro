@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import useSubscription from "@/hooks/useSubscription";
 import useUsage from "@/hooks/useUsage";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import ProgressBar from "@/Components/ProgressBar";
 import Overlay from "@/Components/Overlay";
 import Spinner from "@/Components/Spinner";

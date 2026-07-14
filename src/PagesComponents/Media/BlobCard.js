@@ -3,7 +3,7 @@ import FileViewer from "./FileViewer";
 import OpsModal from "./OpsModal";
 import Button from "@/Components/UI/Button";
 import DropDown from "@/Components/UI/DropDown";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 
 function OptionItem({ icon, label, danger, onClick }) {
   return (

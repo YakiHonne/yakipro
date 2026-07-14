@@ -3,7 +3,7 @@ import usePlans from "@/hooks/usePlans";
 import useUserProfile from "@/hooks/useUserProfile";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import Button from "@/Components/UI/Button";
 import { SelectTabs } from "@/Components/SelectTabs";
 import DeleteWarning from "@/Components/DeleteWarning";

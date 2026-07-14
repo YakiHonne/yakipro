@@ -3,7 +3,7 @@ import { nip19 } from "nostr-tools";
 import { useDispatch } from "react-redux";
 import { getNoteTree } from "@/Components/NotePreview";
 import DropDown from "@/Components/UI/DropDown";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import DeleteWarning from "@/Components/DeleteWarning";
 import RawEventDisplay from "@/Components/RawEventDisplay";
 import { setToast } from "@/Store/Slices/Extras";

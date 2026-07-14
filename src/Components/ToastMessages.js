@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { clearToast } from "@/Store/Slices/Extras";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 
 function ToastContent({ toast, styles }) {
   return (

@@ -1,4 +1,4 @@
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import Button from "@/Components/UI/Button";
 import Input from "@/Components/UI/Input";
 import InputWrapper from "@/Components/UI/InputWrapper";

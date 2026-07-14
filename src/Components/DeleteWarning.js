@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import Icon from "@/Components/Icon";
+import Icon from "@/Components/LucideIcon";
 import Button from "./UI/Button";
 import Overlay from "./Overlay";
 
