@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import StatCard from "./StatCard";
 import TopContentTable from "./TopContentTable";
 import BarDrillOverlay from "./BarDrillOverlay";
+import FollowerDrillOverlay from "./FollowerDrillOverlay";
+import FollowersListOverlay from "./FollowersListOverlay";
 import ZapsOverTimeChart from "./charts/ZapsOverTimeChart";
 import EngagementOverTimeChart from "./charts/EngagementOverTimeChart";
 import FollowerGrowthChart from "./charts/FollowerGrowthChart";
@@ -102,6 +105,7 @@ function SectionHeader({ title, children }) {
 }
 
 export default function DashboardLayout({ pubkey }) {
+  const { t } = useTranslation();
   const subscription = useSelector((state) => state.subscription);
   const isPremiumPlan = subscription?.status?.plan === "premium" && subscription?.status?.active;
 
@@ -112,16 +116,23 @@ export default function DashboardLayout({ pubkey }) {
   const [drill, setDrill] = useState(null);
   const [gatePeriod, setGatePeriod] = useState(false);
   const [gateDrill, setGateDrill] = useState(false);
+  const [showFollowersList, setShowFollowersList] = useState(false);
 
   const CHART_TITLES = {
     zaps: "Sats Earned",
     reactions: "Engagement",
     notes: "Publishing Frequency",
+    followers: t("AcqUGhB"),
   };
 
   const handleBarClick = (payload) => {
     if (!isPremiumPlan) { setGateDrill(true); return; }
     setDrill({ ...payload, title: CHART_TITLES[payload.type] });
+  };
+
+  const handleFollowersListClick = () => {
+    if (!isPremiumPlan) { setGateDrill(true); return; }
+    setShowFollowersList(true);
   };
 
   const stats = useProfileStats(pubkey);
@@ -218,7 +229,14 @@ export default function DashboardLayout({ pubkey }) {
           <SectionHeader title="Follower Growth">
             <PeriodTabs value={followerDays} onChange={setFollowerDays} isPremiumPlan={isPremiumPlan} onGate={() => setGatePeriod(true)} />
           </SectionHeader>
-          <FollowerGrowthChart pubkey={pubkey} days={followerDays} />
+          <FollowerGrowthChart pubkey={pubkey} days={followerDays} onBarClick={handleBarClick} />
+          {(stats?.followersCount ?? 0) > 0 && (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: "1rem" }}>
+              <button className="btn" onClick={handleFollowersListClick}>
+                {t("AI11KEH", { count: stats?.followersCount ?? 0 })}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Publishing Frequency */}
@@ -247,11 +265,26 @@ export default function DashboardLayout({ pubkey }) {
         <TopContentTable pubkey={pubkey} />
       </div>
 
-      {drill && (
+      {drill && drill.type === "followers" && (
+        <FollowerDrillOverlay
+          drill={drill}
+          pubkey={pubkey}
+          onClose={() => setDrill(null)}
+        />
+      )}
+
+      {drill && drill.type !== "followers" && (
         <BarDrillOverlay
           drill={drill}
           pubkey={pubkey}
           onClose={() => setDrill(null)}
+        />
+      )}
+
+      {showFollowersList && (
+        <FollowersListOverlay
+          pubkey={pubkey}
+          onClose={() => setShowFollowersList(false)}
         />
       )}
 

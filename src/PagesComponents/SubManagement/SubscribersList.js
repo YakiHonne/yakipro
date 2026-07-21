@@ -1,47 +1,12 @@
 import useGatewayAccess from "@/hooks/useGatewayAccess";
 import usePlans from "@/hooks/usePlans";
-import useUserProfile from "@/hooks/useUserProfile";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import Icon from "@/Components/LucideIcon";
 import Button from "@/Components/UI/Button";
 import { SelectTabs } from "@/Components/SelectTabs";
 import DeleteWarning from "@/Components/DeleteWarning";
+import UserRow from "@/Components/UserRow";
 import AddSubscriberOverlay from "./AddSubscriberOverlay";
-
-const SubscriberRow = ({ pubkey, remove = false }) => {
-  const { userProfile } = useUserProfile(pubkey);
-  return (
-    <div className="fit-container round-corner-m border-all box-pad-h-m box-pad-v-s fx-scattered">
-      <div className="fx-centered fx-start-h fx-gap-h">
-        <div
-          className="bg-cover"
-          style={{
-            backgroundImage: `url(${userProfile.picture || ""})`,
-            backgroundColor: "var(--color-divider)",
-            borderRadius: "50%",
-            width: 38,
-            height: 38,
-          }}
-        >
-          {!userProfile.picture && (
-            <div
-              className="fx-centered"
-              style={{ width: "100%", height: "100%" }}
-            >
-              <Icon name="user" size={20} />
-            </div>
-          )}
-        </div>
-        <div className="fx-col fx-start-v" style={{ gap: 0 }}>
-          <p className="p-bold p-one-line">{userProfile.display_name}</p>
-          <p className="gray-c p-medium p-one-line">@{userProfile.name}</p>
-        </div>
-      </div>
-      {remove && <Icon name={"trash"} size={24} onClick={remove} />}
-    </div>
-  );
-};
 
 export default function SubscribersList() {
   const { t } = useTranslation();
@@ -132,7 +97,7 @@ export default function SubscribersList() {
             {followList && followList.length > 0 && (
               <div className="fx-col fx-gap-v fit-container">
                 {followList.map((pubkey) => (
-                  <SubscriberRow key={pubkey} pubkey={pubkey} />
+                  <UserRow key={pubkey} pubkey={pubkey} />
                 ))}
               </div>
             )}
@@ -143,7 +108,7 @@ export default function SubscribersList() {
             {directSubscribers && directSubscribers.length > 0 && (
               <div className="fx-col fx-gap-v fit-container">
                 {directSubscribers.map((pubkey) => (
-                  <SubscriberRow
+                  <UserRow
                     key={pubkey.pubkey}
                     pubkey={pubkey.pubkey}
                     remove={() => setToDelete(pubkey.id)}

@@ -69,10 +69,6 @@ export default function PremiumFeatureGate({ feature, onClose }) {
         <div
           className="fit-container"
           style={{
-            background: "var(--color-primary-bg-side)",
-            border: "1px solid var(--color-divider)",
-            borderRadius: "12px",
-            padding: "14px 16px",
             display: "flex",
             flexDirection: "column",
             rowGap: "10px",

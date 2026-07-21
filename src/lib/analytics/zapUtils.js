@@ -55,3 +55,8 @@ export function getTitleFromEvent(event) {
   const tag = event.tags.find((t) => t[0] === 'title')
   return tag ? tag[1] ?? '' : ''
 }
+
+export function getDTag(event) {
+  const tag = event.tags.find((t) => t[0] === 'd')
+  return tag ? tag[1] ?? '' : ''
+}

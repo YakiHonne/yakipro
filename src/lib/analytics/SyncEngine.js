@@ -7,7 +7,7 @@ import {
 } from '@/Store/analyticsSlice'
 import { setToast } from '@/Store/Slices/Extras'
 import { analyticsDb, appendToTimeSeries } from '@/lib/analyticsDb'
-import { parseSatsFromZap, getETag, getTitleFromEvent } from './zapUtils'
+import { parseSatsFromZap, getETag, getTitleFromEvent, getDTag } from './zapUtils'
 import { dateKeyFromTimestamp, delay } from './timeUtils'
 
 const BATCH_SIZE = 200
@@ -18,7 +18,6 @@ export class AnalyticsSyncEngine {
     this.ndk = ndk
     this.pubkey = pubkey
     this._liveSubscription = null
-    this._lastKind3CreatedAt = 0
   }
 
   async initialize() {
@@ -40,6 +39,7 @@ export class AnalyticsSyncEngine {
         store.dispatch(setIsFirstRun(true))
         await this.fullBackfill()
       } else {
+        await this._resumeIncompleteBackfills()
         await this.deltaSync()
       }
 
@@ -85,45 +85,55 @@ export class AnalyticsSyncEngine {
     }
     const receivedFilters = {
       '#p': [this.pubkey],
-      kinds: [3, 6, 7, 9735],
+      kinds: [6, 7, 9735],
     }
 
-    const authoredCount = await this._paginatedFetch(authoredFilters, 'authored content')
-    const receivedCount = await this._paginatedFetch(receivedFilters, 'received interactions')
+    const authoredCount = await this._paginatedFetch(authoredFilters, 'authored', 'authored content')
+    const receivedCount = await this._paginatedFetch(receivedFilters, 'received', 'received interactions')
+    const followerCount = await this._paginatedFetch(
+      { '#p': [this.pubkey], kinds: [3] },
+      'followers',
+      'followers'
+    )
 
-    console.log(`[SyncEngine] backfill done — authored: ${authoredCount}, received: ${receivedCount}`)
+    console.log(`[SyncEngine] backfill done — authored: ${authoredCount}, received: ${receivedCount}, followers: ${followerCount}`)
 
-    if (authoredCount > 0 || receivedCount > 0) {
-      const now = Math.floor(Date.now() / 1000)
-      await analyticsDb.syncCursors.put({
-        key: `${this.pubkey}::authored`,
-        pubkey: this.pubkey,
-        filterGroup: 'authored',
-        since: now,
-        lastSyncedAt: now,
-      })
-      await analyticsDb.syncCursors.put({
-        key: `${this.pubkey}::received`,
-        pubkey: this.pubkey,
-        filterGroup: 'received',
-        since: now,
-        lastSyncedAt: now,
-      })
-      store.dispatch(setLastSyncedAt(now))
-    } else {
-      console.warn('[SyncEngine] backfill got 0 events — cursor not written, will retry next visit')
-    }
-
+    store.dispatch(setLastSyncedAt(Math.floor(Date.now() / 1000)))
     store.dispatch(setSyncPhase('done'))
   }
 
-  async _paginatedFetch(baseFilters, label) {
+  // Resumes any backfill (authored/received/followers) that was interrupted before reaching the
+  // oldest event — a cursor left in filterGroup `${key}-backfill` state means the previous run
+  // stopped mid-pagination (tab closed, relay drop) rather than genuinely running out of events.
+  async _resumeIncompleteBackfills() {
+    const keys = ['authored', 'received', 'followers']
+    const filterMap = {
+      authored: { authors: [this.pubkey], kinds: [1, 3, 6, 7, 30023, 30024] },
+      received: { '#p': [this.pubkey], kinds: [6, 7, 9735] },
+      followers: { '#p': [this.pubkey], kinds: [3] },
+    }
+    for (const key of keys) {
+      const cursor = await analyticsDb.syncCursors.get(`${this.pubkey}::${key}`)
+      if (cursor?.filterGroup === `${key}-backfill`) {
+        store.dispatch(setSyncPhase('backfill'))
+        await this._paginatedFetch(filterMap[key], key, key, cursor.until)
+      }
+    }
+  }
+
+  // Paginates a filter backwards in time via `until`, persisting progress after every page so a
+  // reload resumes instead of restarting. Only stops when a page returns 0 events — a page
+  // shorter than BATCH_SIZE does NOT mean history is exhausted, since relays commonly cap the
+  // number of events returned per request below the requested `limit` even when older events
+  // still exist upstream.
+  async _paginatedFetch(baseFilters, cursorKey, label, resumeUntil) {
     const now = Math.floor(Date.now() / 1000)
     const THREE_YEARS_AGO = now - 3 * 365 * 24 * 3600
-    let until = now
+    let until = resumeUntil ?? now
     let totalProcessed = 0
     let page = 0
-    const MAX_PAGES = 200
+    let fullyDrained = false
+    const MAX_PAGES = 500
 
     while (page < MAX_PAGES) {
       page++
@@ -137,18 +147,41 @@ export class AnalyticsSyncEngine {
       )
 
       const filters = { ...baseFilters, until, limit: BATCH_SIZE }
-      const events = await this._fetchPage(filters)
+      const { events, complete } = await this._fetchPageReliably(filters)
 
-      console.log(`[SyncEngine] ${label} page ${page} got ${events.length} events`)
+      console.log(`[SyncEngine] ${label} page ${page} got ${events.length} events (complete=${complete})`)
 
-      if (events.length === 0) break
-
-      for (const event of events) {
-        await this.processEvent(event)
+      if (!complete && events.length === 0) {
+        // Relays never confirmed EOSE for this window after retries — stop for now without
+        // advancing `until`, so the next sync resumes this exact window instead of skipping it.
+        console.warn(`[SyncEngine] ${label} page never completed, stopping — will resume same window next sync`)
+        break
       }
-      totalProcessed += events.length
 
-      if (events.length < BATCH_SIZE) break
+      if (events.length > 0) {
+        for (const event of events) {
+          await this.processEvent(event)
+        }
+        totalProcessed += events.length
+      }
+
+      if (!complete) {
+        // Got a partial batch before giving up on EOSE — persist what we found, but keep `until`
+        // where it was so the next run re-fetches this window and picks up anything missed.
+        await analyticsDb.syncCursors.put({
+          key: `${this.pubkey}::${cursorKey}`,
+          pubkey: this.pubkey,
+          filterGroup: `${cursorKey}-backfill`,
+          until,
+          lastSyncedAt: Math.floor(Date.now() / 1000),
+        })
+        break
+      }
+
+      if (events.length === 0) {
+        fullyDrained = true
+        break
+      }
 
       const oldest = events.reduce(
         (min, e) => (e.created_at < min ? e.created_at : min),
@@ -156,12 +189,37 @@ export class AnalyticsSyncEngine {
       )
       until = oldest - 1
 
+      await analyticsDb.syncCursors.put({
+        key: `${this.pubkey}::${cursorKey}`,
+        pubkey: this.pubkey,
+        filterGroup: `${cursorKey}-backfill`,
+        until,
+        lastSyncedAt: Math.floor(Date.now() / 1000),
+      })
+
       await delay(300)
+    }
+
+    // Only write the terminal "complete" cursor when pagination genuinely ran out of events
+    // (relay-confirmed EOSE with 0 results). Any other exit (timeout, MAX_PAGES) leaves the
+    // `-backfill` cursor in place so the next sync resumes instead of silently giving up.
+    if (fullyDrained) {
+      const finishedNow = Math.floor(Date.now() / 1000)
+      await analyticsDb.syncCursors.put({
+        key: `${this.pubkey}::${cursorKey}`,
+        pubkey: this.pubkey,
+        filterGroup: cursorKey,
+        since: finishedNow,
+        lastSyncedAt: finishedNow,
+      })
     }
 
     return totalProcessed
   }
 
+  // Resolves with { events, complete }. `complete` is true only when relays actually sent EOSE —
+  // if the timeout wins the race first, the page is a partial snapshot and must NOT be treated as
+  // a real page boundary (advancing `until` from a timed-out partial batch skips unfetched history).
   _fetchPage(filters) {
     return new Promise((resolve) => {
       const events = new Map()
@@ -171,7 +229,7 @@ export class AnalyticsSyncEngine {
         if (resolved) return
         resolved = true
         console.log(`[SyncEngine] _fetchPage done (${reason}) with ${events.size} events`)
-        resolve(Array.from(events.values()))
+        resolve({ events: Array.from(events.values()), complete: reason === 'eose' })
       }
 
       const sub = this.ndk.subscribe(filters, {
@@ -189,25 +247,41 @@ export class AnalyticsSyncEngine {
     })
   }
 
+  // Fetches one page, retrying the identical `until` window (with backoff) whenever the relay
+  // pool times out before sending EOSE, instead of accepting a partial batch as if it were complete.
+  async _fetchPageReliably(filters, maxAttempts = 4) {
+    let lastResult = { events: [], complete: false }
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      lastResult = await this._fetchPage(filters)
+      if (lastResult.complete) return lastResult
+      console.warn(`[SyncEngine] page timed out (attempt ${attempt}/${maxAttempts}), retrying same window`)
+      await delay(500 * attempt)
+    }
+    return lastResult
+  }
+
   async deltaSync() {
     store.dispatch(setSyncPhase('delta'))
 
-    const [authoredCursor, receivedCursor] = await Promise.all([
+    const [authoredCursor, receivedCursor, followersCursor] = await Promise.all([
       analyticsDb.syncCursors.get(`${this.pubkey}::authored`),
       analyticsDb.syncCursors.get(`${this.pubkey}::received`),
+      analyticsDb.syncCursors.get(`${this.pubkey}::followers`),
     ])
 
     const authoredSince = authoredCursor?.since ?? 0
     const receivedSince = receivedCursor?.since ?? 0
+    const followersSince = followersCursor?.since ?? 0
 
-    console.log(`[SyncEngine] deltaSync since authored=${authoredSince} received=${receivedSince}`)
+    console.log(`[SyncEngine] deltaSync since authored=${authoredSince} received=${receivedSince} followers=${followersSince}`)
 
-    const [authoredEvents, receivedEvents] = await Promise.all([
-      this._fetchPage({ authors: [this.pubkey], kinds: [1, 3, 6, 7, 30023, 30024], since: authoredSince }),
-      this._fetchPage({ '#p': [this.pubkey], kinds: [3, 6, 7, 9735], since: receivedSince }),
+    const [authoredResult, receivedResult, followerResult] = await Promise.all([
+      this._fetchPageReliably({ authors: [this.pubkey], kinds: [1, 3, 6, 7, 30023, 30024], since: authoredSince }),
+      this._fetchPageReliably({ '#p': [this.pubkey], kinds: [6, 7, 9735], since: receivedSince }),
+      this._fetchPageReliably({ '#p': [this.pubkey], kinds: [3], since: followersSince }),
     ])
 
-    for (const event of [...authoredEvents, ...receivedEvents]) {
+    for (const event of [...authoredResult.events, ...receivedResult.events, ...followerResult.events]) {
       await this.processEvent(event)
     }
 
@@ -226,6 +300,13 @@ export class AnalyticsSyncEngine {
       since: now,
       lastSyncedAt: now,
     })
+    await analyticsDb.syncCursors.put({
+      key: `${this.pubkey}::followers`,
+      pubkey: this.pubkey,
+      filterGroup: 'followers',
+      since: now,
+      lastSyncedAt: now,
+    })
 
     store.dispatch(setLastSyncedAt(now))
   }
@@ -236,7 +317,8 @@ export class AnalyticsSyncEngine {
     this._liveSubscription = this.ndk.subscribe(
       [
         { authors: [this.pubkey], kinds: [1, 3, 6, 7, 30023, 30024], since: now },
-        { '#p': [this.pubkey], kinds: [3, 6, 7, 9735], since: now },
+        { '#p': [this.pubkey], kinds: [6, 7, 9735], since: now },
+        { '#p': [this.pubkey], kinds: [3], since: now },
       ],
       { closeOnEose: false, groupable: false }
     )
@@ -312,6 +394,7 @@ export class AnalyticsSyncEngine {
       publishedAt: event.created_at,
       title: getTitleFromEvent(event),
       summary: event.content.slice(0, 120),
+      dTag: getDTag(event),
     })
     await this._modifyProfileStats((row) => {
       row.articlesCount = (row.articlesCount || 0) + 1
@@ -389,20 +472,31 @@ export class AnalyticsSyncEngine {
   }
 
   async _processContactList(event, today) {
-    if (event.created_at <= this._lastKind3CreatedAt) return
-    this._lastKind3CreatedAt = event.created_at
-
     if (event.pubkey === this.pubkey) {
       const followingCount = event.tags.filter((t) => t[0] === 'p').length
       await this._modifyProfileStats((row) => {
         row.followingCount = followingCount
       })
-    } else {
-      await this._modifyProfileStats((row) => {
-        row.followersCount = (row.followersCount || 0) + 1
-        row.dailyFollowers = appendToTimeSeries(row.dailyFollowers || [], today, 'count', 1)
-      })
+      return
     }
+
+    const existing = await analyticsDb.followerEvents.get([this.pubkey, event.pubkey])
+    if (existing) {
+      if (event.created_at <= existing.createdAt) return
+      await analyticsDb.followerEvents.put({ ...existing, createdAt: event.created_at })
+      return
+    }
+
+    await analyticsDb.followerEvents.put({
+      pubkey: this.pubkey,
+      followerPubkey: event.pubkey,
+      createdAt: event.created_at,
+      dateKey: today,
+    })
+    await this._modifyProfileStats((row) => {
+      row.followersCount = (row.followersCount || 0) + 1
+      row.dailyFollowers = appendToTimeSeries(row.dailyFollowers || [], today, 'count', 1)
+    })
   }
 
   async _upsertContentStats(data) {

@@ -38,7 +38,7 @@ export default function OnboardingSync() {
         }}
         className="bg-main-c border-all"
       >
-        <div
+        {/* <div
           style={{
             fontSize: 48,
             marginBottom: "1rem",
@@ -46,7 +46,7 @@ export default function OnboardingSync() {
           }}
         >
           ⚡
-        </div>
+        </div> */}
 
         <h2
           style={{

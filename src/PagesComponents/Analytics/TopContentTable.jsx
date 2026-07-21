@@ -1,7 +1,20 @@
 import { useState } from 'react'
 import { Skeleton } from '@mui/material'
+import { nip19 } from 'nostr-tools'
 import { useTopContent } from '@/hooks/analytics/useTopContent'
 import { format, fromUnixTime } from 'date-fns'
+
+function rowLink(row) {
+  try {
+    if (row.kind === 30023 || row.kind === 30024) {
+      if (!row.dTag) return null
+      return `https://yakihonne.com/note/${nip19.naddrEncode({ kind: row.kind, pubkey: row.authorPubkey, identifier: row.dTag })}`
+    }
+    return `https://yakihonne.com/note/${nip19.neventEncode({ id: row.eventId, kind: row.kind, author: row.authorPubkey })}`
+  } catch {
+    return null
+  }
+}
 
 const SORT_KEYS = ['reactionsCount', 'repostsCount', 'zapsCount', 'zapsSats', 'publishedAt']
 
@@ -70,10 +83,15 @@ export default function TopContentTable({ pubkey }) {
           <tbody>
             {sorted.map((row, i) => {
               const kindInfo = KIND_LABELS[row.kind] || { label: String(row.kind), color: '#6b7280' }
+              const link = rowLink(row)
               return (
                 <tr
                   key={row.eventId}
-                  style={{ borderBottom: '1px solid var(--color-border-muted, #222)' }}
+                  onClick={link ? () => window.open(link, '_blank', 'noopener,noreferrer') : undefined}
+                  style={{
+                    borderBottom: '1px solid var(--color-border-muted, #222)',
+                    cursor: link ? 'pointer' : 'default',
+                  }}
                 >
                   <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-secondary, #aaa)', fontSize: '0.85rem' }}>{i + 1}</td>
                   <td style={{ padding: '0.75rem 0.5rem', maxWidth: 220 }}>

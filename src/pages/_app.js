@@ -11,6 +11,7 @@ import "@/Components/Orb/Orb.css";
 import "katex/dist/katex.css";
 import "@uiw/react-md-editor/markdown-editor.css";
 import "@/styles/tiptap.css";
+import "@/PagesComponents/Legal/legalDoc.css";
 import "@/lib/i18n"; // side-effect: initialise i18next
 import Layout from "@/Components/Layout/Layout";
 
@@ -23,7 +24,15 @@ import ReduxProvider from "@/Store/ReduxProvider";
 import Publishing from "@/Components/Publishing";
 import ToastMessages from "@/Components/ToastMessages";
 
-const NO_LAYOUT_PAGES = new Set(["/login", "/404", "/", "/pricing"]);
+const NO_LAYOUT_PAGES = new Set([
+  "/login",
+  "/404",
+  "/",
+  "/pricing",
+  "/terms",
+  "/privacy",
+  "/refund-policy",
+]);
 
 function App({ Component, pageProps }) {
   const router = useRouter();

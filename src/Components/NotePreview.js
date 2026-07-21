@@ -257,7 +257,7 @@ function RenderLnbc({ lnbc, key }) {
           fontFamily: "monospace",
         }}
       >
-        ⚡ {lnbc.substring(0, 24)}…
+        {lnbc.substring(0, 24)}…
       </span>{" "}
     </Fragment>
   );

@@ -2,6 +2,7 @@ const relayMetadataCache = new Map();
 
 const initRelaysMetadata = () => {
   try {
+    if (typeof localStorage === "undefined") return;
     let relays = localStorage.getItem("relaysMetadata");
     if (relays) {
       relays = JSON.parse(relays);
@@ -18,6 +19,7 @@ initRelaysMetadata();
 
 export const saveLocalRelaysMetadata = () => {
   try {
+    if (typeof localStorage === "undefined") return;
     let relays = Array.from(relayMetadataCache.values());
     localStorage.setItem("relaysMetadata", JSON.stringify(relays));
   } catch (err) {

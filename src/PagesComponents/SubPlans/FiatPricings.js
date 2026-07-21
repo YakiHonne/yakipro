@@ -73,7 +73,7 @@ export default function FiatPricings({
             </div>
           </div>
         </div>
-        <div className="box-pad-h-m box-pad-v-m border-bottom fx-scattered fx-end-v fx-gap-h">
+        {pricing.length === 0 && <div className="box-pad-h-m box-pad-v-m border-bottom fx-scattered fx-end-v fx-gap-h">
           <div className="fx-1">
             <p className="p-secondary-c">{t("A89Qqmt")}</p>
             <Input
@@ -124,7 +124,7 @@ export default function FiatPricings({
               onClick={handleAddPricing}
             />
           </div>
-        </div>
+        </div>}
         <div className="fit-container">
           {pricing.length === 0 && (
             <div

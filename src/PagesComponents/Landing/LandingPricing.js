@@ -314,12 +314,15 @@ export default function LandingPricing() {
             <Link href="/pricing" className="lp-footer-link">
               {t("ALog013")}
             </Link>
-            <a href="#" className="lp-footer-link">
+            <Link href="/privacy" className="lp-footer-link">
               {t("ALPg052")}
-            </a>
-            <a href="#" className="lp-footer-link">
+            </Link>
+            <Link href="/terms" className="lp-footer-link">
               {t("ALPg053")}
-            </a>
+            </Link>
+            <Link href="/refund-policy" className="lp-footer-link">
+              {t("ALPg054")}
+            </Link>
           </div>
         </div>
       </footer>

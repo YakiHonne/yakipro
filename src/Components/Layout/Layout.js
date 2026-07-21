@@ -6,7 +6,15 @@ import { useRouter } from "next/router";
 import { useSelector } from "react-redux";
 import Spinner from "../Spinner";
 
-const NO_NAVBAR_PAGES = new Set(["/login", "/404", "/", "/pricing"]);
+const NO_NAVBAR_PAGES = new Set([
+  "/login",
+  "/404",
+  "/",
+  "/pricing",
+  "/terms",
+  "/privacy",
+  "/refund-policy",
+]);
 
 export default function Layout({ children }) {
   const router = useRouter();

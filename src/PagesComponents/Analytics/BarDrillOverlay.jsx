@@ -17,7 +17,7 @@ import { getSubData } from "@/Helpers/Helpers";
 import Overlay from "@/Components/Overlay";
 import Icon from "@/Components/LucideIcon";
 
-function intervalLabel(dateStr, bucket) {
+export function intervalLabel(dateStr, bucket) {
   const d = parseISO(dateStr);
   if (bucket === "day") return format(d, "MMMM d, yyyy");
   if (bucket === "week") {
@@ -27,7 +27,7 @@ function intervalLabel(dateStr, bucket) {
   return format(d, "MMMM yyyy");
 }
 
-function intervalBounds(dateStr, bucket) {
+export function intervalBounds(dateStr, bucket) {
   const d = parseISO(dateStr);
   let end;
   if (bucket === "day")  end = endOfDay(d);
@@ -67,7 +67,8 @@ async function fetchNDKEvents(eventIds) {
 }
 
 function ContentCard({ row, ndkEvent, type }) {
-  const isArticle = row.kind === 30023 || row.kind === 30024;
+  const effectiveKind = ndkEvent?.kind ?? row.kind;
+  const isArticle = effectiveKind === 30023 || effectiveKind === 30024;
   const link = ndkEvent ? eventLink(ndkEvent) : null;
 
   const title =
@@ -75,7 +76,7 @@ function ContentCard({ row, ndkEvent, type }) {
     row.title ||
     null;
 
-  const sinceLabel = formatDistanceToNow(fromUnixTime(row.publishedAt), {
+  const sinceLabel = formatDistanceToNow(fromUnixTime(ndkEvent?.created_at || row.publishedAt), {
     addSuffix: true,
   });
 
@@ -157,7 +158,7 @@ function ContentCard({ row, ndkEvent, type }) {
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-          <Icon name="buzz" size={13} />
+          <Icon name="repost" size={13} />
           <span style={{ fontSize: "0.78rem" }} className="p-secondary-c">
             {row.repostsCount || 0}
           </span>
@@ -214,7 +215,25 @@ export default function BarDrillOverlay({ drill, pubkey, onClose }) {
       .filter((r) => r.authorPubkey === pubkey)
       .toArray();
 
-    return contentRows
+    // A stat can reference a note/article that hasn't been backfilled into contentStats yet
+    // (e.g. the reaction/zap synced before the note itself did) — don't drop it from the list,
+    // fall back to a stub row and let the NDK fetch below fill in the real content.
+    const knownIds = new Set(contentRows.map((r) => r.eventId));
+    const stubRows = contentIds
+      .filter((id) => !knownIds.has(id))
+      .map((id) => ({
+        eventId: id,
+        authorPubkey: pubkey,
+        kind: 1,
+        publishedAt: Math.floor(Date.now() / 1000),
+        summary: "",
+        reactionsCount: 0,
+        repostsCount: 0,
+        zapsCount: 0,
+        zapsSats: 0,
+      }));
+
+    return [...contentRows, ...stubRows]
       .map((r) => ({ ...r, _windowValue: totals.get(r.eventId) || 0 }))
       .sort((a, b) => b._windowValue - a._windowValue);
   }, [pubkey, since, until, type]);

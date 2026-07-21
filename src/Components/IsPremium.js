@@ -211,7 +211,7 @@ function LightningInvoiceOverlay({
           className="fx-centered fx-col fit-container"
           style={{ rowGap: "6px", textAlign: "center" }}
         >
-          <div
+          {/* <div
             style={{
               width: "44px",
               height: "44px",
@@ -224,7 +224,7 @@ function LightningInvoiceOverlay({
             }}
           >
             ⚡
-          </div>
+          </div> */}
           <h3 style={{ marginTop: "8px" }}>Pay with Lightning</h3>
           <p
             className="p-secondary-c"
@@ -395,7 +395,7 @@ function PricingCards({ isLn, setIsLn, userPub }) {
               className={`lp-pricing-toggle-btn${isLn ? " active" : ""}`}
               onClick={() => setIsLn(true)}
             >
-              ⚡ Sats
+              Sats
             </button>
           </div>
         </div>
@@ -440,7 +440,6 @@ function PricingCards({ isLn, setIsLn, userPub }) {
                     )}
                   </div>
                   <div className="lp-plan-sats">
-                    <span>⚡</span>
                     {isLn ? (
                       <span>~${plan.usd_price} / month</span>
                     ) : (
@@ -685,28 +684,20 @@ function PricingOverlay({ trialEnded, onBack }) {
               padding: "16px 20px",
               borderRadius: "10px",
               backgroundColor: "rgba(255,167,38,0.08)",
-              border: "1px solid rgba(255,167,38,0.35)",
             }}
           >
-            <span style={{ fontSize: "1.4rem", flexShrink: 0 }}>⏳</span>
-            <div>
-              <p
-                style={{
-                  margin: 0,
-                  fontWeight: 700,
-                  color: "#FFA726",
-                  fontSize: "0.95rem",
-                }}
+            <div className="fx-centered fx-col">
+              <h4
               >
-                Your trial has ended
-              </p>
+                Your trial has ended!
+              </h4>
               <p
                 style={{
                   margin: "4px 0 0",
-                  fontSize: "0.85rem",
                   color: "rgba(139,148,158,0.85)",
                   lineHeight: 1.55,
                 }}
+                className="p-centered"
               >
                 Choose a plan below to continue using YakiHonne. Your content,
                 keys, and subscriber list are safe — they'll be right here when

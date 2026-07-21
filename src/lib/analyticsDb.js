@@ -63,6 +63,26 @@ analyticsDb.version(5).stores({
   tx.table('processedEvents').clear(),
 ]))
 
+// v6 also fixes a backfill bug where a relay returning fewer than BATCH_SIZE events on a single
+// page was wrongly treated as "history exhausted," permanently truncating notes/articles/followers
+// for accounts with lots of content. Clearing syncCursors forces every existing account through a
+// fresh, correctly-paginated backfill on next load.
+analyticsDb.version(6).stores({
+  contentStats:
+    'eventId, authorPubkey, kind, publishedAt, zapsSats, reactionsCount',
+  profileStats: 'pubkey',
+  syncCursors: 'key',
+  processedEvents: 'eventId, processedAt',
+  statEvents: 'eventId, contentEventId, [contentEventId+createdAt], createdAt, statType',
+  followerEvents: '[pubkey+followerPubkey], pubkey, followerPubkey, createdAt, [pubkey+createdAt], dateKey',
+}).upgrade((tx) => Promise.all([
+  tx.table('contentStats').clear(),
+  tx.table('profileStats').clear(),
+  tx.table('syncCursors').clear(),
+  tx.table('processedEvents').clear(),
+  tx.table('statEvents').clear(),
+]))
+
 export function appendToTimeSeries(arr, dateKey, field, increment, maxEntries = 1200) {
   const existing = arr.find((e) => e.date === dateKey)
   if (existing) {
