@@ -41,7 +41,13 @@ export default function FollowerGrowthChart({ pubkey, days = 365, onBarClick }) 
         if (entry && onBarClick)
           onBarClick({ dateStr: entry.date, bucket, value: entry.count, type: 'followers' })
       }}
-      sx={{ width: '100%', cursor: onBarClick ? 'pointer' : 'default' }}
+      sx={{
+        width: '100%',
+        cursor: onBarClick ? 'pointer' : 'default',
+        '& .MuiChartsLegend-label': {
+          color: 'var(--color-text-secondary, #aaa)',
+        },
+      }}
     />
   )
 }

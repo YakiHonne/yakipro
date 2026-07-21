@@ -61,82 +61,110 @@ export default function useYakiPoints() {
       return;
     }
 
+    let cancelled = false;
+
     const fetchData = async () => {
       setIsLoaded(false);
-      const data = await getYakiPointsStats();
-      if (!data) return;
+      try {
+        const data = await getYakiPointsStats();
+        if (cancelled) return;
 
-      const { user_stats, platform_standards, tiers } = data;
+        // Endpoint failed / returned nothing. Stop the spinner instead of
+        // hanging forever — the page will fall back to its empty state.
+        if (!data || !data.user_stats) return;
 
-      if (userKeys && user_stats.pubkey !== userKeys.pub) return;
+        const { user_stats, platform_standards, tiers } = data;
 
-      const xp = user_stats.xp;
-      const currentLevel = getCurrentLevel(xp);
-      const nextLevel = currentLevel + 1;
-      const toCurrentLevelPoints = levelCount(currentLevel);
-      const toNextLevelPoints = levelCount(nextLevel);
-      const totalPointInLevel = toNextLevelPoints - toCurrentLevelPoints;
-      const inBetweenLevelPoints = xp - toCurrentLevelPoints;
-      const remainingPointsToNextLevel = totalPointInLevel - inBetweenLevelPoints;
+        // NOTE: we intentionally do NOT gate on `user_stats.pubkey === userKeys.pub`.
+        // The /stats endpoint is authenticated and always returns the current
+        // session's stats, while `userKeys.pub` can legitimately differ in form
+        // (npub vs hex) or lag behind during login — comparing them produced
+        // false mismatches that silently dropped valid data ("zero data").
 
-      let max = 0;
-      let tempChart = [];
-      for (let action of user_stats.actions) {
-        if (chartActionKeys.includes(action.action)) {
-          if (action.all_time_points > max) max = action.all_time_points;
-          tempChart.push({
-            ...action,
-            display_name: platform_standards[action.action].display_name,
-          });
+        const xp = user_stats.xp ?? 0;
+        const actions = user_stats.actions || [];
+        const standards = platform_standards || {};
+        const tierList = tiers || [];
+
+        const currentLevel = getCurrentLevel(xp);
+        const nextLevel = currentLevel + 1;
+        const toCurrentLevelPoints = levelCount(currentLevel);
+        const toNextLevelPoints = levelCount(nextLevel);
+        const totalPointInLevel = toNextLevelPoints - toCurrentLevelPoints;
+        const inBetweenLevelPoints = xp - toCurrentLevelPoints;
+        const remainingPointsToNextLevel = totalPointInLevel - inBetweenLevelPoints;
+
+        let max = 0;
+        let tempChart = [];
+        for (let action of actions) {
+          if (chartActionKeys.includes(action.action)) {
+            if (action.all_time_points > max) max = action.all_time_points;
+            tempChart.push({
+              ...action,
+              display_name: standards[action.action]?.display_name || action.action,
+            });
+          }
         }
+
+        const tempActionKeys = tempChart.map((a) => a.action);
+        const tempStats = Object.entries(standards).map(([key, val]) => {
+          const user_stat = actions.find((a) => a.action === key);
+          return { action: key, ...val, user_stat };
+        });
+
+        const currentTierDisplayName = tierList.find((tier) => {
+          if (tier.max > -1 && tier.min <= currentLevel && tier.max >= currentLevel) return true;
+          if (tier.max === -1 && tier.min <= currentLevel) return true;
+          return false;
+        })?.display_name || "";
+
+        if (cancelled) return;
+
+        setTiers(tierList);
+        setCurrentTier(currentTierDisplayName);
+        setOneTimeRewardStats(tempStats.filter((i) => i.cooldown === 0 && i.count > 0));
+        setRepeatedRewardsStats(
+          tempStats.filter((i) => i.cooldown > 0 || (i.cooldown === 0 && i.count === 0))
+        );
+        setChart(
+          orderChart([
+            ...tempChart,
+            ...chart_
+              .filter((a) => !tempActionKeys.includes(a.action))
+              .map((a) => ({
+                ...a,
+                display_name: standards[a.action]?.display_name || a.action,
+              })),
+          ])
+        );
+        setMaxValueInChart(max);
+        setHeaderStats({
+          xp,
+          consumablePoints: user_stats.current_points?.points ?? 0,
+          consumablePointsLU: user_stats.current_points?.last_updated ?? null,
+          currentLevel,
+          nextLevel,
+          toCurrentLevelPoints,
+          toNextLevelPoints,
+          totalPointInLevel,
+          inBetweenLevelPoints,
+          remainingPointsToNextLevel,
+        });
+      } catch (err) {
+        console.error("[useYakiPoints] failed to load stats", err);
+      } finally {
+        // Always clear the loading state so the page never gets stuck on the
+        // spinner — whether the fetch succeeded, returned nothing, was for a
+        // stale account, or threw while parsing.
+        if (!cancelled) setIsLoaded(true);
       }
-
-      const tempActionKeys = tempChart.map((a) => a.action);
-      const tempStats = Object.entries(platform_standards).map(([key, val]) => {
-        const user_stat = user_stats.actions.find((a) => a.action === key);
-        return { action: key, ...val, user_stat };
-      });
-
-      const currentTierDisplayName = tiers.find((tier) => {
-        if (tier.max > -1 && tier.min <= currentLevel && tier.max >= currentLevel) return true;
-        if (tier.max === -1 && tier.min <= currentLevel) return true;
-        return false;
-      })?.display_name || "";
-
-      setTiers(tiers);
-      setCurrentTier(currentTierDisplayName);
-      setOneTimeRewardStats(tempStats.filter((i) => i.cooldown === 0 && i.count > 0));
-      setRepeatedRewardsStats(
-        tempStats.filter((i) => i.cooldown > 0 || (i.cooldown === 0 && i.count === 0))
-      );
-      setChart(
-        orderChart([
-          ...tempChart,
-          ...chart_
-            .filter((a) => !tempActionKeys.includes(a.action))
-            .map((a) => ({
-              ...a,
-              display_name: platform_standards[a.action]?.display_name || a.action,
-            })),
-        ])
-      );
-      setMaxValueInChart(max);
-      setHeaderStats({
-        xp,
-        consumablePoints: user_stats.current_points.points,
-        consumablePointsLU: user_stats.current_points.last_updated,
-        currentLevel,
-        nextLevel,
-        toCurrentLevelPoints,
-        toNextLevelPoints,
-        totalPointInLevel,
-        inBetweenLevelPoints,
-        remainingPointsToNextLevel,
-      });
-      setIsLoaded(true);
     };
 
     fetchData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [userKeys, isConnected]);
 
   return {

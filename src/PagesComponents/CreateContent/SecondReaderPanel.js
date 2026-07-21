@@ -9,6 +9,40 @@ import { PERSONAS } from "@/Content/SecondReaderPersonas";
 import aiChatDb from "@/lib/aiChatDb";
 import { setToast } from "@/Store/Slices/Extras";
 
+let reactionIdCounter = 0;
+
+// The AI endpoint occasionally returns reactions with missing/misnamed
+// fields. Normalize them so rendering never crashes (e.g. reading `comment`
+// or slicing it) and every reaction has a stable key.
+function normalizeReaction(r, fallbackIndex = 0) {
+  if (!r || typeof r !== "object") return null;
+  const paragraphIndex = Number.isInteger(r.paragraphIndex)
+    ? r.paragraphIndex
+    : fallbackIndex;
+  const comment =
+    typeof r.comment === "string"
+      ? r.comment
+      : typeof r.text === "string"
+        ? r.text
+        : "";
+  if (!comment.trim()) return null;
+  return {
+    ...r,
+    paragraphIndex,
+    comment,
+    sentiment: r.sentiment ?? "neutral",
+    status: r.status ?? null,
+    id: r.id || `sr-${paragraphIndex}-${Date.now()}-${reactionIdCounter++}`,
+  };
+}
+
+function normalizeReactions(list) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .map((r, i) => normalizeReaction(r, i))
+    .filter(Boolean);
+}
+
 function hashString(str) {
   let h = 0;
   for (let i = 0; i < str.length; i++) {
@@ -21,7 +55,10 @@ async function loadStoredReactions(personaId) {
   try {
     const row = await aiChatDb.secondReaderReactions.get(personaId);
     if (!row) return null;
-    return { reactions: row.reactions ?? [], contentHash: row.contentHash };
+    return {
+      reactions: normalizeReactions(row.reactions),
+      contentHash: row.contentHash,
+    };
   } catch {
     return null;
   }
@@ -151,7 +188,8 @@ function SentimentIcon({ sentiment }) {
 function ReactionCard({ reaction, onFocus, onFix, onIgnore }) {
   const isIgnored = reaction.status === "ignored";
   const isFixed = reaction.status === "fixed";
-  const isResolved = isIgnored || isFixed;
+  const isSuperseded = reaction.status === "superseded";
+  const isResolved = isIgnored || isFixed || isSuperseded;
 
   const severityClass =
     reaction.severity === "warning"
@@ -196,6 +234,9 @@ function ReactionCard({ reaction, onFocus, onFix, onIgnore }) {
 
       {isFixed && <p className="sr-ignored-label">✓ Sent to AI for fixing</p>}
       {isIgnored && <p className="sr-ignored-label">Marked as read</p>}
+      {isSuperseded && (
+        <p className="sr-ignored-label">Earlier thought · re-read since</p>
+      )}
     </div>
   );
 }
@@ -215,7 +256,10 @@ function ActiveReader({
 }) {
   const activeReactions = reactions.filter((r) => !r.status);
   const resolvedReactions = reactions.filter(
-    (r) => r.status === "ignored" || r.status === "fixed",
+    (r) =>
+      r.status === "ignored" ||
+      r.status === "fixed" ||
+      r.status === "superseded",
   );
 
   return (
@@ -285,7 +329,7 @@ function ActiveReader({
             <>
               {activeReactions.map((r) => (
                 <ReactionCard
-                  key={`${r.paragraphIndex}-${r.id || r.comment.slice(0, 10)}`}
+                  key={r.id || `${r.paragraphIndex}-active`}
                   reaction={r}
                   onFocus={onFocus}
                   onFix={onFix}
@@ -299,11 +343,11 @@ function ActiveReader({
                     style={{ fontSize: "0.68rem", margin: "8px 0 4px" }}
                     className="p-secondary-c"
                   >
-                    Resolved ({resolvedReactions.length})
+                    History ({resolvedReactions.length})
                   </p>
                   {resolvedReactions.map((r) => (
                     <ReactionCard
-                      key={`resolved-${r.paragraphIndex}-${r.id || r.comment.slice(0, 10)}`}
+                      key={`resolved-${r.id || r.paragraphIndex}`}
                       reaction={r}
                       onFocus={onFocus}
                       onFix={onFix}
@@ -410,34 +454,19 @@ export default function SecondReaderPanel({
   useEffect(() => {
     if (!editor) return;
 
+    // Track the latest markdown so saved reactions carry an up-to-date
+    // content hash. We deliberately do NOT clear reactions on edit: the
+    // per-paragraph analysis effect below re-reads changed paragraphs and
+    // appends fresh thoughts while keeping the existing conversation/history.
     const handleUpdate = () => {
       const md = getMarkdown();
       if (!md.trim()) return;
 
-      if (baseMarkdownRef.current === null) {
-        baseMarkdownRef.current = md;
-        return;
-      }
-
       if (suppressInvalidationRef?.current) {
         suppressInvalidationRef.current = false;
-        baseMarkdownRef.current = md;
-        clearTimeout(invalidateTimerRef.current);
-        return;
       }
 
-      if (md !== baseMarkdownRef.current) {
-        clearTimeout(invalidateTimerRef.current);
-        invalidateTimerRef.current = setTimeout(() => {
-          baseMarkdownRef.current = md;
-          reactionsCache.current = {};
-          PERSONAS.forEach((p) => deleteStoredReactions(p.id));
-          setReactions([]);
-          setView("picker");
-        }, 3000);
-      } else {
-        clearTimeout(invalidateTimerRef.current);
-      }
+      baseMarkdownRef.current = md;
     };
 
     editor.on("update", handleUpdate);
@@ -488,7 +517,7 @@ export default function SecondReaderPanel({
       setIsAnalyzing(true);
       try {
         const result = await analyzeFullArticle(article, persona.id);
-        const loaded = (result.reactions ?? []).map((r) => ({
+        const loaded = normalizeReactions(result?.reactions).map((r) => ({
           ...r,
           status: null,
         }));
@@ -500,11 +529,17 @@ export default function SecondReaderPanel({
         setView("active");
       } catch (err) {
         console.error("[SecondReader] full analysis failed", err);
+        dispatch(
+          setToast({
+            type: 2,
+            desc: err?.message || "Second reader failed. Please try again.",
+          }),
+        );
       } finally {
         setIsAnalyzing(false);
       }
     },
-    [getMarkdown],
+    [getMarkdown, dispatch],
   );
 
   const activePersonaRef = useRef(null);
@@ -533,14 +568,29 @@ export default function SecondReaderPanel({
       .then((result) => {
         if (cancelled) return;
         setReactions((prev) => {
-          const without = prev.filter((r) => r.paragraphIndex !== index);
-          const updated = result.reaction
-            ? [
-                ...without,
-                { ...result.reaction, paragraphIndex: index, status: null },
-              ]
-            : without;
-          return updated;
+          const normalized = normalizeReaction(result?.reaction, index);
+          if (!normalized) return prev;
+          normalized.paragraphIndex = index;
+
+          const newComment = normalized.comment.trim();
+          // Skip if the newest thought for this paragraph is identical, so
+          // re-reads on trivial edits don't spam duplicate notes.
+          const latestForPara = [...prev]
+            .reverse()
+            .find((r) => r.paragraphIndex === index);
+          if (latestForPara && latestForPara.comment?.trim() === newComment) {
+            return prev;
+          }
+
+          // Keep prior thoughts for this paragraph as history: demote any
+          // still-active note to "superseded" instead of removing it.
+          const withHistory = prev.map((r) =>
+            r.paragraphIndex === index && !r.status
+              ? { ...r, status: "superseded" }
+              : r,
+          );
+
+          return [...withHistory, { ...normalized, status: null }];
         });
       })
       .catch((err) => {

@@ -30,7 +30,13 @@ export default function EngagementOverTimeChart({ pubkey, days = 30, onBarClick 
         if (entry && onBarClick)
           onBarClick({ dateStr: entry.date, bucket, value: entry.count || 0, type: "reactions" });
       }}
-      sx={{ width: "100%", cursor: "pointer" }}
+      sx={{
+        width: "100%",
+        cursor: "pointer",
+        "& .MuiChartsLegend-label": {
+          color: "var(--color-text-secondary, #aaa)",
+        },
+      }}
     />
   );
 }

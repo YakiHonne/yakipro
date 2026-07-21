@@ -1,11 +1,36 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { nip19 } from "nostr-tools";
 import { intervalLabel, intervalBounds } from "./BarDrillOverlay";
 import { useFollowersForDay } from "@/hooks/analytics/useFollowerEvents";
 import { saveUsers } from "@/Helpers/Helpers";
 import Overlay from "@/Components/Overlay";
 import UserRow from "@/Components/UserRow";
 import Icon from "@/Components/LucideIcon";
+
+const formatFollowDate = (createdAt) => {
+  if (!createdAt) return null;
+  const date = new Date(createdAt * 1000);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
+const openProfile = (pubkey) => {
+  try {
+    const npub = nip19.npubEncode(pubkey);
+    window.open(
+      `https://yakihonne.com/${npub}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  } catch (err) {
+    console.error("[FollowerDrillOverlay] failed to open profile", err);
+  }
+};
 
 export default function FollowerDrillOverlay({ drill, pubkey, onClose }) {
   const { t } = useTranslation();
@@ -74,9 +99,32 @@ export default function FollowerDrillOverlay({ drill, pubkey, onClose }) {
             {t("A70Zdvz")}
           </p>
         )}
-        {rows && rows.map((row) => (
-          <UserRow key={row.followerPubkey} pubkey={row.followerPubkey} />
-        ))}
+        {rows && rows.map((row) => {
+          const followedOn = formatFollowDate(row.createdAt);
+          return (
+            <UserRow key={row.followerPubkey} pubkey={row.followerPubkey}>
+              <div className="fx-centered fx-gap-h-s">
+                {followedOn && (
+                  <span
+                    className="gray-c p-medium p-one-line"
+                    style={{ fontSize: "0.72rem" }}
+                    title={t("A5FoLwD", "Followed you")}
+                  >
+                    {followedOn}
+                  </span>
+                )}
+                <span
+                  className="pointer fx-centered"
+                  onClick={() => openProfile(row.followerPubkey)}
+                  title="Open on yakihonne.com"
+                  style={{ color: "var(--color-text-secondary)" }}
+                >
+                  <Icon name="external_link" size={16} />
+                </span>
+              </div>
+            </UserRow>
+          );
+        })}
       </div>
     </Overlay>
   );

@@ -20,7 +20,8 @@ export class AnalyticsSyncEngine {
     this._liveSubscription = null
   }
 
-  async initialize() {
+  async initialize(attempt = 1) {
+    const MAX_ATTEMPTS = 3
     try {
       store.dispatch(setSyncPhase('backfill'))
       store.dispatch(setSyncProgress({ percent: 0, message: 'Connecting to relays…' }))
@@ -47,7 +48,14 @@ export class AnalyticsSyncEngine {
       store.dispatch(setSyncPhase('live'))
       store.dispatch(setIsFirstRun(false))
     } catch (err) {
-      console.error('[SyncEngine] initialize error', err)
+      console.error(`[SyncEngine] initialize error (attempt ${attempt}/${MAX_ATTEMPTS})`, err)
+      if (attempt < MAX_ATTEMPTS) {
+        // Transient failures (relays still coming up right after login, brief
+        // network drop) shouldn't leave sync permanently stuck until the user
+        // navigates away and back. Back off and retry the whole init.
+        await delay(2000 * attempt)
+        return this.initialize(attempt + 1)
+      }
       store.dispatch(setSyncPhase('error'))
       store.dispatch(setIsFirstRun(false))
     }
@@ -324,13 +332,13 @@ export class AnalyticsSyncEngine {
     )
 
     this._liveSubscription.on('event', async (event) => {
-      await this.processEvent(event)
-      const toast = this._buildLiveToast(event)
+      const outcome = await this.processEvent(event)
+      const toast = this._buildLiveToast(event, outcome)
       if (toast) store.dispatch(setToast(toast))
     })
   }
 
-  _buildLiveToast(event) {
+  _buildLiveToast(event, outcome) {
     switch (event.kind) {
       case 9735: {
         const sats = parseSatsFromZap(event)
@@ -341,7 +349,11 @@ export class AnalyticsSyncEngine {
       case 6:
         return { desc: 'Someone reposted your content', type: 1, icon: 'buzz' }
       case 3:
-        return { desc: 'Someone followed you', type: 1, icon: 'user-followed' }
+        // Only announce a follow when a genuinely new follower was recorded —
+        // not for unfollows or stale/duplicate contact lists.
+        return outcome === 'follow-added'
+          ? { desc: 'Someone followed you', type: 1, icon: 'user-followed' }
+          : null
       default:
         return null
     }
@@ -365,7 +377,7 @@ export class AnalyticsSyncEngine {
       case 7:     await this._processReaction(event, dateKey);    break
       case 6:     await this._processRepost(event);               break
       case 9735:  await this._processZap(event, dateKey);         break
-      case 3:     await this._processContactList(event, dateKey); break
+      case 3:     return this._processContactList(event, dateKey)
     }
   }
 
@@ -480,11 +492,33 @@ export class AnalyticsSyncEngine {
       return
     }
 
+    // Kind 3 is replaceable: an incoming contact list is only a follow if it
+    // actually tags us. A relay's `#p` filter can match on a stale copy, or the
+    // author may have unfollowed us in this newer revision — so verify our
+    // pubkey is present in the event's `p` tags before treating it as a follow.
+    const followsUs = event.tags.some(
+      (t) => t[0] === 'p' && t[1] === this.pubkey
+    )
+
     const existing = await analyticsDb.followerEvents.get([this.pubkey, event.pubkey])
+
+    if (!followsUs) {
+      // This author no longer follows us. If we had them stored, and this event
+      // is newer than what we recorded, remove them and decrement the count.
+      if (existing && event.created_at > existing.createdAt) {
+        await analyticsDb.followerEvents.delete([this.pubkey, event.pubkey])
+        await this._modifyProfileStats((row) => {
+          row.followersCount = Math.max(0, (row.followersCount || 0) - 1)
+        })
+        return 'follow-removed'
+      }
+      return 'noop'
+    }
+
     if (existing) {
-      if (event.created_at <= existing.createdAt) return
+      if (event.created_at <= existing.createdAt) return 'noop'
       await analyticsDb.followerEvents.put({ ...existing, createdAt: event.created_at })
-      return
+      return 'noop'
     }
 
     await analyticsDb.followerEvents.put({
@@ -497,6 +531,7 @@ export class AnalyticsSyncEngine {
       row.followersCount = (row.followersCount || 0) + 1
       row.dailyFollowers = appendToTimeSeries(row.dailyFollowers || [], today, 'count', 1)
     })
+    return 'follow-added'
   }
 
   async _upsertContentStats(data) {

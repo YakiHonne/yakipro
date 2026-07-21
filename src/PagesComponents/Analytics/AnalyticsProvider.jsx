@@ -11,12 +11,30 @@ export default function AnalyticsProvider({ pubkey, children }) {
   useEffect(() => {
     if (!pubkey) return;
 
+    let cancelled = false;
     store.dispatch(setSyncPhase("idle"));
 
     const ndk = getNDK();
     console.log("[AnalyticsProvider] starting, pubkey:", pubkey);
 
     const run = async () => {
+      // Connect FIRST. On a fresh login this NDK instance is cold (it's separate
+      // from the login/signer NDK), so any relay-list fetch below would otherwise
+      // hang against a pool with zero connected relays — which is exactly why the
+      // sync used to appear "stuck" until the user navigated away and back and hit
+      // an already-warm NDK. Connecting up front makes the first attempt work.
+      if (!ndk.pool || ndk.pool.connectedRelays().length === 0) {
+        console.log("[AnalyticsProvider] calling ndk.connect()");
+        await ndk.connect().catch((err) =>
+          console.warn("[AnalyticsProvider] ndk.connect error", err)
+        );
+        console.log("[AnalyticsProvider] ndk.connect() resolved");
+      } else {
+        console.log("[AnalyticsProvider] NDK already connected");
+      }
+
+      if (cancelled) return;
+
       // The account's own write relays (where its notes/articles actually live) aren't part of
       // this NDK instance's default relay set — without them, backfill only sees whatever the
       // handful of hardcoded aggregator relays happen to have cached for this pubkey, which is
@@ -39,20 +57,12 @@ export default function AnalyticsProvider({ pubkey, children }) {
         }
       }
 
+      if (cancelled) return;
+
       for (const url of writeRelayUrls) {
         ndk.addExplicitRelay(url, undefined, true);
       }
       console.log("[AnalyticsProvider] added write relays:", writeRelayUrls);
-
-      if (!ndk.pool || ndk.pool.connectedRelays().length === 0) {
-        console.log("[AnalyticsProvider] calling ndk.connect()");
-        await ndk.connect().catch((err) =>
-          console.warn("[AnalyticsProvider] ndk.connect error", err)
-        );
-        console.log("[AnalyticsProvider] ndk.connect() resolved");
-      } else {
-        console.log("[AnalyticsProvider] NDK already connected");
-      }
 
       const engine = new AnalyticsSyncEngine(ndk, pubkey);
       engineRef.current = engine;
@@ -60,6 +70,10 @@ export default function AnalyticsProvider({ pubkey, children }) {
     };
 
     run();
+
+    return () => {
+      cancelled = true;
+    };
   }, [pubkey]);
 
   return children;

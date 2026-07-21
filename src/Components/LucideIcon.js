@@ -41,6 +41,7 @@ import {
   Star,
   Settings,
   Cloud,
+  ExternalLink,
 } from "lucide-react";
 
 const iconsMap = {
@@ -96,6 +97,7 @@ const iconsMap = {
   user_01: User,
   star: Star,
   settings: Settings,
+  external_link: ExternalLink,
 };
 
 // Icons whose original artwork carries fixed, meaningful color (status badges),
