@@ -164,7 +164,14 @@ export const initAppAccount = async () => {
 
     try {
       const res = await checkUserConnected();
-      if (res && res !== false) {
+      // The server session cookie may still be bound to a PREVIOUSLY logged-in
+      // pubkey (account switch, stale session). /online returns whoever the
+      // session says — so only trust it when it matches the locally-selected
+      // account; otherwise rebind the session via apiLogin before trusting it.
+      const sessionMatchesLocal =
+        res && res !== false && res.pubkey === keys.pub;
+
+      if (sessionMatchesLocal) {
         store.dispatch(setNostrUser(res));
         store.dispatch(setIsConnected(true));
       } else {

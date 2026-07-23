@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from "react";
 import { nip19 } from "nostr-tools";
+import axios from "axios";
 import { getSubData, saveUsers } from "@/Helpers/Helpers";
-import axiosInstance from "@/Helpers/HTTP_Client";
 import Overlay from "@/Components/Overlay";
 import Icon from "@/Components/LucideIcon";
 import Button from "@/Components/UI/Button";
@@ -104,10 +104,17 @@ export default function AddSubscriberOverlay({
         const user = res[0];
         setResults([{ pubkey: user.pubkey, profile: user }]);
       } else {
-        const { data } = await axiosInstance.get(
+        // Use a PLAIN axios client (not the app's axiosInstance): the app
+        // instance's response interceptor redirects to /login on any network
+        // error / 5xx, so firing it cross-origin at cache-v2 turned a transient
+        // search hiccup into a full-page reload. It also must not leak the
+        // yaki-api key / credentials cross-origin.
+        const { data } = await axios.get(
           `https://cache-v2.yakihonne.com/api/v1/users/search/${encodeURIComponent(trimmed)}`,
         );
-        const list = (Array.isArray(data?.data) ? data.data : []).slice(0, 10);
+        // cache-v2 returns a top-level array of user objects (not { data: [] }).
+        const arr = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+        const list = arr.slice(0, 10);
         const results = list.map((u) => ({ pubkey: u.pubkey, profile: u }));
         setResults(results);
         if (results.length === 0) setError("No users found.");

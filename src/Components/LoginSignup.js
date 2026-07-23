@@ -95,7 +95,7 @@ const KeyLoginScreen = ({ exit }) => {
             await import("@/Endpoionts/Auth");
           const { setIsConnected } = await import("@/Store/Slices/User");
           const check = await checkUserConnected();
-          if (check && check.success) {
+          if (check && check.success && check.pubkey === keys.pub) {
             dispatch(setIsConnected(true));
           } else {
             const loginRes = await apiLogin({
@@ -125,7 +125,7 @@ const KeyLoginScreen = ({ exit }) => {
           await import("@/Endpoionts/Auth");
         const { setIsConnected } = await import("@/Store/Slices/User");
         const check = await checkUserConnected();
-        if (check && check.success) {
+        if (check && check.success && check.pubkey === keys.pub) {
           dispatch(setIsConnected(true));
         } else {
           const loginRes = await apiLogin({
@@ -152,7 +152,7 @@ const KeyLoginScreen = ({ exit }) => {
           await import("@/Endpoionts/Auth");
         const { setIsConnected } = await import("@/Store/Slices/User");
         const check = await checkUserConnected();
-        if (check && check.success) {
+        if (check && check.success && check.pubkey === keys.pub) {
           dispatch(setIsConnected(true));
         } else {
           const loginRes = await apiLogin({
@@ -222,7 +222,7 @@ const ExtensionLoginScreen = ({ exit }) => {
         await import("@/Endpoionts/Auth");
       const { setIsConnected } = await import("@/Store/Slices/User");
       const check = await checkUserConnected();
-      if (check && check.success) {
+      if (check && check.success && check.pubkey === keys.pub) {
         dispatch(setIsConnected(true));
       } else {
         const loginRes = await apiLogin({
@@ -323,7 +323,7 @@ const BunkerLoginScreen = ({ exit }) => {
         await import("@/Endpoionts/Auth");
       const { setIsConnected } = await import("@/Store/Slices/User");
       const check = await checkUserConnected();
-      if (check && check.success) {
+      if (check && check.success && check.pubkey === keys.pub) {
         dispatch(setIsConnected(true));
       } else {
         const loginRes = await apiLogin({

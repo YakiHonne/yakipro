@@ -5,6 +5,7 @@ import { logoutUser } from "@/Helpers/AccountInit";
 import { getPlans, getSubscriptionLink } from "@/Endpoionts/payment";
 import { setForcePaywall } from "@/Store/Slices/Subscription";
 import { copyText } from "@/Helpers/Helpers";
+import useSubscriptionRefresh from "@/hooks/useSubscriptionRefresh";
 import Spinner from "./Spinner";
 import Button from "./UI/Button";
 import Overlay from "./Overlay";
@@ -318,6 +319,7 @@ function PricingCards({ isLn, setIsLn, userPub }) {
   const [isLoading, setIsLoading] = useState(false);
   const [lightningInvoice, setLightningInvoice] = useState(null);
   const [activePlan, setActivePlan] = useState(null);
+  const { confirming, startPolling } = useSubscriptionRefresh();
 
   useEffect(() => {
     getPlans().then(setPlans);
@@ -353,7 +355,11 @@ function PricingCards({ isLn, setIsLn, userPub }) {
           setLightningInvoice(invoice);
         }
       } else {
-        await getSubscriptionLink({ plan_id: product.id });
+        const res = await getSubscriptionLink({ plan_id: product.id });
+        // Checkout opens in a NEW tab, so this tab keeps its stale pre-payment
+        // state. Poll the server (beating the Stripe/Airwallex webhook) so the
+        // paywall lifts on its own once the purchase confirms — no reconnect.
+        if (res && res.url) startPolling();
       }
     } catch (err) {
       console.error(err);
@@ -378,6 +384,27 @@ function PricingCards({ isLn, setIsLn, userPub }) {
         }}
       />
       <div className="lp-section-inner box-pad-v">
+        {confirming && (
+          <div
+            className="fx-centered round-corner box-pad-h-m box-pad-v-s"
+            style={{
+              margin: "0 auto 20px",
+              width: "fit-content",
+              maxWidth: "100%",
+              background: "var(--color-primary-light)",
+              columnGap: "10px",
+            }}
+          >
+            <Spinner size={16} />
+            <p
+              className="orange-c"
+              style={{ fontSize: "0.85rem", fontWeight: 600, margin: 0 }}
+            >
+              Confirming your subscription…
+            </p>
+          </div>
+        )}
+
         <div
           style={{
             display: "flex",

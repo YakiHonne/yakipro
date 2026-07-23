@@ -35,6 +35,18 @@ export const getStripeAccount = async () => {
     return false;
   }
 };
+// The creator's per-method subscription plans (fiat/crypto) with their pricing
+// and active flag. /provider only returns the Stripe account (no pricing), so
+// this is the authoritative source for the fiat/crypto price lists.
+export const getSubPlans = async () => {
+  try {
+    const data = await axiosInstance.get("/api/v1/subplans");
+    return Array.isArray(data.data) ? data.data : [];
+  } catch (err) {
+    console.log(err);
+    return [];
+  }
+};
 export const getProviderLogin = async () => {
   try {
     const data = await axiosInstance.get("/api/v1/provider-login");

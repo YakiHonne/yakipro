@@ -2,6 +2,7 @@ import {
   enableStripe,
   getProviderLogin,
   getStripeAccount,
+  getSubPlans,
 } from "@/Endpoionts/payment";
 import { extractLightningPlans, getSubData } from "@/Helpers/Helpers";
 import React, { useEffect, useMemo, useState } from "react";
@@ -43,8 +44,9 @@ export default function usePlans() {
       return;
     }
     setLoading(true);
-    const [provider, nostrPlans] = await Promise.all([
+    const [provider, subPlans, nostrPlans] = await Promise.all([
       getStripeAccount(),
+      getSubPlans(),
       getSubData({
         filter: [
           {
@@ -58,12 +60,18 @@ export default function usePlans() {
     let tags = nostrPlans.data.length > 0 ? nostrPlans.data[0].tags : [];
     let l = extractLightningPlans(tags);
 
+    // Fiat & crypto pricing live in CreatorSubPlans (served by /subplans), one
+    // doc per provider ("stripe-fiat" / "stripe-crypto"). /provider only returns
+    // the Stripe account with no pricing, which is why fiat never loaded.
+    const fiatPlan = subPlans.find((p) => p.provider === "stripe-fiat");
+    const cryptoPlan = subPlans.find((p) => p.provider === "stripe-crypto");
+
     const processedPlans = {
-      fiat: provider?.pricing ?? [],
-      crypto: [],
+      fiat: fiatPlan?.pricing ?? [],
+      crypto: cryptoPlan?.pricing ?? [],
       ln: l,
-      isFiatEnable: provider?.active ?? false,
-      isCryptoEnabled: false,
+      isFiatEnable: fiatPlan ? fiatPlan.active : false,
+      isCryptoEnabled: cryptoPlan ? cryptoPlan.active : false,
       isLnEnabled: l?.length > 0,
     };
 

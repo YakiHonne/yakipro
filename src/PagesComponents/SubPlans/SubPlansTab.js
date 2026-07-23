@@ -92,12 +92,12 @@ export default function SubPlansTab() {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      let fiat = await postProducts({
+      const fiatRes = await postProducts({
         pricings: fiatPricings,
         currency,
         method: "fiat",
       });
-      let sc = await postProducts({
+      const scRes = await postProducts({
         pricings: scPricings,
         currency: "usdc",
         method: "crypto",
@@ -109,6 +109,18 @@ export default function SubPlansTab() {
       if (plans.isCryptoEnabled !== enableSC) {
         await changeStatus({ method: "crypto" });
       }
+
+      const mergePrices = (existing, created) => {
+        const kept = (existing || []).filter((p) => p.id);
+        const added = Array.isArray(created) ? created.filter((p) => p.id) : [];
+        const byId = new Map();
+        [...kept, ...added].forEach((p) => byId.set(p.id, p));
+        return Array.from(byId.values());
+      };
+
+      const fiat = mergePrices(fiatPricings, fiatRes);
+      const sc = mergePrices(scPricings, scRes);
+
       let tags = getEventTags({
         gatewayUrl,
         fiat,
@@ -254,17 +266,7 @@ export default function SubPlansTab() {
         </div>
         <div className="fit-container fx-scattered">
           <h3 className="p-primary-c">{t("AO0OqWT")}</h3>
-          {enableSaving && (
-            <div className="slide-left">
-              <Button
-                size="m"
-                type="primary"
-                loading={isLoading}
-                label={t("A1IsKJ0")}
-                onClick={handleSave}
-              />
-            </div>
-          )}
+
         </div>
         {enableFiat && (
           <FiatPricings
@@ -287,6 +289,18 @@ export default function SubPlansTab() {
             currency={"SATs"}
             setLightningPricings={setLightningPricings}
           />
+        )}
+        {enableSaving && (
+          <div className="slide-left">
+            <Button
+              size="m"
+              full={true}
+              type="primary"
+              loading={isLoading}
+              label={t("A1IsKJ0")}
+              onClick={handleSave}
+            />
+          </div>
         )}
         {!enableFiat && !enableSC && !enableLightning && (
           <div className="fit-container fx-centered border-all round-corner-m box-pad-h box-pad-v fx-centered fx-col fx-gap-v">

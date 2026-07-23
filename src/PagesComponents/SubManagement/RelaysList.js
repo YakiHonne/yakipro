@@ -185,6 +185,7 @@ const RelayRow = ({ relayUrl, isDiscovery = false }) => {
                     disabled={isAlreadyAdded}
                     loading={isAddingRelay}
                     onClick={handleAddRelay}
+                    size="s"
                   />
                 ) : (
                   !isDelegated && (
@@ -197,7 +198,7 @@ const RelayRow = ({ relayUrl, isDiscovery = false }) => {
                 )
               ) : (
                 <Button
-                  label="Join"
+                  label="Join to add"
                   size="s"
                   type="primary"
                   onClick={() => setShowInput(true)}

@@ -2,12 +2,18 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import IsUserOnline from "@/Components/IsUserOnline";
 import { SelectTabs } from "@/Components/SelectTabs";
+import useSubscriptionRefresh from "@/hooks/useSubscriptionRefresh";
 import SubPlansTab from "../SubPlans/SubPlansTab";
 import SubManagementTab from "../SubManagement/SubManagementTab";
 
 export default function Subscription() {
   const { t } = useTranslation();
   const [selectedTab, setSelectedTab] = useState(0);
+
+  // Landing here from a checkout redirect (success_url = /subscription) or
+  // returning to this tab pulls fresh server subscription/session state so the
+  // UI reflects a just-completed payment without a manual reconnect.
+  useSubscriptionRefresh();
 
   return (
     <IsUserOnline>

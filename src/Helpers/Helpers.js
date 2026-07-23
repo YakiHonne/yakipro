@@ -412,6 +412,9 @@ export const saveUsers = async (pubkeys) => {
   }
 };
 
+// Lightning prices live ONLY in the published kind:30164 event, so they must be
+// parsed from its tags. (Fiat/crypto prices are read from the server instead —
+// see getSubPlans / usePlans.)
 export const extractLightningPlans = (tags) => {
   if (!tags || !Array.isArray(tags)) return [];
   const priceTags = tags.filter(

@@ -21,11 +21,11 @@ const chart_ = [
 
 const levelCount = (nextLevel) => {
   if (nextLevel === 1) return 0;
-  return levelCount(nextLevel - 1) + (nextLevel - 1) * 50;
+  return levelCount(nextLevel - 1) + (nextLevel - 1) * 4;
 };
 
 const getCurrentLevel = (points) => {
-  return Math.floor((1 + Math.sqrt(1 + (8 * points) / 50)) / 2);
+  return Math.floor((1 + Math.sqrt(1 + (100 * points) / 50)) / 2);
 };
 
 const orderChart = (array) => {

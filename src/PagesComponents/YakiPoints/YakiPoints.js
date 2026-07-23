@@ -10,6 +10,24 @@ import Overlay from "@/Components/Overlay";
 
 const tiersIcons = ["bronze-tier", "silver-tier", "gold-tier", "platinum-tier"];
 
+const POINTS_USES = [
+  {
+    icon: "star",
+    title: "Redeem a subscription plan",
+    desc: "Spend your points to unlock Basic or Premium subscription plans and their perks.",
+  },
+  {
+    icon: "note-bold",
+    title: "Publish paid notes",
+    desc: "Cover the fee for a paid note with your points instead of paying in SATs.",
+  },
+  {
+    icon: "bolt-bold",
+    title: "Redeem points for SATs",
+    desc: "Request a redeem code once you're eligible and cash it out to your lightning address.",
+  },
+];
+
 const timeAgo = (date) => {
   const seconds = Math.floor((new Date() - date) / 1000);
   if (seconds < 60) return `${seconds}s ago`;
@@ -152,13 +170,40 @@ const PointsDesc = ({ exit }) => {
         className="box-pad-h box-pad-v fx-centered fx-col fx-start-h"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="p-centered box-pad-h box-marg-s">{t("AIdLWAb")}</h3>
-        <p className="p-centered p-secondary-c">{t("AIjkhSn")}</p>
-        <p className="p-centered p-secondary-c">{"> " + t("A6fM6gw") + " <"}</p>
-        <p className="p-centered p-secondary-c">{"> " + t("AaZQAOK") + " <"}</p>
-        <p className="p-centered p-secondary-c">{"> " + t("Av0e6zQ") + " <"}</p>
+        <h3 className="p-centered box-marg-s">{t("AIdLWAb")}</h3>
+        <p className="p-centered p-secondary-c box-marg-s">
+          Your points are consumable and can be spent across the platform. Here's
+          what you can do with them:
+        </p>
+        <div
+          className="fit-container fx-centered fx-col"
+          style={{ rowGap: "12px" }}
+        >
+          {POINTS_USES.map((item) => (
+            <div
+              className="fit-container fx-centered fx-start-h round-corner-m box-pad-h-m box-pad-v-m"
+              style={{
+                backgroundColor: "var(--color-primary-bg-side2)",
+                border: "none",
+                columnGap: "14px",
+              }}
+              key={item.title}
+            >
+              <div className="round-icon" style={{ minWidth: "40px" }}>
+                <Icon name={item.icon} />
+              </div>
+              <div
+                className="fx-centered fx-col fx-start-v"
+                style={{ rowGap: "2px" }}
+              >
+                <p className="p-bold">{item.title}</p>
+                <p className="p-secondary-c p-medium">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
         <p
-          className="p-centered box-pad-h box-marg-s"
+          className="p-centered box-marg-s"
           style={{ color: "var(--color-green-main)" }}
         >
           {t("A3moqWy")}
@@ -386,18 +431,15 @@ export default function YakiPoints() {
                         />
                         <div className="fit-container fx-scattered">
                           <p className="p-secondary-c ">{t("AetHYzn")}</p>
-                          <p className="p-secondary-c ">
+                          {headerStats.xp !== headerStats.consumablePoints && <p className="p-secondary-c ">
                             {t("ABcjNuL", {
-                              date:
-                                headerStats.xp === headerStats.consumablePoints
-                                  ? "N/A"
-                                  : timeAgo(
-                                      new Date(
-                                        headerStats.consumablePointsLU * 1000,
-                                      ),
-                                    ),
+                              date: timeAgo(
+                                new Date(
+                                  headerStats.consumablePointsLU * 1000,
+                                ),
+                              ),
                             })}
-                          </p>
+                          </p>}
                         </div>
                       </div>
                     </div>
@@ -436,7 +478,7 @@ export default function YakiPoints() {
                                   minHeight: "5px",
                                   backgroundColor:
                                     item.all_time_points === maxValueInChart &&
-                                    maxValueInChart > 0
+                                      maxValueInChart > 0
                                       ? "var(--color-primary-accent)"
                                       : "var(--color-primary-bg-side2)",
                                   borderBottomLeftRadius: 0,
@@ -465,8 +507,8 @@ export default function YakiPoints() {
                                       date: !item.last_updated
                                         ? "N/A"
                                         : timeAgo(
-                                            new Date(item.last_updated * 1000),
-                                          ),
+                                          new Date(item.last_updated * 1000),
+                                        ),
                                     })}
                                   </p>
                                 </div>
@@ -503,8 +545,8 @@ export default function YakiPoints() {
                             </p>
                             {(item.user_stat?.all_time_points || 0) ===
                               item.points[0] * (item.user_stat?.count || 1) && (
-                              <Icon name="checkmark" size={16} isColored />
-                            )}
+                                <Icon name="checkmark" size={16} isColored />
+                              )}
                           </div>
                         </div>
                         <div
@@ -522,7 +564,7 @@ export default function YakiPoints() {
                               style={{
                                 color:
                                   item.count - (item.user_stat?.count || 0) ===
-                                  0
+                                    0
                                     ? "var(--color-red-main)"
                                     : "var(--color-green-main)",
                               }}
@@ -540,9 +582,9 @@ export default function YakiPoints() {
                     {repeatedRewardsStats.map((item) => {
                       const cooldown = item.user_stat
                         ? getCooldown(
-                            item.user_stat.last_updated,
-                            item.cooldown,
-                          )
+                          item.user_stat.last_updated,
+                          item.cooldown,
+                        )
                         : 0;
                       return (
                         <div
@@ -575,8 +617,8 @@ export default function YakiPoints() {
                               percentage={
                                 item.cooldown > 0
                                   ? Math.floor(
-                                      (cooldown * 100) / (item.cooldown / 60),
-                                    )
+                                    (cooldown * 100) / (item.cooldown / 60),
+                                  )
                                   : 100
                               }
                               inversed={item.cooldown > 0}
