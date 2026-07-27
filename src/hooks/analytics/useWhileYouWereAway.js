@@ -7,8 +7,9 @@ export function useWhileYouWereAway(pubkey, lastVisit) {
 
     const lastVisitMs = lastVisit * 1000
     const newProcessed = await analyticsDb.processedEvents
-      .where('processedAt')
-      .above(lastVisitMs)
+      .where('ownerPubkey')
+      .equals(pubkey)
+      .filter((e) => e.processedAt > lastVisitMs)
       .toArray()
 
     const newEventIds = new Set(newProcessed.map((e) => e.eventId))

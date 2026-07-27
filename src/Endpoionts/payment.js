@@ -99,6 +99,9 @@ export const getSubscriptionLink = async ({ plan_id }) => {
   try {
     const data = await axiosInstance.post("/api/v1/subscription-link", {
       plan_id,
+      // main:false → backend uses YakiPro's success_url; omitting it defaults
+      // to main:true and returns the user to YakiV5 after paying.
+      main: false,
     });
     const url = data.data?.url;
     if (url) window.open(url);
@@ -107,4 +110,15 @@ export const getSubscriptionLink = async ({ plan_id }) => {
     console.log(err);
     return false;
   }
+};
+
+// Opens the Stripe billing portal. main:false so Stripe returns the user to
+// YakiPro's /subscription. Errors are re-thrown so the caller can surface the
+// backend's `message` (not_a_stripe_subscriber / no_stripe_customer / etc.).
+export const openBillingPortal = async () => {
+  const { data } = await axiosInstance.post("/api/v1/billing-portal", {
+    main: false,
+  });
+  if (data?.url) window.open(data.url);
+  return data;
 };

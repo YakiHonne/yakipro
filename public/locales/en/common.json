@@ -104,8 +104,8 @@
   "AIUAUcP": "Loading…",
   "AcqUGhB": "New Followers",
   "A9TqNxQ": "Followers",
-  "A6huCnT": "",
-  "AENEcn9": "",
+  "A6huCnT": "Could not generate a Lightning invoice. Please try again.",
+  "AENEcn9": "Lightning payments are unavailable right now. Please try another payment method.",
   "AFk1EBA": "",
   "AmdnVra": "",
   "AUb1YTL": "",
@@ -2096,5 +2096,9 @@
   "AGoog18": "Parsing PDF…",
   "AGoog19": "Import PDF",
   "AGoog20": "Export markdown",
-  "AGoog21": "Publish article"
+  "AGoog21": "Publish article",
+  "ABillP1": "Manage billing",
+  "ABillP2": "Couldn't open the billing portal. Please try again.",
+  "ABillP3": "Billing portal is only available for card subscribers.",
+  "ABillP4": "No billing account found for your subscription."
 }

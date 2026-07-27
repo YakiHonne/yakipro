@@ -4,7 +4,6 @@ const DEFAULT_RELAYS = [
   "wss://relay.damus.io",
   "wss://relay.primal.net",
   "wss://nos.lol",
-  "wss://relay.nostr.band",
   "wss://offchain.pub",
 ];
 

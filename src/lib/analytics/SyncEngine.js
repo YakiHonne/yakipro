@@ -28,7 +28,10 @@ export class AnalyticsSyncEngine {
 
       await this._waitForConnection()
 
-      const processedCount = await analyticsDb.processedEvents.count()
+      const processedCount = await analyticsDb.processedEvents
+        .where('ownerPubkey')
+        .equals(this.pubkey)
+        .count()
       const authoredCursor = await analyticsDb.syncCursors.get(
         `${this.pubkey}::authored`
       )
@@ -36,7 +39,12 @@ export class AnalyticsSyncEngine {
       const isFirstRun = !authoredCursor || processedCount === 0
 
       if (isFirstRun) {
-        await analyticsDb.syncCursors.clear()
+        // Only this account's cursors — clearing the whole table would restart
+        // every other signed-in account's backfill from scratch.
+        await analyticsDb.syncCursors
+          .where('pubkey')
+          .equals(this.pubkey)
+          .delete()
         store.dispatch(setIsFirstRun(true))
         await this.fullBackfill()
       } else {
@@ -360,10 +368,11 @@ export class AnalyticsSyncEngine {
   }
 
   async processEvent(event) {
-    const existing = await analyticsDb.processedEvents.get(event.id)
+    const existing = await analyticsDb.processedEvents.get([this.pubkey, event.id])
     if (existing) return
 
     await analyticsDb.processedEvents.put({
+      ownerPubkey: this.pubkey,
       eventId: event.id,
       processedAt: Date.now(),
     })
@@ -431,6 +440,7 @@ export class AnalyticsSyncEngine {
         row.reactionsCount = (row.reactionsCount || 0) + 1
       })
       await analyticsDb.statEvents.put({
+        ownerPubkey: this.pubkey,
         eventId: event.id,
         contentEventId: eTag,
         createdAt: event.created_at,
@@ -469,6 +479,7 @@ export class AnalyticsSyncEngine {
         row.zapsSats = (row.zapsSats || 0) + sats
       })
       await analyticsDb.statEvents.put({
+        ownerPubkey: this.pubkey,
         eventId: event.id,
         contentEventId: eTag,
         createdAt: event.created_at,

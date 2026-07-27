@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { logoutUser } from "@/Helpers/AccountInit";
 import { getPlans, getSubscriptionLink } from "@/Endpoionts/payment";
 import { setForcePaywall } from "@/Store/Slices/Subscription";
+import { setToast } from "@/Store/Slices/Extras";
 import { copyText } from "@/Helpers/Helpers";
 import useSubscriptionRefresh from "@/hooks/useSubscriptionRefresh";
 import Spinner from "./Spinner";
@@ -13,6 +14,7 @@ import QRCode from "react-qr-code";
 import axios from "axios";
 import useLightningPayment from "@/hooks/useLightningPayment";
 import Icon from "./LucideIcon";
+import { useTranslation } from "react-i18next";
 
 const COMPARE_ROWS = [
   { label: "Articles & Notes publishing", creator: true, pro: true },
@@ -97,27 +99,6 @@ function useReveal(dep) {
   }, [dep]);
 }
 
-function WaitingDots() {
-  return (
-    <span style={{ display: "inline-flex", gap: "5px", alignItems: "center" }}>
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          style={{
-            width: "7px",
-            height: "7px",
-            borderRadius: "50%",
-            backgroundColor: "var(--color-primary-accent)",
-            display: "inline-block",
-            animation: "flash 1.2s ease-in-out infinite",
-            animationDelay: `${i * 0.2}s`,
-          }}
-        />
-      ))}
-    </span>
-  );
-}
-
 function LightningInvoiceOverlay({
   invoice,
   planName,
@@ -127,6 +108,21 @@ function LightningInvoiceOverlay({
 }) {
   const router = useRouter();
   const { status, data } = useLightningPayment(userPub);
+
+  // Overlay portals into #portal-root at z-index 1000001, but the paywall this is opened from
+  // sits at 1000003 — so the invoice rendered underneath it and was never visible. Lift the
+  // portal container above the paywall while an invoice is on screen, and restore it after.
+  useEffect(() => {
+    const root = document.getElementById("portal-root");
+    if (!root) return;
+    const previous = root.style.zIndex;
+    root.style.position = "relative";
+    root.style.zIndex = "1000005";
+    return () => {
+      root.style.zIndex = previous;
+      root.style.position = "";
+    };
+  }, []);
 
   useEffect(() => {
     if (status !== "paid") return;
@@ -206,32 +202,35 @@ function LightningInvoiceOverlay({
     <Overlay exit={onClose} width={420}>
       <div
         className="fx-centered fx-col box-pad-h box-pad-v"
-        style={{ rowGap: "24px" }}
+        style={{ rowGap: "18px" }}
       >
         <div
           className="fx-centered fx-col fit-container"
-          style={{ rowGap: "6px", textAlign: "center" }}
+          style={{ rowGap: "2px", textAlign: "center" }}
         >
-          {/* <div
+          <div
             style={{
               width: "44px",
               height: "44px",
               borderRadius: "50%",
-              background: "var(--color-primary-light)",
+              // --color-primary-light is #86318c08 (~3% alpha), which renders as no
+              // visible fill at all. Use an explicit accent tint so the badge reads.
+              background: "rgba(238,119,0,0.12)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontSize: "1.4rem",
+              marginBottom: "4px",
             }}
           >
             ⚡
-          </div> */}
-          <h3 style={{ marginTop: "8px" }}>Pay with Lightning</h3>
+          </div>
+          <h3 style={{ margin: 0, fontSize: "1.75rem" }}>Pay with Lightning</h3>
           <p
             className="p-secondary-c"
             style={{ fontSize: "0.85rem", margin: 0 }}
           >
-            {planName} plan &nbsp;·&nbsp;
+            {planName}{" "}plan &nbsp;·&nbsp;
             <span className="orange-c" style={{ fontWeight: 700 }}>
               {sats} sats
             </span>
@@ -241,24 +240,31 @@ function LightningInvoiceOverlay({
         <div
           style={{
             background: "#ffffff",
-            padding: "16px",
-            borderRadius: "16px",
+            padding: "20px",
+            borderRadius: "20px",
             display: "flex",
             boxShadow: "0 4px 24px rgba(247,88,22,0.12)",
           }}
         >
-          <QRCode value={invoice} size={220} />
+          <QRCode value={invoice} size={216} />
         </div>
 
         <div
-          className="fit-container fx-scattered round-corner border-all border-hover box-pad-h-m box-pad-v-s"
-          style={{ cursor: "pointer", columnGap: "12px" }}
+          className="fit-container fx-scattered"
+          style={{
+            cursor: "pointer",
+            columnGap: "12px",
+            borderRadius: "14px",
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            padding: "14px 16px",
+          }}
           onClick={() => copyText(invoice, "Invoice copied!")}
         >
           <p
             className="p-secondary-c"
             style={{
-              fontSize: "0.72rem",
+              fontSize: "0.78rem",
               fontFamily: "monospace",
               whiteSpace: "nowrap",
               overflow: "hidden",
@@ -278,13 +284,23 @@ function LightningInvoiceOverlay({
         </div>
 
         <div
-          className="fx-centered round-corner box-pad-h-m box-pad-v-s fit-container"
-          style={{
-            background: "var(--color-primary-light)",
-            columnGap: "10px",
-          }}
+          className="fx-centered fit-container"
+          style={{ columnGap: "10px" }}
         >
-          <WaitingDots />
+          {/* Spinner's track is a hardcoded white rgba, which reads grey rather than the
+              reference's orange ring — and it's shared app-wide, so tint locally instead. */}
+          <span
+            style={{
+              display: "inline-block",
+              width: 14,
+              height: 14,
+              border: "2px solid rgba(238,119,0,0.25)",
+              borderTopColor: "var(--color-primary-accent)",
+              borderRadius: "50%",
+              animation: "login-spin 0.7s linear infinite",
+              verticalAlign: "middle",
+            }}
+          />
           <p
             className="orange-c"
             style={{ fontSize: "0.82rem", fontWeight: 600, margin: 0 }}
@@ -302,19 +318,30 @@ function LightningInvoiceOverlay({
           </p>
         )}
 
-        <Button
-          type="gray"
-          size="m"
-          label="Cancel"
+        <button
           onClick={onClose}
-          style={{ width: "100%" }}
-        />
+          className="fit-container fx-centered"
+          style={{
+            background: "transparent",
+            border: "1px solid var(--color-primary-accent)",
+            borderRadius: "999px",
+            color: "var(--color-primary-accent)",
+            fontSize: "0.9rem",
+            fontWeight: 600,
+            padding: "11px 0",
+            cursor: "pointer",
+          }}
+        >
+          Cancel
+        </button>
       </div>
     </Overlay>
   );
 }
 
 function PricingCards({ isLn, setIsLn, userPub }) {
+  const { t } = useTranslation();
+  const dispatch = useDispatch();
   const [plans, setPlans] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lightningInvoice, setLightningInvoice] = useState(null);
@@ -353,6 +380,10 @@ function PricingCards({ isLn, setIsLn, userPub }) {
         if (invoice) {
           setActivePlan(product);
           setLightningInvoice(invoice);
+        } else {
+          // Previously a null invoice left the button spinning back to idle with no
+          // feedback, which looked identical to "the QR never showed up".
+          dispatch(setToast({ type: 2, desc: t("AENEcn9") }));
         }
       } else {
         const res = await getSubscriptionLink({ plan_id: product.id });
@@ -363,6 +394,7 @@ function PricingCards({ isLn, setIsLn, userPub }) {
       }
     } catch (err) {
       console.error(err);
+      if (isLn) dispatch(setToast({ type: 2, desc: t("A6huCnT") }));
     }
     setIsLoading(false);
   };
@@ -435,17 +467,6 @@ function PricingCards({ isLn, setIsLn, userPub }) {
                 key={plan.id}
                 className={`lp-plan-card${isHighlighted ? " lp-plan-card-pro" : ""}`}
               >
-                {isHighlighted && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 18,
-                      right: 20,
-                    }}
-                  >
-                    <span className="lp-plan-badge">Most popular</span>
-                  </div>
-                )}
                 <div>
                   <div className="lp-plan-name">{plan.name}</div>
                   <div className="lp-plan-price-row">

@@ -70,6 +70,7 @@ function App({ Component, pageProps }) {
           <title>YakiPro</title>
           <meta name="description" content="Decentralized social on Nostr" />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <link rel="icon" href="/favicon.ico" sizes="any" />
         </Head>
 
         {/* Route-change progress bar */}

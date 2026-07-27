@@ -65,7 +65,8 @@ async function buildZapSeries(pubkey, days) {
   const cutoff = getUnixTime(subDays(new Date(), days))
 
   const rows = await analyticsDb.statEvents
-    .where('createdAt').aboveOrEqual(cutoff)
+    .where('[ownerPubkey+createdAt]')
+    .between([pubkey, cutoff], [pubkey, Number.MAX_SAFE_INTEGER], true, true)
     .filter((r) => r.statType === 'zap')
     .toArray()
 
@@ -83,7 +84,8 @@ async function buildReactionSeries(pubkey, days) {
   const cutoff = getUnixTime(subDays(new Date(), days))
 
   const rows = await analyticsDb.statEvents
-    .where('createdAt').aboveOrEqual(cutoff)
+    .where('[ownerPubkey+createdAt]')
+    .between([pubkey, cutoff], [pubkey, Number.MAX_SAFE_INTEGER], true, true)
     .filter((r) => r.statType === 'reaction')
     .toArray()
 

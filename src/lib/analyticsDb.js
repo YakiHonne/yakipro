@@ -83,6 +83,29 @@ analyticsDb.version(6).stores({
   tx.table('statEvents').clear(),
 ]))
 
+// v7 scopes the previously account-agnostic tables to an owner pubkey. `statEvents` and
+// `processedEvents` had no pubkey column, so a second account signing in on the same browser
+// read the first account's rows: the zaps/engagement charts rendered the previous account's
+// history, and its already-seen event ids made processEvent() skip the new account's events so
+// profileStats never accumulated. Both tables gain an `ownerPubkey` and every query filters on it.
+analyticsDb.version(7).stores({
+  contentStats:
+    'eventId, authorPubkey, kind, publishedAt, zapsSats, reactionsCount',
+  profileStats: 'pubkey',
+  syncCursors: 'key, pubkey',
+  processedEvents: '[ownerPubkey+eventId], ownerPubkey, processedAt',
+  statEvents:
+    '[ownerPubkey+eventId], ownerPubkey, contentEventId, [ownerPubkey+contentEventId+createdAt], [ownerPubkey+createdAt], createdAt, statType',
+  followerEvents: '[pubkey+followerPubkey], pubkey, followerPubkey, createdAt, [pubkey+createdAt], dateKey',
+}).upgrade((tx) => Promise.all([
+  tx.table('contentStats').clear(),
+  tx.table('profileStats').clear(),
+  tx.table('syncCursors').clear(),
+  tx.table('processedEvents').clear(),
+  tx.table('statEvents').clear(),
+  tx.table('followerEvents').clear(),
+]))
+
 export function appendToTimeSeries(arr, dateKey, field, increment, maxEntries = 1200) {
   const existing = arr.find((e) => e.date === dateKey)
   if (existing) {

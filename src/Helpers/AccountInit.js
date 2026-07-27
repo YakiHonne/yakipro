@@ -72,20 +72,38 @@ export const saveAccountLocally = (pubkey, keys, metadata = null) => {
   }
 };
 
+// A freshly-created account has published nothing, so none of these lookups will ever
+// resolve — relays simply stay silent and each fetchEvent runs to its full internal
+// timeout. Running them in sequence made that cost stack up before the app could render.
+// They're independent, so fetch them in parallel and cap the wait: a missing profile /
+// contact list / relay list is a normal state for a new account, not something worth
+// blocking the dashboard on.
+const METADATA_FETCH_TIMEOUT_MS = 4000;
+
+const withTimeout = (promise, ms) =>
+  Promise.race([
+    Promise.resolve(promise).catch(() => null),
+    new Promise((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+
 export const fetchUserMetadata = async (pubkey) => {
   try {
     const user = ndkInstance.getUser({ pubkey });
-    try {
-      await user?.fetchProfile();
-    } catch (err) {}
+
+    const [, followEvent, relayEvent] = await Promise.all([
+      withTimeout(user?.fetchProfile(), METADATA_FETCH_TIMEOUT_MS),
+      withTimeout(
+        ndkInstance.fetchEvent({ kinds: [3], authors: [pubkey] }),
+        METADATA_FETCH_TIMEOUT_MS,
+      ),
+      withTimeout(
+        ndkInstance.fetchEvent({ kinds: [10002], authors: [pubkey] }),
+        METADATA_FETCH_TIMEOUT_MS,
+      ),
+    ]);
 
     const metadata = user?.profile || {};
     store.dispatch(setUserMetadata(metadata));
-
-    const followEvent = await ndkInstance.fetchEvent({
-      kinds: [3],
-      authors: [pubkey],
-    });
 
     if (followEvent) {
       const followings = followEvent.tags
@@ -93,11 +111,6 @@ export const fetchUserMetadata = async (pubkey) => {
         .map((t) => t[1]);
       store.dispatch(setUserFollowings(followings));
     }
-
-    const relayEvent = await ndkInstance.fetchEvent({
-      kinds: [10002],
-      authors: [pubkey],
-    });
 
     if (relayEvent) {
       const relays = relayEvent.tags
@@ -156,9 +169,13 @@ export const initAppAccount = async () => {
 
     store.dispatch(setUserKeys(keys));
 
-    const metadata = await fetchUserMetadata(keys.pub);
-
-    saveAccountLocally(keys.pub, keys, metadata);
+    // Metadata comes from relays; the backend session below doesn't depend on it. Awaiting it
+    // here kept `loadingConnectedUser` (which gates the whole app behind a spinner) true for the
+    // full relay round-trip — worst on a new account, where there is no profile to find. Let it
+    // resolve in the background and store it whenever it lands.
+    fetchUserMetadata(keys.pub).then((metadata) => {
+      saveAccountLocally(keys.pub, keys, metadata);
+    });
 
     fetchBlossomServers(keys.pub);
 

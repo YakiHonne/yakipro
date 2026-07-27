@@ -198,7 +198,8 @@ export default function BarDrillOverlay({ drill, pubkey, onClose }) {
     const statType = type === "reactions" ? "reaction" : "zap";
 
     const statRows = await analyticsDb.statEvents
-      .where("createdAt").between(since, until, true, true)
+      .where("[ownerPubkey+createdAt]")
+      .between([pubkey, since], [pubkey, until], true, true)
       .filter((r) => r.statType === statType)
       .toArray();
 

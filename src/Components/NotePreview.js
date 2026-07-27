@@ -10,7 +10,6 @@ const nostrClients = [
   "yakihonne.com",
   "njump.me",
   "nostr.com",
-  "nostr.band",
   "iris.to",
   "primal.net",
   "jumble.social",

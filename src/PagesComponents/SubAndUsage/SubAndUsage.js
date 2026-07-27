@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import useSubscription from "@/hooks/useSubscription";
 import useUsage from "@/hooks/useUsage";
 import Icon from "@/Components/LucideIcon";
@@ -8,8 +9,9 @@ import Spinner from "@/Components/Spinner";
 import Button from "@/Components/UI/Button";
 import { SelectTabs } from "@/Components/SelectTabs";
 import { setForcePaywall } from "@/Store/Slices/Subscription";
+import { setToast } from "@/Store/Slices/Extras";
 import { useDispatch } from "react-redux";
-import { getPlans } from "@/Endpoionts/payment";
+import { getPlans, openBillingPortal } from "@/Endpoionts/payment";
 
 const fmtDate = (ts) => {
   if (!ts) return "N/A";
@@ -273,13 +275,38 @@ function CancelConfirmModal({ endDate, onConfirm, onClose, loading }) {
 }
 
 function CurrentPlanCard({ status, onCancel, onResume, cancelling, resuming }) {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [openingPortal, setOpeningPortal] = useState(false);
 
   const isCardActive =
     (status.last_payment_method === "stripe" ||
       status.last_payment_method === "airwallex") &&
     status.active;
+
+  // The Stripe billing portal is Stripe-only (not airwallex).
+  const canOpenBillingPortal =
+    status.last_payment_method === "stripe" && status.active;
+
+  const handleBillingPortal = async () => {
+    if (openingPortal) return;
+    setOpeningPortal(true);
+    try {
+      await openBillingPortal();
+    } catch (err) {
+      const message = err?.response?.data?.message;
+      const desc =
+        message === "not_a_stripe_subscriber"
+          ? t("ABillP3")
+          : message === "account_not_found"
+            ? t("ABillP4")
+            : t("ABillP2");
+      dispatch(setToast({ type: 2, desc }));
+    } finally {
+      setOpeningPortal(false);
+    }
+  };
 
   return (
     <>
@@ -346,8 +373,21 @@ function CurrentPlanCard({ status, onCancel, onResume, cancelling, resuming }) {
 
         {status.last_payment_method && (
           <div className="fit-container fx-scattered">
-            <p className="p-secondary-c">Payment method</p>
-            <PaymentMethodIcon method={status.last_payment_method} />
+            <div className="fx-centered" style={{ columnGap: "10px" }}>
+              <p className="p-secondary-c">Payment method</p>
+            </div>
+            <div className="fx-centered">
+              {canOpenBillingPortal && (
+                <Button
+                  size="s"
+                  type="gray"
+                  label={t("ABillP1")}
+                  loading={openingPortal}
+                  onClick={handleBillingPortal}
+                />
+              )}
+              <PaymentMethodIcon method={status.last_payment_method} />
+            </div>
           </div>
         )}
 
