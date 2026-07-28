@@ -165,62 +165,62 @@ export default function LandingPricing() {
             {PLANS.map((plan, idx) => {
               const isHighlighted = idx === PLANS.length - 1;
               return (
-              <div
-                key={plan.id}
-                className={`lp-plan-card${isHighlighted ? " lp-plan-card-pro" : ""}`}
-              >
-                {isHighlighted && (
-                  <div style={{ position: "absolute", top: 18, right: 20 }}>
-                    <span className="lp-plan-badge">Most popular</span>
-                  </div>
-                )}
-
-                <div>
-                  <div className="lp-plan-name">{plan.name}</div>
-                  <div className="lp-plan-price-row">
-                    {isLn ? (
-                      <>
-                        <span
-                          className="lp-plan-amount"
-                          style={{ fontSize: "2.2rem" }}
-                        >
-                          {plan.sats_price?.toLocaleString()}
-                        </span>
-                        <span className="lp-plan-period"> sats / {t("APrc031")}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="lp-plan-amount">${plan.usd_price}</span>
-                        <span className="lp-plan-period"> / {t("APrc031")}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="lp-plan-divider" />
-
-                <ul className="lp-plan-features">
-                  {(plan.perks || []).map((perk) => (
-                    <li key={perk} className="lp-plan-feature">
-                      <Icon
-                        name="check"
-                        v={2}
-                        size={14}
-                        className="lp-plan-feature-check"
-                      />
-                      <span>{perk}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Link
-                  href="/login"
-                  className={`lp-btn lp-btn-lg${isHighlighted ? " lp-btn-primary" : " lp-btn-outline"}`}
-                  style={{ width: "100%" }}
+                <div
+                  key={plan.id}
+                  className={`lp-plan-card${isHighlighted ? " lp-plan-card-pro" : ""}`}
                 >
-                  {t("APrc006")}
-                </Link>
-              </div>
+                  {isHighlighted && (
+                    <div style={{ position: "absolute", top: 18, right: 20 }}>
+                      <span className="lp-plan-badge">Most popular</span>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="lp-plan-name">{plan.name}</div>
+                    <div className="lp-plan-price-row">
+                      {isLn ? (
+                        <>
+                          <span
+                            className="lp-plan-amount"
+                            style={{ fontSize: "2.2rem" }}
+                          >
+                            {plan.sats_price?.toLocaleString()}
+                          </span>
+                          <span className="lp-plan-period"> sats / {t("APrc031")}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="lp-plan-amount">${plan.usd_price}</span>
+                          <span className="lp-plan-period"> / {t("APrc031")}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="lp-plan-divider" />
+
+                  <ul className="lp-plan-features">
+                    {(plan.perks || []).map((perk) => (
+                      <li key={perk} className="lp-plan-feature">
+                        <Icon
+                          name="check"
+                          v={2}
+                          size={14}
+                          className="lp-plan-feature-check"
+                        />
+                        <span>{perk}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Link
+                    href="/login"
+                    className={`lp-btn lp-btn-lg${isHighlighted ? " lp-btn-primary" : " lp-btn-outline"}`}
+                    style={{ width: "100%" }}
+                  >
+                    {t("APrc006")}
+                  </Link>
+                </div>
               );
             })}
           </div>
@@ -321,7 +321,7 @@ export default function LandingPricing() {
               {t("ALPg053")}
             </Link>
             <Link href="/refund-policy" className="lp-footer-link">
-              {t("ALPg054")}
+              {t("Aby0Ea4")}
             </Link>
           </div>
         </div>

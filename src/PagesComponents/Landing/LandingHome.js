@@ -1592,7 +1592,7 @@ export default function LandingHome() {
               {t("ALPg053")}
             </Link>
             <Link href="/refund-policy" className="lp-footer-link">
-              {t("ALPg054")}
+              {t("Aby0Ea4")}
             </Link>
           </div>
         </div>
