@@ -1,7 +1,6 @@
 import { getIcon } from "@/Content/AssetsURLs";
 import { getIconv2 } from "@/Content/IconV2URL";
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import useResolvedTheme from "@/hooks/useResolvedTheme";
 
 export default function Icon({
   name,
@@ -16,21 +15,13 @@ export default function Icon({
   v = 1,
   isBoldThemeColor = false,
 }) {
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const { isDark } = useResolvedTheme();
 
   const iconWidth = width || size || 16;
   const iconHeight = height || size || 16;
   const icon = v === 2 ? getIconv2(name) : getIcon(name);
 
   if (!icon) return null;
-
-  const currentTheme = mounted ? resolvedTheme : "light";
-  const isDark = ["dark", "gray", "dark-gray"].includes(currentTheme);
 
   return (
     <div

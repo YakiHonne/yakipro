@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { useTheme } from "next-themes";
 import MDEditorWrapper from "@/Components/MDEditorWrapper";
 import ArticlePublishModal from "./ArticlePublishModal";
 import { FileUpload } from "@/Helpers/FileUpload";
 import Icon from "@/Components/LucideIcon";
+import useResolvedTheme from "@/hooks/useResolvedTheme";
 
 const DRAFT_KEY = "yp-article-draft";
 
@@ -30,8 +30,7 @@ function clearDraft() {
 
 export default function ArticleEditor() {
   const userKeys = useSelector((state) => state.userKeys);
-  const { resolvedTheme } = useTheme();
-  const isDarkMode = ["dark", "gray"].includes(resolvedTheme);
+  const { isDark: isDarkMode } = useResolvedTheme();
 
   const draft = getDraft();
   const [title, setTitle] = useState(draft.title || "");

@@ -53,6 +53,41 @@
     /* Shadows */
     --color-shadow: rgba(0, 0, 0, 0.1);
     --color-shadow-strong: rgba(0, 0, 0, 0.15);
+
+    /* Elevated / translucent surfaces (tabs, glass panels, overlays) */
+    --color-glass-bg: rgba(200, 200, 200, 0.28);
+    --color-glass-border: rgba(0, 0, 0, 0.10);
+    --color-glass-slider: rgba(0, 0, 0, 0.09);
+    --color-glass-highlight: rgba(255, 255, 255, 0.80);
+    --color-text-on-glass: rgba(0, 0, 0, 0.88);
+    --color-text-on-glass-muted: rgba(0, 0, 0, 0.45);
+    --color-glass-shadow: 0 0 0 1px rgba(0, 0, 0, 0.10), 0 4px 6px rgba(0, 0, 0, 0.06), 0 12px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.80);
+    --color-hairline: rgba(0, 0, 0, 0.10);
+    --color-hairline-strong: rgba(0, 0, 0, 0.14);
+    --color-subtle-fill: rgba(0, 0, 0, 0.06);
+
+    /* Landing page surfaces */
+    --color-landing-bg: #FFFFFF;
+    --color-landing-surface: #F6F8FA;
+    --color-landing-text: #1F2328;
+    --color-landing-text-muted: #59636E;
+    --color-landing-border: #D1D9E0;
+    --color-landing-overlay: rgba(255, 255, 255, 0.72);
+    --color-landing-nav-bg: rgba(255, 255, 255, 0.85);
+
+    /* Aliases for names used at various call sites. These were referenced with a
+       hardcoded dark fallback (e.g. `var(--color-text-primary, #fff)`) but never
+       actually defined, so they silently resolved to the fallback in light mode
+       too. Defining them makes those existing usages theme-correct. */
+    --color-text-primary: var(--color-primary-text);
+    --color-bg-surface: var(--color-background-secondary);
+    --color-border: var(--color-divider);
+    --color-border-muted: var(--color-divider);
+
+
+    /* Fixed against the accent in both themes — the orange never changes */
+    --color-on-accent: #FFFFFF;
+    --color-primary-accent-gradient-end: #ff9a5c;
 }
 
 [data-theme="dark"] {
@@ -109,6 +144,41 @@
     /* Shadows */
     --color-shadow: rgba(0, 0, 0, 0.3);
     --color-shadow-strong: rgba(0, 0, 0, 0.5);
+
+    /* Elevated / translucent surfaces (tabs, glass panels, overlays) */
+    --color-glass-bg: rgba(20, 20, 20, 0.6);
+    --color-glass-border: rgba(255, 255, 255, 0.12);
+    --color-glass-slider: rgba(255, 255, 255, 0.10);
+    --color-glass-highlight: rgba(255, 255, 255, 0.08);
+    --color-text-on-glass: rgba(255, 255, 255, 0.88);
+    --color-text-on-glass-muted: rgba(255, 255, 255, 0.45);
+    --color-glass-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 6px rgba(0, 0, 0, 0.25), 0 12px 24px rgba(0, 0, 0, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    --color-hairline: rgba(255, 255, 255, 0.10);
+    --color-hairline-strong: rgba(255, 255, 255, 0.14);
+    --color-subtle-fill: rgba(255, 255, 255, 0.08);
+
+    /* Landing page surfaces */
+    --color-landing-bg: #000000;
+    --color-landing-surface: #161B22;
+    --color-landing-text: #E6EDF3;
+    --color-landing-text-muted: #8B949E;
+    --color-landing-border: #30363D;
+    --color-landing-overlay: rgba(0, 0, 0, 0.72);
+    --color-landing-nav-bg: rgba(0, 0, 0, 0.85);
+
+    /* Aliases for names used at various call sites. These were referenced with a
+       hardcoded dark fallback (e.g. `var(--color-text-primary, #fff)`) but never
+       actually defined, so they silently resolved to the fallback in light mode
+       too. Defining them makes those existing usages theme-correct. */
+    --color-text-primary: var(--color-primary-text);
+    --color-bg-surface: var(--color-background-secondary);
+    --color-border: var(--color-divider);
+    --color-border-muted: var(--color-divider);
+
+
+    /* Fixed against the accent in both themes — the orange never changes */
+    --color-on-accent: #FFFFFF;
+    --color-primary-accent-gradient-end: #ff9a5c;
 }
 
 :root {

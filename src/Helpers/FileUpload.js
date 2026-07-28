@@ -40,6 +40,10 @@ export const FileUpload = async ({ file, userKeys, cb, includeImeta = false }) =
     const sha256 = await hashFile(file);
 
     const expiration = String(Math.floor(Date.now() / 1000) + 120);
+    // Forward the caller's keys. Without this, InitEvent falls back to
+    // getKeys(), which reads localStorage — empty during signup, since the
+    // avatar is uploaded before the account is persisted. The signature then
+    // failed and the upload threw before it ever reached the server.
     const authEvent = await InitEvent({
       kind: 24242,
       content: "Upload file",
@@ -48,6 +52,7 @@ export const FileUpload = async ({ file, userKeys, cb, includeImeta = false }) =
         ["x", sha256],
         ["expiration", expiration],
       ],
+      userKeys_: userKeys || false,
     });
 
     if (!authEvent) throw new Error("Failed to sign upload auth event");

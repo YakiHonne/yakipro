@@ -21,7 +21,7 @@ export default function OnboardingSync() {
         alignItems: "center",
         justifyContent: "center",
         backdropFilter: "blur(8px)",
-        backgroundColor: "rgba(0,0,0,0.55)",
+        backgroundColor: "var(--color-landing-overlay)",
         opacity: isVisible ? 1 : 0,
         pointerEvents: isVisible ? "all" : "none",
         transition: "opacity 0.6s ease",
@@ -34,20 +34,10 @@ export default function OnboardingSync() {
           borderRadius: 16,
           padding: "2rem",
           textAlign: "center",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          boxShadow: "0 8px 32px var(--color-shadow-strong)",
         }}
         className="bg-main-c border-all"
       >
-        {/* <div
-          style={{
-            fontSize: 48,
-            marginBottom: "1rem",
-            animation: "anim-pulse 2s infinite",
-          }}
-        >
-          ⚡
-        </div> */}
-
         <h2
           style={{
             margin: "0 0 0.5rem",
@@ -62,7 +52,7 @@ export default function OnboardingSync() {
           style={{ margin: "0 0 1.5rem", fontSize: "0.95rem" }}
           className="p-secondary-c"
         >
-          This only happens once. Grab a coffee ☕
+          This only happens once and runs in the background from here on.
         </p>
 
         <LinearProgress
@@ -72,9 +62,9 @@ export default function OnboardingSync() {
             height: 8,
             borderRadius: 4,
             mb: 2,
-            backgroundColor: "rgba(245,158,11,0.2)",
+            backgroundColor: "var(--color-orange-side)",
             "& .MuiLinearProgress-bar": {
-              backgroundColor: "#f59e0b",
+              backgroundColor: "var(--color-primary-accent)",
               borderRadius: 4,
             },
           }}

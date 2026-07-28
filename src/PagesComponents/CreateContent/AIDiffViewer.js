@@ -1,4 +1,5 @@
 import React from "react";
+import Icon from "@/Components/LucideIcon";
 
 function renderText(md) {
   if (!md) return "";
@@ -14,13 +15,21 @@ function renderText(md) {
 
 function ActionRow({ hunk, onAccept, onReject }) {
   if (hunk.status === "accepted") {
-    return <p className="ai-diff-status-label">✓ Accepted</p>;
+    return (
+      <p className="ai-diff-status-label">
+        <Icon name="checkmark" size={12} /> Accepted
+      </p>
+    );
   }
   if (hunk.status === "rejected") {
-    return <p className="ai-diff-status-label">✕ Rejected</p>;
+    return (
+      <p className="ai-diff-status-label">
+        <Icon name="close_md" size={12} /> Rejected
+      </p>
+    );
   }
   const acceptLabel =
-    hunk.type === "removed" ? "✓ Accept removal" : "✓ Accept";
+    hunk.type === "removed" ? "Accept removal" : "Accept";
   return (
     <div className="ai-diff-actions">
       <button
@@ -33,7 +42,7 @@ function ActionRow({ hunk, onAccept, onReject }) {
         className="ai-diff-btn ai-diff-btn-reject"
         onClick={() => onReject(hunk.id)}
       >
-        ✕ Reject
+        <Icon name="close_md" size={12} /> Reject
       </button>
     </div>
   );
@@ -105,7 +114,7 @@ export default function AIDiffViewer({ hunks, onAccept, onReject }) {
     <div className="ai-diff-viewer">
       <div className="ai-diff-summary">
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span className="ai-spark">✦</span>
+          <span className="ai-spark"><Icon name="sparkles" size={13} /></span>
           <span>
             {pending > 0
               ? `${pending} change${pending === 1 ? "" : "s"} to review`
@@ -119,14 +128,14 @@ export default function AIDiffViewer({ hunks, onAccept, onReject }) {
               style={{ padding: "2px 10px", fontSize: "0.72rem" }}
               onClick={() => actionableIds.forEach((id) => onAccept(id))}
             >
-              ✓ Accept all
+              <Icon name="checkmark" size={12} /> Accept all
             </button>
             <button
               className="ai-diff-btn ai-diff-btn-reject"
               style={{ padding: "2px 10px", fontSize: "0.72rem" }}
               onClick={() => actionableIds.forEach((id) => onReject(id))}
             >
-              ✕ Reject all
+              <Icon name="close_md" size={12} /> Reject all
             </button>
           </div>
         )}

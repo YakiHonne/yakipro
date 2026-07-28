@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { setToPublish, setToast } from "@/Store/Slices/Publishers";
 import EnergyMapperGraph from "./EnergyMapperGraph";
 import { analyzeNoteEnergy } from "@/Endpoionts/EnergyMapperAI";
@@ -43,6 +44,7 @@ const fmt = new Intl.DateTimeFormat("en-US", {
 
 export default function NoteEditor() {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const userKeys = useSelector((state) => state.userKeys);
   const userRelays = useSelector((state) => state.userRelays);
   const subscription = useSelector((state) => state.subscription);
@@ -104,6 +106,22 @@ export default function NoteEditor() {
 
     setIsLoading(true);
 
+    const premiumRelays = userRelays
+      .filter((r) => {
+        const metadata = getRelayMetadata(r.url);
+        return metadata?.supported_nips?.includes(63) && (r.read || r.write);
+      })
+      .map((r) => r.url);
+
+    // Publishing premium content with an empty relay list falls through to NDK's
+    // default pool — i.e. it would broadcast paywalled content to every public
+    // relay. Refuse instead: no premium relay means there is nowhere safe to put it.
+    if (isPremium && premiumRelays.length === 0) {
+      dispatch(setToast({ type: 2, desc: t("AsXohpb") }));
+      setIsLoading(false);
+      return;
+    }
+
     const { content, tags: contentTags } = extractNip19(note);
     const filteredImetas = filterImetas({ note, imetas });
 
@@ -125,19 +143,19 @@ export default function NoteEditor() {
       return;
     }
 
-    const premiumRelays = userRelays
-      .filter((r) => {
-        const metadata = getRelayMetadata(r.url);
-        return metadata?.supported_nips?.includes(63) && (r.read || r.write);
-      })
-      .map((r) => r.url);
-
     const relaysToPublish = isPremium ? premiumRelays : [];
 
     if (scheduledAt) {
       const scheduled = await publishScheduledEvent({
         event: eventInitEx,
-        relays: relaysToPublish.length > 0 ? relaysToPublish : userRelays.map((r) => r.url),
+        // Only fall back to the full relay list for non-premium notes. For premium
+        // ones `relaysToPublish` is guaranteed non-empty by the check above, and
+        // must never widen to every relay the user has.
+        relays: isPremium
+          ? relaysToPublish
+          : relaysToPublish.length > 0
+            ? relaysToPublish
+            : userRelays.map((r) => r.url),
       });
       if (!scheduled) {
         dispatch(setToast({ type: 2, desc: "Failed to schedule note." }));
@@ -229,7 +247,7 @@ export default function NoteEditor() {
         </div>
         <Button
           size="m"
-          label={"✦ Energy mapper"}
+          label={"Energy mapper"}
           type="gray"
           loading={energyLoading}
           onClick={() => {

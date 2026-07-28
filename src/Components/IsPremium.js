@@ -63,7 +63,7 @@ function CellValue({ value }) {
     return <Icon name="check" size={20} v={2} isBoldThemeColor />;
   if (value === false)
     return (
-      <span style={{ color: "rgba(139,148,158,0.3)", fontSize: "0.9rem" }}>
+      <span style={{ color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
         –
       </span>
     );
@@ -156,11 +156,10 @@ function LightningInvoiceOverlay({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "2rem",
               color: "var(--color-green-main)",
             }}
           >
-            ✓
+            <Icon name="checkmark" size={32} />
           </div>
           <div className="fx-centered fx-col" style={{ rowGap: "6px" }}>
             <h3 style={{ color: "var(--color-green-main)", margin: 0 }}>
@@ -219,11 +218,10 @@ function LightningInvoiceOverlay({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "1.4rem",
               marginBottom: "4px",
             }}
           >
-            ⚡
+            <Icon name="bolt" size={22} />
           </div>
           <h3 style={{ margin: 0, fontSize: "1.75rem" }}>Pay with Lightning</h3>
           <p
@@ -255,8 +253,8 @@ function LightningInvoiceOverlay({
             cursor: "pointer",
             columnGap: "12px",
             borderRadius: "14px",
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: "var(--color-subtle-fill)",
+            border: "1px solid var(--color-hairline)",
             padding: "14px 16px",
           }}
           onClick={() => copyText(invoice, "Invoice copied!")}
@@ -546,7 +544,7 @@ function CompareTable() {
           style={{ textAlign: "center", marginBottom: 40 }}
         >
           <span className="lp-section-label">Compare plans</span>
-          <h2 className="lp-section-title" style={{ color: "#E6EDF3" }}>
+          <h2 className="lp-section-title" style={{ color: "var(--color-landing-text)" }}>
             Everything side by side
           </h2>
         </div>
@@ -556,7 +554,7 @@ function CompareTable() {
             <div className="lp-compare-cell center header-cell">Creator</div>
             <div
               className="lp-compare-cell center header-cell"
-              style={{ color: "#F75816" }}
+              style={{ color: "var(--color-primary-accent)" }}
             >
               Pro
             </div>
@@ -600,7 +598,7 @@ function FaqSection() {
           style={{ textAlign: "center", marginBottom: 40 }}
         >
           <span className="lp-section-label">FAQ</span>
-          <h2 className="lp-section-title" style={{ color: "#E6EDF3" }}>
+          <h2 className="lp-section-title" style={{ color: "var(--color-landing-text)" }}>
             Common questions
           </h2>
         </div>
@@ -651,7 +649,11 @@ function UserHero({ metadata }) {
           <div className="ip-hero-name-block">
             <p className="ip-hero-greeting">Welcome back,</p>
             <h2 className="ip-hero-name">{name}</h2>
-            {nip05 && <p className="ip-hero-nip05">✓ {nip05}</p>}
+            {nip05 && (
+              <p className="ip-hero-nip05">
+                <Icon name="checkmark" size={12} /> {nip05}
+              </p>
+            )}
             <Button
               size="s"
               type="gray"
@@ -731,7 +733,7 @@ function PricingOverlay({ trialEnded, onBack }) {
               gap: "14px",
               padding: "16px 20px",
               borderRadius: "10px",
-              backgroundColor: "rgba(255,167,38,0.08)",
+              backgroundColor: "var(--color-orange-side)",
             }}
           >
             <div className="fx-centered fx-col">
@@ -742,7 +744,7 @@ function PricingOverlay({ trialEnded, onBack }) {
               <p
                 style={{
                   margin: "4px 0 0",
-                  color: "rgba(139,148,158,0.85)",
+                  color: "var(--color-text-secondary)",
                   lineHeight: 1.55,
                 }}
                 className="p-centered"
@@ -791,7 +793,7 @@ export default function IsPremium({ children }) {
         style={{
           width: "100vw",
           height: "100dvh",
-          background: "#000000",
+          background: "var(--color-landing-bg)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",

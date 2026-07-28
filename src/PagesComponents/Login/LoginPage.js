@@ -25,7 +25,10 @@ import {
   saveAccountLocally,
   fetchUserMetadata,
   applySignerToNDK,
+  createAccount,
 } from "@/Helpers/AccountInit";
+import { SelectTabs } from "@/Components/SelectTabs";
+import { FileUpload } from "@/Helpers/FileUpload";
 import RippleGrid from "@/Components/RippleGrid/RippleGrid";
 import QRCode from "react-qr-code";
 import { copyText } from "@/Helpers/Helpers";
@@ -735,11 +738,151 @@ function GoogleLoginOverlay({ onClose, onSuccess }) {
   );
 }
 
+// ── Signup ───────────────────────────────────────────────────────────────────
+const PROFILE_PLACEHOLDER =
+  "https://yakihonne.s3.ap-east-1.amazonaws.com/media/images/profile-avatar.png";
+
+function SignupScreen({ onSuccess }) {
+  const dispatch = useDispatch();
+  const { t } = useTranslation();
+  const [name, setName] = useState("");
+  const [pictureFile, setPictureFile] = useState(null);
+  const [picture, setPicture] = useState("");
+  const [creating, setCreating] = useState(false);
+  const fileInputId = "signup-avatar-input";
+
+  // Generated once and held for the lifetime of the screen — regenerating on each render
+  // would hand the user a different key than the one their downloaded backup file names.
+  const [keys] = useState(() => {
+    const sk = generateSecretKey();
+    return { sec: bytesToHex(sk), pub: getPublicKey(sk) };
+  });
+
+  const handlePick = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPictureFile(file);
+    setPicture(URL.createObjectURL(file));
+  };
+
+  const handleCreate = async () => {
+    if (creating) return;
+    if (!name.trim()) {
+      dispatch(setToast({ type: 2, desc: t("AcKscQl") }));
+      return;
+    }
+    setCreating(true);
+    try {
+      // Upload before any key/session mutation: if the image fails we can still bail out
+      // cleanly without having half-created an account. The generated keys are passed
+      // explicitly because nothing has been written to localStorage yet at this point,
+      // so the signer can only come from here.
+      let pictureUrl = "";
+      if (pictureFile) {
+        const uploaded = await FileUpload({ file: pictureFile, userKeys: keys });
+        if (!uploaded || !uploaded.url) {
+          dispatch(setToast({ type: 2, desc: t("Almq94P") }));
+          setCreating(false);
+          return;
+        }
+        pictureUrl = uploaded.url;
+      }
+
+      downloadAsFile(
+        [
+          t("A7Mh9O6"),
+          "---",
+          `Private key: ${nip19.nsecEncode(hexToUint8Array(keys.sec))}`,
+          `Public key: ${nip19.npubEncode(keys.pub)}`,
+        ].join("\n"),
+        "text/plain",
+        "account-credentials.txt",
+      );
+
+      const ok = await createAccount({
+        keys,
+        name: name.trim(),
+        picture: pictureUrl,
+      });
+
+      if (!ok) {
+        dispatch(setToast({ type: 2, desc: t("Ai4af1h") }));
+        setCreating(false);
+        return;
+      }
+
+      dispatch(setToast({ type: 1, desc: t("AaWkOl3") }));
+      onSuccess?.();
+    } catch (err) {
+      console.error("[Signup] account creation failed:", err);
+      dispatch(setToast({ type: 2, desc: t("Ai4af1h") }));
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="fit-container signup-step-body">
+      <p className="signup-step-title">{t("At9t6yz")}</p>
+
+      <div className="fit-container fx-col fx-centered box-pad-h">
+        <label htmlFor={fileInputId} className="signup-avatar-wrap pointer">
+          <div
+            className="signup-avatar-img"
+            style={{ backgroundImage: `url(${picture || PROFILE_PLACEHOLDER})` }}
+          />
+          <div className="signup-avatar-overlay fx-centered fx-col pointer toggle">
+            <Icon name="image" size={24} />
+            <p className="gray-c p-medium">{t("A4N51J3")}</p>
+          </div>
+        </label>
+        <input
+          id={fileInputId}
+          type="file"
+          accept="image/*"
+          onChange={handlePick}
+          disabled={creating}
+          style={{ position: "absolute", opacity: 0, zIndex: -1, pointerEvents: "none" }}
+        />
+      </div>
+
+      <div className="fit-container fx-centered fx-col signup-name-field">
+        <input
+          type="text"
+          className="if ifs-full p-bold p-centered if-no-border"
+          placeholder={t("AU2yMBa")}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+          disabled={creating}
+          autoFocus
+        />
+      </div>
+
+      <div className="login-step-nav">
+        <button
+          className="btn btn-normal btn-full"
+          onClick={handleCreate}
+          disabled={creating || !name.trim()}
+        >
+          {creating ? <span className="login-spinner" /> : t("AyYkCrS")}
+        </button>
+      </div>
+
+      {creating && (
+        <p className="gray-c p-medium" style={{ textAlign: "center", marginTop: 12 }}>
+          {t("AkvXmyz")}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Main LoginPage ─────────────────────────────────────────────────────────────
 export default function LoginPage() {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const [activeMethod, setActiveMethod] = useState("");
+  const [isLogin, setIsLogin] = useState(true);
   const [checkExt, setCheckExt] = useState(false);
   const [extLoading, setExtLoading] = useState(false);
   const [showGoogleLogin, setShowGoogleLogin] = useState(false);
@@ -849,9 +992,30 @@ export default function LoginPage() {
           </button>
           <div className="login-card-head">
             <p className="login-card-eyebrow">{t("ALog018")}</p>
-            <h3 className="login-card-title-plain">{t("ALog001")}</h3>
+            <h3
+              className="login-card-title-plain"
+              key={isLogin ? "login" : "signup"}
+            >
+              {isLogin ? t("ALog001") : t("AUb1YTL")}
+            </h3>
           </div>
 
+          <div className="login-mode-tabs fx-centered">
+            <div>
+              <SelectTabs
+                selectedTab={isLogin ? 0 : 1}
+                tabs={[t("AFk1EBA"), t("AmdnVra")]}
+                setSelectedTab={(index) => {
+                  setIsLogin(index === 0);
+                  setActiveMethod("");
+                }}
+              />
+            </div>
+          </div>
+
+          {!isLogin && <SignupScreen onSuccess={handleSuccess} />}
+
+          {isLogin && (
           <div className="login-conversation">
             <p className="login-convo-question gray-c">{t("ALog002")}</p>
 
@@ -895,6 +1059,7 @@ export default function LoginPage() {
               <BunkerMethod onBack={() => setActiveMethod("")} onSuccess={handleSuccess} />
             )}
           </div>
+          )}
         </div>
       </div>
 

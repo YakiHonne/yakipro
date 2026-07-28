@@ -1112,7 +1112,7 @@ export default function ArticleEditorV2({ editEvent = null }) {
           <div>
             <SelectTabs
               selectedTab={showSecondReader ? 0 : showAIPanel ? 1 : -1}
-              tabs={["✦ Second Reader", "✦ Ask AI"]}
+              tabs={["Second Reader", "Ask AI"]}
               setSelectedTab={(value) => {
                 if (!isPremiumPlan) {
                   setShowAIGate(true);
@@ -1219,7 +1219,7 @@ export default function ArticleEditorV2({ editEvent = null }) {
               )}
             </div>
             {/* <Button
-              label={"✦ Second Reader"}
+              label={"Second Reader"}
               onClick={() => {
                 setShowSecondReader(!showSecondReader);
                 setShowAIPanel(false);
@@ -1228,7 +1228,7 @@ export default function ArticleEditorV2({ editEvent = null }) {
               type="gst"
             />
             <Button
-              label={"✦ Ask AI"}
+              label={"Ask AI"}
               onClick={() => {
                 setShowAIPanel(!showAIPanel);
                 setShowSecondReader(false);

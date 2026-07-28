@@ -1,9 +1,5 @@
 import React, { useMemo, useRef, useEffect, useCallback } from "react";
-import { useTheme } from "next-themes";
-
 export function SelectTabs({ selectedTab, tabs, setSelectedTab, small = false }) {
-  const { resolvedTheme } = useTheme();
-  const isLight = resolvedTheme === "light";
   const containerRef = useRef(null);
   const sliderRef = useRef(null);
   const buttonRefs = useMemo(() => {
@@ -104,10 +100,9 @@ export function SelectTabs({ selectedTab, tabs, setSelectedTab, small = false })
           msOverflowStyle: "none",
           WebkitOverflowScrolling: "touch",
           borderRadius: "40px",
-          backgroundColor: isLight ? "rgba(200, 200, 200, 0.28)" : "rgba(20, 20, 20, 0.6)",
-          boxShadow: isLight
-            ? "0 0 0 1px rgba(0,0,0,0.10), 0 4px 6px rgba(0,0,0,0.06), 0 12px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.80)"
-            : "0 0 0 1px rgba(255,255,255,0.12), 0 4px 6px rgba(0,0,0,0.25), 0 12px 24px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.08)",
+          backgroundColor: "var(--color-glass-bg)",
+          boxShadow: "var(--color-glass-shadow)",
+          transition: "background-color var(--transition-normal), box-shadow var(--transition-normal)",
           backdropFilter: "blur(10px)",
           WebkitBackdropFilter: "blur(10px)",
         }}
@@ -121,13 +116,10 @@ export function SelectTabs({ selectedTab, tabs, setSelectedTab, small = false })
               flexShrink: 0,
               whiteSpace: "nowrap",
               userSelect: "none",
-              color: isLight
-                ? selectedTab !== index
-                  ? "rgba(0,0,0,0.45)"
-                  : "rgba(0,0,0,0.88)"
-                : selectedTab !== index
-                  ? "rgba(255,255,255,0.45)"
-                  : "rgba(255,255,255,0.88)",
+              color:
+                selectedTab !== index
+                  ? "var(--color-text-on-glass-muted)"
+                  : "var(--color-text-on-glass)",
               transition: "color 0.2s ease",
             }}
             key={index}
@@ -153,8 +145,9 @@ export function SelectTabs({ selectedTab, tabs, setSelectedTab, small = false })
             <div
               className="fit-container fit-height"
               style={{
-                backgroundColor: isLight ? "rgba(0,0,0,0.09)" : "rgba(255,255,255,0.10)",
-                borderRadius: "40px"
+                backgroundColor: "var(--color-glass-slider)",
+                borderRadius: "40px",
+                transition: "background-color var(--transition-normal)"
               }}
             ></div>
           </div>

@@ -6,6 +6,7 @@ import BlobCard from "./BlobCard";
 import UploadModal from "./UploadModal";
 import Button from "@/Components/UI/Button";
 import Input from "@/Components/UI/Input";
+import Icon from "@/Components/LucideIcon";
 
 export default function MediaPage() {
   const {
@@ -194,7 +195,7 @@ export default function MediaPage() {
               borderRadius: "var(--radius-xl)",
             }}
           >
-            <span style={{ fontSize: "3rem" }}>☁️</span>
+            <Icon name="cloud_upload" size={48} />
             <p style={{ margin: 0, fontWeight: 600 }}>No Blossom servers</p>
             <p
               className="p-secondary-c"

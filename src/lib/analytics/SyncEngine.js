@@ -23,20 +23,31 @@ export class AnalyticsSyncEngine {
   async initialize(attempt = 1) {
     const MAX_ATTEMPTS = 3
     try {
-      store.dispatch(setSyncPhase('backfill'))
+      // Phase stays 'idle' until we know whether this is a real first run. Setting
+      // 'backfill' up front made a returning user flip through the syncing phase on
+      // every visit, even though their sync resumes silently.
       store.dispatch(setSyncProgress({ percent: 0, message: 'Connecting to relays…' }))
+
+      // Seed a zeroed stats row before any relay work. Nothing else writes this
+      // row until an event actually arrives, so an account with no history (a
+      // brand-new signup) left it `undefined` forever — and the dashboard reads
+      // `undefined` as "still loading" and showed skeletons that never resolved.
+      // A real, all-zero result is a legitimate answer and should render as 0s.
+      await this._ensureProfileStatsRow()
 
       await this._waitForConnection()
 
-      const processedCount = await analyticsDb.processedEvents
-        .where('ownerPubkey')
-        .equals(this.pubkey)
-        .count()
       const authoredCursor = await analyticsDb.syncCursors.get(
         `${this.pubkey}::authored`
       )
 
-      const isFirstRun = !authoredCursor || processedCount === 0
+      // A completed backfill is recorded by the terminal cursor (written on a
+      // relay-confirmed EOSE), NOT by how many events it happened to find.
+      // This used to also require `processedCount > 0`, which is never true for
+      // an account with no history — so every dashboard visit re-ran the full
+      // backfill and re-showed the blocking "Syncing your Nostr history" overlay.
+      // An account that genuinely has nothing still finished syncing.
+      const isFirstRun = !authoredCursor || !authoredCursor.since
 
       if (isFirstRun) {
         // Only this account's cursors — clearing the whole table would restart
@@ -556,6 +567,18 @@ export class AnalyticsSyncEngine {
       zapsSats: 0,
       ...data,
     })
+  }
+
+  // Idempotent: never clobbers stats an earlier sync already accumulated.
+  async _ensureProfileStatsRow() {
+    try {
+      const existing = await analyticsDb.profileStats.get(this.pubkey)
+      if (!existing) {
+        await analyticsDb.profileStats.put(this._blankProfileStats())
+      }
+    } catch (err) {
+      console.warn('[SyncEngine] could not seed profile stats row', err)
+    }
   }
 
   async _modifyProfileStats(mutator) {

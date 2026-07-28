@@ -1,11 +1,10 @@
 import EmojiPicker from "emoji-picker-react";
-import { useTheme } from "next-themes";
 import React, { useEffect, useRef, useState } from "react";
 import Icon from "@/Components/LucideIcon";
+import useResolvedTheme from "@/hooks/useResolvedTheme";
 
 export default function Emojis({ setEmoji }) {
-  const { resolvedTheme } = useTheme();
-  const isDarkMode = ["dark", "gray"].includes(resolvedTheme);
+  const { isDark: isDarkMode } = useResolvedTheme();
   const [showEmoji, setShowEmoji] = useState(false);
   const optionsRef = useRef(null);
 

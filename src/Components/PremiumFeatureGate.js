@@ -1,6 +1,7 @@
 import React from "react";
 import { useRouter } from "next/router";
 import Overlay from "./Overlay";
+import Icon from "@/Components/LucideIcon";
 
 const FEATURE_META = {
   ai: {
@@ -87,12 +88,10 @@ export default function PremiumFeatureGate({ feature, onClose }) {
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
-                  fontSize: "0.7rem",
                   color: "var(--color-primary-accent)",
-                  fontWeight: 900,
                 }}
               >
-                ✓
+                <Icon name="checkmark" size={11} />
               </span>
               <p style={{ margin: 0, fontSize: "0.84rem", color: "var(--color-primary-text)" }}>
                 {perk}

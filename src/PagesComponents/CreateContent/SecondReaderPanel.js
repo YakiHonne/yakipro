@@ -5,6 +5,7 @@ import {
   analyzeFullArticle,
   analyzeParagraph,
 } from "@/Endpoionts/SecondReaderAI";
+import Icon from "@/Components/LucideIcon";
 import { PERSONAS } from "@/Content/SecondReaderPersonas";
 import aiChatDb from "@/lib/aiChatDb";
 import { setToast } from "@/Store/Slices/Extras";
@@ -232,7 +233,11 @@ function ReactionCard({ reaction, onFocus, onFix, onIgnore }) {
         </div>
       )}
 
-      {isFixed && <p className="sr-ignored-label">✓ Sent to AI for fixing</p>}
+      {isFixed && (
+        <p className="sr-ignored-label">
+          <Icon name="checkmark" size={12} /> Sent to AI for fixing
+        </p>
+      )}
       {isIgnored && <p className="sr-ignored-label">Marked as read</p>}
       {isSuperseded && (
         <p className="sr-ignored-label">Earlier thought · re-read since</p>
@@ -323,7 +328,7 @@ function ActiveReader({
         <div className="sr-reactions">
           {activeReactions.length === 0 && resolvedReactions.length === 0 ? (
             <div className="sr-empty-state">
-              ✦ Your reader has no notes yet. Keep writing.
+              Your reader has no notes yet. Keep writing.
             </div>
           ) : (
             <>

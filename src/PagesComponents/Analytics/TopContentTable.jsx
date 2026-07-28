@@ -51,7 +51,7 @@ export default function TopContentTable({ pubkey }) {
         padding: '0.75rem 0.5rem',
         textAlign: 'right',
         fontSize: '0.8rem',
-        color: sortKey === sortId ? '#f59e0b' : 'var(--color-text-secondary, #aaa)',
+        color: sortKey === sortId ? 'var(--color-primary-accent)' : 'var(--color-text-secondary)',
         userSelect: 'none',
         whiteSpace: 'nowrap',
       }}
@@ -63,16 +63,16 @@ export default function TopContentTable({ pubkey }) {
   return (
     <div style={{ overflowX: 'auto' }}>
       {sorted.length === 0 ? (
-        <p style={{ color: 'var(--color-text-secondary, #aaa)', textAlign: 'center', padding: '2rem' }}>
+        <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '2rem' }}>
           No content yet
         </p>
       ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--color-border, #333)' }}>
-              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--color-text-secondary, #aaa)' }}>#</th>
-              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--color-text-secondary, #aaa)' }}>Content</th>
-              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--color-text-secondary, #aaa)' }}>Kind</th>
+            <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>#</th>
+              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>Content</th>
+              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>Kind</th>
               <SortHeader label="Date" sortId="publishedAt" />
               <SortHeader label="Reactions" sortId="reactionsCount" />
               <SortHeader label="Reposts" sortId="repostsCount" />
@@ -89,13 +89,13 @@ export default function TopContentTable({ pubkey }) {
                   key={row.eventId}
                   onClick={link ? () => window.open(link, '_blank', 'noopener,noreferrer') : undefined}
                   style={{
-                    borderBottom: '1px solid var(--color-border-muted, #222)',
+                    borderBottom: '1px solid var(--color-border-muted)',
                     cursor: link ? 'pointer' : 'default',
                   }}
                 >
-                  <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-secondary, #aaa)', fontSize: '0.85rem' }}>{i + 1}</td>
+                  <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>{i + 1}</td>
                   <td style={{ padding: '0.75rem 0.5rem', maxWidth: 220 }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-primary, #fff)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-primary)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {row.title || row.summary || '(no content)'}
                     </span>
                   </td>
@@ -104,13 +104,13 @@ export default function TopContentTable({ pubkey }) {
                       {kindInfo.label}
                     </span>
                   </td>
-                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--color-text-secondary, #aaa)' }}>
+                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
                     {row.publishedAt ? format(fromUnixTime(row.publishedAt), 'MMM d') : '—'}
                   </td>
-                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.85rem', color: 'var(--color-text-primary, #fff)' }}>{row.reactionsCount || 0}</td>
-                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.85rem', color: 'var(--color-text-primary, #fff)' }}>{row.repostsCount || 0}</td>
-                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.85rem', color: 'var(--color-text-primary, #fff)' }}>{row.zapsCount || 0}</td>
-                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.85rem', color: '#f59e0b' }}>{(row.zapsSats || 0).toLocaleString()}</td>
+                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>{row.reactionsCount || 0}</td>
+                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>{row.repostsCount || 0}</td>
+                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>{row.zapsCount || 0}</td>
+                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.85rem', color: 'var(--color-primary-accent)' }}>{(row.zapsSats || 0).toLocaleString()}</td>
                 </tr>
               )
             })}

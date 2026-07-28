@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { setToPublish, setToast } from "@/Store/Slices/Publishers";
 import { nanoid } from "nanoid";
 import { extractNip19 } from "@/Helpers/NoteHelpers";
@@ -55,6 +56,7 @@ export default function ArticlePublishModalV2({
   editPublishedAt,
 }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const userKeys = useSelector((state) => state.userKeys);
   const userRelays = useSelector((state) => state.userRelays);
 
@@ -133,17 +135,26 @@ export default function ArticlePublishModalV2({
       ...imetas.map(cloneTag),
     ];
 
-    const eventInitEx = await InitEvent({ kind, content: eventContent, tags });
-    if (!eventInitEx) {
-      return;
-    }
-
     const premiumRelays = userRelays
       .filter((r) => {
         const metadata = getRelayMetadata(r.url);
         return metadata?.supported_nips?.includes(63) && (r.read || r.write);
       })
       .map((r) => r.url);
+
+    // An empty relay list makes publishEvent fall back to the default pool, which
+    // would push paywalled article content to every public relay. Stop first.
+    if (isPremium && premiumRelays.length === 0) {
+      dispatch(setToast({ type: 2, desc: t("AsXohpb") }));
+      setIsLoading(false);
+      return;
+    }
+
+    const eventInitEx = await InitEvent({ kind, content: eventContent, tags });
+    if (!eventInitEx) {
+      setIsLoading(false);
+      return;
+    }
 
     const relaysToPublish = isPremium ? premiumRelays : [];
     const success = await publishEvent(eventInitEx, relaysToPublish);

@@ -21,7 +21,7 @@ export default function FollowerGrowthChart({ pubkey, days = 365, onBarClick }) 
 
   if (cumData.length === 0) {
     return (
-      <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary, #aaa)', fontSize: '0.9rem' }}>
+      <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
         {t('A8RA6c7')}
       </div>
     )
@@ -30,8 +30,8 @@ export default function FollowerGrowthChart({ pubkey, days = 365, onBarClick }) 
   return (
     <BarChart
       dataset={cumData}
-      xAxis={[{ scaleType: 'band', dataKey: 'date', tickLabelStyle: { fill: 'var(--color-text-secondary, #aaa)', fontSize: 11 } }]}
-      yAxis={[{ tickLabelStyle: { fill: 'var(--color-text-secondary, #aaa)', fontSize: 11 } }]}
+      xAxis={[{ scaleType: 'band', dataKey: 'date', tickLabelStyle: { fill: 'var(--color-text-secondary)', fontSize: 11 } }]}
+      yAxis={[{ tickLabelStyle: { fill: 'var(--color-text-secondary)', fontSize: 11 } }]}
       series={[{ dataKey: 'followers', label: t('AtlqBGm'), color: '#6366f1' }]}
       height={260}
       margin={{ top: 16, right: 16, bottom: 40, left: 56 }}
@@ -45,7 +45,7 @@ export default function FollowerGrowthChart({ pubkey, days = 365, onBarClick }) 
         width: '100%',
         cursor: onBarClick ? 'pointer' : 'default',
         '& .MuiChartsLegend-label': {
-          color: 'var(--color-text-secondary, #aaa)',
+          color: 'var(--color-text-secondary)',
         },
       }}
     />

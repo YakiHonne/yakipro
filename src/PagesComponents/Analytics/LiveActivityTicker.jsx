@@ -25,8 +25,8 @@ export default function LiveActivityTicker() {
         <div
           key={event.id}
           style={{
-            background: 'var(--color-bg-surface, #1a1a1a)',
-            border: '1px solid var(--color-border, #333)',
+            background: 'var(--color-bg-surface)',
+            border: '1px solid var(--color-border)',
             borderRadius: 8,
             padding: '0.6rem 1rem',
             display: 'flex',
@@ -41,10 +41,10 @@ export default function LiveActivityTicker() {
           }}
         >
           <span style={{ fontSize: '1rem' }}>{event.summary.split(' ')[0]}</span>
-          <span style={{ color: 'var(--color-text-primary, #fff)', flex: 1 }}>
+          <span style={{ color: 'var(--color-text-primary)', flex: 1 }}>
             {event.summary}
           </span>
-          <span style={{ color: 'var(--color-text-secondary, #aaa)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+          <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
             {formatDistanceToNow(fromUnixTime(event.timestamp), { addSuffix: true })}
           </span>
         </div>

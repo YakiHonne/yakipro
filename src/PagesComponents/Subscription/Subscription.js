@@ -21,8 +21,11 @@ export default function Subscription() {
         className="fit-container box-pad-h-m box-pad-v-m fx-gap-v-m fx-col no-scrollbar"
         style={{ height: "100dvh", overflow: "scroll" }}
       >
-        <div className="fit-container">
-          <h1>{t("AVG3Uga")}</h1>
+        <div className="fit-container fx-col" style={{ gap: "0.35rem" }}>
+          <h1 style={{ margin: 0 }}>{t("AVG3Uga")}</h1>
+          <p className="p-secondary-c" style={{ margin: 0, maxWidth: "68ch" }}>
+            {t("ARJICtS")}
+          </p>
         </div>
 
         <div className="fx-centered fx-start-h fit-container" style={{ maxWidth: "320px" }}>

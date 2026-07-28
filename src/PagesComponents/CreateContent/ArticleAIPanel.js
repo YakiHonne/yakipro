@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { askArticleAI } from "@/Endpoionts/ArticleAI";
 import Button from "@/Components/UI/Button";
 import aiChatDb from "@/lib/aiChatDb";
+import Icon from "@/Components/LucideIcon";
 
 let msgIdCounter = 0;
 const nextId = () => ++msgIdCounter;
@@ -55,7 +56,7 @@ function AIBubble({ msg }) {
   return (
     <div className="ai-msg-ai">
       <div className="ai-msg-ai-header">
-        <span className="ai-spark">✦</span>
+        <span className="ai-spark"><Icon name="sparkles" size={13} /></span>
         <span className="ai-msg-ai-text">{msg.text}</span>
       </div>
     </div>
@@ -217,7 +218,7 @@ export default function ArticleAIPanel({
             {messages.length === 0 && !isAILoading && (
               <div className="ai-empty-state">
                 <span className="ai-spark" style={{ fontSize: "1.5rem" }}>
-                  ✦
+                  <Icon name="sparkles" size={16} />
                 </span>
                 <p>
                   Ask me to improve your article, rewrite a section, add an

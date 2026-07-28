@@ -11,7 +11,7 @@ export default function ZapsOverTimeChart({ pubkey, days = 30, onBarClick }) {
 
   if (data.length === 0)
     return (
-      <div style={{ height: 260, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-secondary, #aaa)", fontSize: "0.9rem" }}>
+      <div style={{ height: 260, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-secondary)", fontSize: "0.9rem" }}>
         No zap data yet
       </div>
     );
@@ -19,9 +19,9 @@ export default function ZapsOverTimeChart({ pubkey, days = 30, onBarClick }) {
   return (
     <BarChart
       dataset={data}
-      xAxis={[{ scaleType: "band", dataKey: "date", tickLabelStyle: { fill: "var(--color-text-secondary, #aaa)", fontSize: 11 } }]}
-      yAxis={[{ tickLabelStyle: { fill: "var(--color-text-secondary, #aaa)", fontSize: 11 } }]}
-      series={[{ dataKey: "sats", label: "Sats earned", color: "#f59e0b" }]}
+      xAxis={[{ scaleType: "band", dataKey: "date", tickLabelStyle: { fill: "var(--color-text-secondary)", fontSize: 11 } }]}
+      yAxis={[{ tickLabelStyle: { fill: "var(--color-text-secondary)", fontSize: 11 } }]}
+      series={[{ dataKey: "sats", label: "Sats earned", color: "var(--color-primary-accent)" }]}
       height={260}
       margin={{ top: 16, right: 16, bottom: 40, left: 48 }}
       tooltip={{ trigger: "item" }}
@@ -34,7 +34,7 @@ export default function ZapsOverTimeChart({ pubkey, days = 30, onBarClick }) {
         width: "100%",
         cursor: "pointer",
         "& .MuiChartsLegend-label": {
-          color: "var(--color-text-secondary, #aaa)",
+          color: "var(--color-text-secondary)",
         },
       }}
     />

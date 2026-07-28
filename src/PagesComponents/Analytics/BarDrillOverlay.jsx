@@ -49,8 +49,8 @@ function eventLink(event) {
 }
 
 const TYPE_META = {
-  zaps:      { icon: "bolt-bold", color: "#f59e0b", unit: "sats" },
-  reactions: { icon: "heart",     color: "#f59e0b", unit: "reactions" },
+  zaps:      { icon: "bolt-bold", color: "var(--color-primary-accent)", unit: "sats" },
+  reactions: { icon: "heart",     color: "var(--color-primary-accent)", unit: "reactions" },
   notes:     { icon: "note-bold", color: "#6366f1", unit: "posts" },
 };
 
@@ -149,7 +149,7 @@ function ContentCard({ row, ndkEvent, type }) {
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
           <Icon name="heart" size={13} />
           <span
-            style={{ fontSize: "0.78rem", fontWeight: type === "reactions" ? 700 : 400, color: type === "reactions" ? "#f59e0b" : undefined }}
+            style={{ fontSize: "0.78rem", fontWeight: type === "reactions" ? 700 : 400, color: type === "reactions" ? "var(--color-primary-accent)" : undefined }}
             className={type === "reactions" ? undefined : "p-secondary-c"}
           >
             {type === "reactions" && row._windowValue != null
@@ -166,7 +166,7 @@ function ContentCard({ row, ndkEvent, type }) {
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
           <Icon name="bolt-bold" size={13} />
           <span
-            style={{ fontSize: "0.78rem", fontWeight: type === "zaps" ? 700 : 400, color: type === "zaps" ? "#f59e0b" : undefined }}
+            style={{ fontSize: "0.78rem", fontWeight: type === "zaps" ? 700 : 400, color: type === "zaps" ? "var(--color-primary-accent)" : undefined }}
             className={type === "zaps" ? undefined : "p-secondary-c"}
           >
             {type === "zaps" && row._windowValue != null

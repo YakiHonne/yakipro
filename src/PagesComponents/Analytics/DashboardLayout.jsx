@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
+import Icon from "@/Components/LucideIcon";
 import StatCard from "./StatCard";
 import TopContentTable from "./TopContentTable";
 import BarDrillOverlay from "./BarDrillOverlay";
@@ -46,8 +47,16 @@ function PeriodTabs({ value, onChange, isPremiumPlan, onGate }) {
                 cursor: "pointer",
                 fontSize: "0.75rem",
                 fontWeight: 600,
-                background: active ? "#f59e0b" : "var(--color-bg-surface, #222)",
-                color: active ? "#000" : locked ? "var(--color-placeholder-text)" : "var(--color-text-secondary, #aaa)",
+                // `--color-bg-surface` was never a real token, so the fallback
+                // pinned these pills to #222 in light mode too.
+                background: active
+                  ? "var(--color-primary-accent)"
+                  : "var(--color-background-secondary)",
+                color: active
+                  ? "var(--color-on-accent)"
+                  : locked
+                    ? "var(--color-placeholder-text)"
+                    : "var(--color-text-secondary)",
                 transition: "all 0.15s",
                 opacity: locked ? 0.5 : 1,
                 position: "relative",
@@ -55,7 +64,9 @@ function PeriodTabs({ value, onChange, isPremiumPlan, onGate }) {
             >
               {label}
               {locked && (
-                <span style={{ fontSize: "0.55rem", marginLeft: "3px", verticalAlign: "super" }}>✦</span>
+                <span style={{ marginLeft: "3px", display: "inline-flex", verticalAlign: "super" }}>
+                  <Icon name="sparkles" size={9} />
+                </span>
               )}
             </button>
 
@@ -94,7 +105,7 @@ function SectionHeader({ title, children }) {
           margin: 0,
           fontSize: "1rem",
           fontWeight: 600,
-          color: "var(--color-text-primary, #fff)",
+          color: "var(--color-text-primary)",
         }}
       >
         {title}
@@ -137,6 +148,17 @@ export default function DashboardLayout({ pubkey }) {
 
   const stats = useProfileStats(pubkey);
   const loading = stats === undefined;
+
+  // A synced account that has genuinely published and received nothing. Distinct
+  // from `loading` — the row exists, it's just all zeros — so we can say "nothing
+  // yet" instead of leaving a wall of zeroed cards with no explanation.
+  const isEmpty =
+    !loading &&
+    !stats?.notesCount &&
+    !stats?.articlesCount &&
+    !stats?.zapsReceivedSats &&
+    !stats?.reactionsReceived &&
+    !stats?.followersCount;
 
   const formatSats = (n) => (n || 0).toLocaleString();
 
@@ -183,6 +205,18 @@ export default function DashboardLayout({ pubkey }) {
           loading={loading}
         />
       </div>
+
+      {isEmpty && (
+        <div
+          className="border-all round-corner fx-centered fx-col box-pad-v-m box-pad-h-m"
+          style={{ gap: "0.35rem", marginBottom: "2rem", textAlign: "center" }}
+        >
+          <p style={{ margin: 0, fontWeight: 600 }}>{t("AyWVBDx")}</p>
+          <p className="p-secondary-c" style={{ margin: 0, fontSize: "0.9rem" }}>
+            {t("AavUrQj")}
+          </p>
+        </div>
+      )}
 
       {/* Charts grid */}
       <div

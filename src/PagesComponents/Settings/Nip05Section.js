@@ -12,6 +12,7 @@ import Spinner from "@/Components/Spinner";
 import { claimNip05 } from "@/Endpoionts/Nip05";
 import { ndkInstance } from "@/Helpers/NDKInstance";
 import { getParsedAuthor } from "@/Helpers/Encryptions";
+import Icon from "@/Components/LucideIcon";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -54,7 +55,11 @@ function ValidityBadge({ validating, valid, t }) {
       </span>
     );
   if (valid === true)
-    return <span className="p-green-c p-medium">✓ {t("ANip05I")}</span>;
+    return (
+      <span className="p-green-c p-medium">
+        <Icon name="checkmark" size={12} /> {t("ANip05I")}
+      </span>
+    );
   if (valid === false)
     return <span className="p-red-c p-medium">✗ {t("ANip05J")}</span>;
   return null;
@@ -69,7 +74,11 @@ function AvailabilityIndicator({ checking, available, t }) {
       </span>
     );
   if (available === true)
-    return <span className="p-green-c p-medium">✓ {t("ANip05F")}</span>;
+    return (
+      <span className="p-green-c p-medium">
+        <Icon name="checkmark" size={12} /> {t("ANip05F")}
+      </span>
+    );
   if (available === false)
     return <span className="p-red-c p-medium">✗ {t("ANip05G")}</span>;
   return null;

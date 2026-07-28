@@ -123,10 +123,10 @@ const TierDemo = ({ tier, exit }) => {
           className="fx-centered fx-col fit-container"
           style={{ rowGap: "5px" }}
         >
-          {!tier.locked && <p style={{ fontSize: "30px" }}>🎉</p>}
+          {!tier.locked && <Icon name="celebrate" size={30} />}
           {tier.locked && (
             <div className="round-icon">
-              <p style={{ fontSize: "30px", filter: "grayscale(100%)" }}>🔒</p>
+              <Icon name="lock" size={30} />
             </div>
           )}
           {!tier.locked && (

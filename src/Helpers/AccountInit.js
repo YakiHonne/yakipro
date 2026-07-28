@@ -220,6 +220,92 @@ export const initAppAccount = async () => {
   }
 };
 
+// Brand-new accounts publish nothing before signup finishes, so there is no relay state
+// to discover — every fetch would just burn its timeout. `createAccount` therefore seeds
+// the store directly from what the user typed instead of round-tripping through relays,
+// and only then hands off to the backend. Order matters: signer → publish → API login.
+export const createAccount = async ({ keys, name, picture }) => {
+  // A previous session's cookie would otherwise make /online answer for the OLD pubkey,
+  // and the dashboard would render that account's data under the new one.
+  try {
+    await apiLogout();
+  } catch {
+    // no session to drop — expected on a first-ever signup
+  }
+  store.dispatch(setIsConnected(false));
+  store.dispatch(setNostrUser(null));
+  store.dispatch(clearSubscriptionStatus());
+  clearUserRelaysCache();
+
+  await applySignerToNDK(keys);
+
+  const metadata = {
+    name,
+    display_name: name,
+    about: "",
+    picture: picture || "",
+    banner: "",
+  };
+
+  const relays = DEFAULT_SIGNUP_RELAYS.map((url) => ({
+    url,
+    read: true,
+    write: true,
+  }));
+
+  // Publish profile + relay list. Failures here are non-fatal: the account keys are
+  // already valid, and a retry can republish later — blocking signup on relay latency
+  // would be worse than a profile that propagates a moment late.
+  await Promise.allSettled([
+    publishSignupEvent({ kind: 0, content: JSON.stringify(metadata), tags: [] }),
+    publishSignupEvent({
+      kind: 10002,
+      content: "",
+      tags: DEFAULT_SIGNUP_RELAYS.map((url) => ["r", url]),
+    }),
+  ]);
+
+  // Seed local state from what we just published rather than re-reading it from relays.
+  localStorage.setItem(AUTH_KEY, JSON.stringify(keys));
+  store.dispatch(setUserKeys(keys));
+  store.dispatch(setUserMetadata(metadata));
+  store.dispatch(setUserFollowings([]));
+  store.dispatch(setUserRelays(relays));
+  setUserRelaysCache(relays);
+  saveAccountLocally(keys.pub, keys, metadata);
+
+  const loginRes = await apiLogin({ publicKey: keys.pub, userKeys: keys });
+  if (!loginRes || loginRes === false) {
+    return false;
+  }
+  store.dispatch(setNostrUser(loginRes));
+  store.dispatch(setIsConnected(true));
+  store.dispatch(setLoadingConnectedUser(false));
+
+  getSubscriptionStatus()
+    .then((data) => store.dispatch(setSubscriptionStatus(data)))
+    .catch(() => store.dispatch(setSubscriptionStatus(null)));
+
+  return true;
+};
+
+const DEFAULT_SIGNUP_RELAYS = [
+  "wss://nostr-01.yakihonne.com",
+  "wss://nostr-02.yakihonne.com",
+  "wss://relay.damus.io",
+];
+
+const SIGNUP_PUBLISH_TIMEOUT_MS = 4000;
+
+const publishSignupEvent = async ({ kind, content, tags }) => {
+  const { NDKEvent } = await import("@nostr-dev-kit/ndk");
+  const event = new NDKEvent(ndkInstance);
+  event.kind = kind;
+  event.content = content;
+  event.tags = tags;
+  return withTimeout(event.publish(), SIGNUP_PUBLISH_TIMEOUT_MS);
+};
+
 export const logoutUser = () => {
   try {
     localStorage.removeItem(AUTH_KEY);

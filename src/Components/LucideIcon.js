@@ -42,6 +42,10 @@ import {
   Settings,
   Cloud,
   ExternalLink,
+  Sparkles,
+  TrendingUp,
+  TrendingDown,
+  PartyPopper,
 } from "lucide-react";
 
 const iconsMap = {
@@ -98,6 +102,10 @@ const iconsMap = {
   star: Star,
   settings: Settings,
   external_link: ExternalLink,
+  sparkles: Sparkles,
+  trend_up: TrendingUp,
+  trend_down: TrendingDown,
+  celebrate: PartyPopper,
 };
 
 // Icons whose original artwork carries fixed, meaningful color (status badges),
