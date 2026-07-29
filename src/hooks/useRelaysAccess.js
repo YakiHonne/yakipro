@@ -38,6 +38,14 @@ export default function useRelaysAccess({ relay }) {
     }
   }, [relayMetadata, userKeys]);
 
+  // Membership is per-account: this component survives an account switch, so the previous
+  // account's "is a member" answer would otherwise stay on screen until (or unless) the
+  // check above re-resolves.
+  useEffect(() => {
+    setIsMember(false);
+    setRequestCode(false);
+  }, [userKeys?.pub]);
+
   const checkMember = async ({ relayPubkey, userPubkey }) => {
     let data = await getSubData({
       filter: [

@@ -24,6 +24,7 @@ const RelayRow = ({ relayUrl, isDiscovery = false }) => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const userRelays = useSelector((state) => state.userRelays);
+  const currentPubkey = useSelector((state) => state.userKeys?.pub ?? null);
   const { relayMetadata } = useRelaysMetadata(relayUrl);
   const {
     isMembershipRequired,
@@ -48,7 +49,15 @@ const RelayRow = ({ relayUrl, isDiscovery = false }) => {
   const isDelegated = allowedRelays?.delegation_list?.includes(relayUrl);
 
   const isAutoManaged = !isDiscovery && relayUrl === PREMIUM_RELAY;
+  // Latches after the auto-join/delegation runs once. Without clearing it on an account
+  // change, this component stays mounted across a switch and the new account never gets
+  // its own auto-join — it inherits the previous account's "already handled" flag.
   const autoRanRef = useRef(false);
+  const autoRanOwnerRef = useRef(currentPubkey);
+  if (autoRanOwnerRef.current !== currentPubkey) {
+    autoRanOwnerRef.current = currentPubkey;
+    autoRanRef.current = false;
+  }
 
   useEffect(() => {
     if (

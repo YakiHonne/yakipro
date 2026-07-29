@@ -18,6 +18,15 @@ export default function useBlossomManagement() {
     [userBlossomServers],
   );
 
+  // The auth header is signed by the previous account's key and the blobs are that
+  // account's uploads — both must go when the account changes, or the media page lists
+  // the old account's files (and authenticates as them).
+  useEffect(() => {
+    setAuthHeader(null);
+    setBlobs({});
+    setAllBlobs([]);
+  }, [userKeys?.pub]);
+
   useEffect(() => {
     if (!userKeys || userBlossomServers.length === 0) {
       setIsBlobsLoading(false);

@@ -4,10 +4,20 @@ import { getSubData, publishEvent, saveUsers } from "@/Helpers/Helpers";
 import { InitEvent } from "@/Helpers/Encryptions";
 import { setToast } from "@/Store/Slices/Extras";
 import { getRelayMetadata } from "@/Cache/relayMetadataCache";
+import { registerAccountScopedReset } from "@/Cache/accountScope";
 
 let gatewayAccessCache = {};
 let gatewayFollowListCache = {};
 let gatewayDirectSubscribersCache = {};
+
+// These are keyed by strings containing the user's pubkey, so a stale entry can't be
+// read by a different account — but they would otherwise grow across every switch and
+// keep serving a pre-switch snapshot to an account that signs back in.
+registerAccountScopedReset(() => {
+  gatewayAccessCache = {};
+  gatewayFollowListCache = {};
+  gatewayDirectSubscribersCache = {};
+});
 
 export default function useGatewayAccess(gatewayPubkey) {
   const dispatch = useDispatch();

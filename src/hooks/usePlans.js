@@ -13,28 +13,41 @@ import {
   setPlansCache,
 } from "@/Cache/plansCache";
 
+const emptyPlans = () => ({
+  fiat: [],
+  crypto: [],
+  ln: [],
+  isFiatEnable: false,
+  isCryptoEnabled: false,
+  isLnEnabled: false,
+});
+
 export default function usePlans() {
   const userKeys = useSelector((state) => state.userKeys);
-  const [plans, setPlans] = useState({
-    fiat: [],
-    crypto: [],
-    ln: [],
-    isFiatEnable: false,
-    isCryptoEnabled: false,
-    isLnEnabled: false,
-  });
+  // Depend on the pubkey, not the `userKeys` object: session restore dispatches a fresh
+  // object for the same account, which would otherwise re-trigger a full refetch.
+  const pubkey = userKeys?.pub ?? null;
+  const [plans, setPlans] = useState(emptyPlans);
   const [loading, setLoading] = useState(false);
   const [stripeAccount, setStripeAccount] = useState(null);
   const [timestamp, setTimeStamp] = useState(false);
   const gatewayUrl = useMemo(() => {
-    if (!userKeys) return null;
-    return process.env.NEXT_PUBLIC_GATEWAY_URL + userKeys.pub;
-  }, [userKeys]);
+    if (!pubkey) return null;
+    return process.env.NEXT_PUBLIC_GATEWAY_URL + pubkey;
+  }, [pubkey]);
+
+  // This component stays mounted across an account switch, so clearing the module cache
+  // isn't enough on its own — the previous account's plans would keep rendering from local
+  // state until the refetch resolved. Reset to empty first, then load the new account's.
+  useEffect(() => {
+    setPlans(emptyPlans());
+    setStripeAccount(null);
+  }, [pubkey]);
 
   useEffect(() => {
-    if (userKeys) fetchPlans();
+    if (pubkey) fetchPlans();
     else clearPlansCache();
-  }, [timestamp, userKeys]);
+  }, [timestamp, pubkey]);
 
   const fetchPlans = async () => {
     const cached = getPlansCache();
@@ -50,7 +63,7 @@ export default function usePlans() {
       getSubData({
         filter: [
           {
-            authors: [userKeys.pub],
+            authors: [pubkey],
             "#d": [process.env.NEXT_PUBLIC_GATEWAY_PUBKEY],
             kinds: [30164],
           },

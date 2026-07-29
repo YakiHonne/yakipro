@@ -1,4 +1,5 @@
 import axiosInstance from "@/Helpers/HTTP_Client";
+import { registerAccountScopedReset } from "@/Cache/accountScope";
 
 export const enableStripe = async ({ country = "" }) => {
   try {
@@ -26,6 +27,10 @@ export const getPlans = async () => {
 export const clearPlansCache = () => {
   _plansCache = null;
 };
+
+// /plans is session-authenticated, so a response fetched under the previous account
+// must not be reused for the next one.
+registerAccountScopedReset(clearPlansCache);
 export const getStripeAccount = async () => {
   try {
     const data = await axiosInstance.get("/api/v1/provider");

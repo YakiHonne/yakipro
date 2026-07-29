@@ -1,3 +1,5 @@
+import { registerAccountScopedReset } from "./accountScope";
+
 let userRelaysCache = null;
 
 export const getUserRelaysCache = () => userRelaysCache;
@@ -7,3 +9,5 @@ export const setUserRelaysCache = (relays) => {
 export const clearUserRelaysCache = () => {
   userRelaysCache = null;
 };
+
+registerAccountScopedReset(clearUserRelaysCache);

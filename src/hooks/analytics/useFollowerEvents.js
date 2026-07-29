@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { analyticsDb } from '@/lib/analyticsDb'
 
@@ -20,6 +20,21 @@ export function useFollowersList(pubkey) {
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
   const stateRef = useRef({ loading: false, hasMore: true, loaded: 0 })
+
+  // `items` accumulates across `loadMore` calls and the paging cursor lives in a ref, so
+  // without this an account switch would append the new account's followers onto the
+  // previous account's list, starting at the old offset.
+  const ownerRef = useRef(pubkey)
+  if (ownerRef.current !== pubkey) {
+    ownerRef.current = pubkey
+    stateRef.current = { loading: false, hasMore: true, loaded: 0 }
+  }
+
+  useEffect(() => {
+    setItems([])
+    setHasMore(true)
+    setLoading(false)
+  }, [pubkey])
 
   const loadMore = useCallback(async () => {
     const state = stateRef.current

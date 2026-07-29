@@ -11,7 +11,13 @@ export default function useScheduledEvents() {
   const [error, setError] = useState(false);
 
   const fetch = useCallback(async () => {
-    if (!userKeys?.pub) return;
+    // No account (logged out): settle the loading state instead of leaving the spinner
+    // pinned by the account-change reset above.
+    if (!userKeys?.pub) {
+      setScheduledEvents([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(false);
     try {
@@ -81,6 +87,14 @@ export default function useScheduledEvents() {
     } finally {
       setLoading(false);
     }
+  }, [userKeys?.pub]);
+
+  // Clear the previous account's scheduled events before the refetch below runs, so they
+  // can't render as the new account's while it is in flight.
+  useEffect(() => {
+    setScheduledEvents([]);
+    setError(false);
+    setLoading(true);
   }, [userKeys?.pub]);
 
   useEffect(() => {

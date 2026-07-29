@@ -32,6 +32,7 @@ export default function useSubscriptionRefresh() {
   const dispatch = useDispatch();
   const subscription = useSelector((state) => state.subscription);
   const isConnected = useSelector((state) => state.isConnected);
+  const pubkey = useSelector((state) => state.userKeys?.pub ?? null);
   const [confirming, setConfirming] = useState(false);
 
   const pollTimer = useRef(null);
@@ -55,7 +56,10 @@ export default function useSubscriptionRefresh() {
     } catch {
       return null;
     }
-  }, [dispatch]);
+    // `pubkey` is not read inside, but keying on it gives this callback a new identity on an
+    // account switch, which re-runs the effect below so the incoming account gets its own
+    // refresh instead of inheriting the mount-time one.
+  }, [dispatch, pubkey]);
 
   const stopPolling = useCallback(() => {
     if (pollTimer.current) {
@@ -84,8 +88,19 @@ export default function useSubscriptionRefresh() {
     }, POLL_INTERVAL_MS);
   }, [subscription.status, refreshOnce, stopPolling]);
 
-  // Refresh on mount and whenever the user comes back to this tab/window.
+  // Refresh on mount, on an account switch, and whenever the user comes back to this
+  // tab/window.
   useEffect(() => {
+    // A poll started by the previous account is confirming a payment that has nothing to do
+    // with the incoming one — leaving it running would write that account's status into the
+    // store under this one.
+    if (pollTimer.current) {
+      clearInterval(pollTimer.current);
+      pollTimer.current = null;
+    }
+    baselineRef.current = null;
+    setConfirming(false);
+
     refreshOnce();
 
     const onVisible = () => {

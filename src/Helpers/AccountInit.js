@@ -19,15 +19,28 @@ import {
   checkUserConnected,
 } from "@/Endpoionts/Auth";
 import { setIsConnected, setLoadingConnectedUser, setNostrUser } from "@/Store/Slices/User";
-import {
-  clearUserRelaysCache,
-  setUserRelaysCache,
-} from "@/Cache/userRelaysCache";
+import { setUserRelaysCache } from "@/Cache/userRelaysCache";
 import { setSubscriptionStatus, clearSubscriptionStatus } from "@/Store/Slices/Subscription";
 import { getSubscriptionStatus } from "@/Endpoionts/subscription";
+import { resetAccountScopedCaches } from "@/Cache/accountScope";
 
 const ACCOUNTS_KEY = "yaki-accounts";
 const AUTH_KEY = "_nostruserkeys";
+
+/**
+ * Marks the start of a new account's session by dropping every in-memory cache filled by
+ * the previous one.
+ *
+ * Signing in navigates client-side (`router.replace("/dashboard")`) instead of reloading, so
+ * `_app` and every module singleton it imported outlive the account change — without this,
+ * those caches keep answering for the PREVIOUS pubkey. That is the "stats show the old
+ * account" bug, first seen on the dashboard and then on the subscription page.
+ *
+ * The account-scoped Redux slices are cleared by the `setUserKeys` middleware in Store.js,
+ * which catches the login paths that never reach this function. Calling both is safe: each
+ * is idempotent per pubkey.
+ */
+export const activateAccount = (pubkey) => resetAccountScopedCaches(pubkey);
 
 export const applySignerToNDK = async (keys) => {
   try {
@@ -165,6 +178,10 @@ export const initAppAccount = async () => {
       return;
     }
 
+    // Before anything reads cached state: if this is a different account than the one the
+    // in-memory caches were filled for, drop them now.
+    activateAccount(keys.pub);
+
     await applySignerToNDK(keys);
 
     store.dispatch(setUserKeys(keys));
@@ -234,8 +251,11 @@ export const createAccount = async ({ keys, name, picture }) => {
   }
   store.dispatch(setIsConnected(false));
   store.dispatch(setNostrUser(null));
-  store.dispatch(clearSubscriptionStatus());
-  clearUserRelaysCache();
+  // Wipes every in-memory cache (plans, allowed relays, gateway access, …) so a brand-new
+  // account never inherits the prior session's data. The account-scoped slices are cleared
+  // by the `setUserKeys` dispatch below — which lands before the seeding that follows it,
+  // so the seeded profile/relays survive.
+  activateAccount(keys.pub);
 
   await applySignerToNDK(keys);
 
@@ -316,7 +336,9 @@ export const logoutUser = () => {
     store.dispatch(setUserBlossomServers([]));
     store.dispatch(setIsConnected(false));
     store.dispatch(clearSubscriptionStatus());
-    clearUserRelaysCache();
+    // `force`: there is no incoming pubkey to compare against, and signing back into the
+    // SAME account must still start from clean caches, which the pubkey check would skip.
+    resetAccountScopedCaches(null, { force: true });
     apiLogout();
     ndkInstance.signer = undefined;
   } catch (err) {

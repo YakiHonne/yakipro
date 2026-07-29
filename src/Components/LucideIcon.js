@@ -46,6 +46,7 @@ import {
   TrendingUp,
   TrendingDown,
   PartyPopper,
+  BookImage,
 } from "lucide-react";
 
 const iconsMap = {
@@ -84,6 +85,7 @@ const iconsMap = {
   code: Code,
   logout: LogOut,
   crown: Crown,
+  book_image: BookImage,
 
   // v2 (snake_case, IconV2URL.js)
   close_md: X,

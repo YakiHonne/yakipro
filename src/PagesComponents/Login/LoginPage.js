@@ -229,8 +229,17 @@ async function doBackendLogin(dispatch, keys) {
   const { login: apiLogin, checkUserConnected } =
     await import("@/Endpoionts/Auth");
   const { setIsConnected, setNostrUser } = await import("@/Store/Slices/User");
+  const { activateAccount } = await import("@/Helpers/AccountInit");
+
+  // Every LoginPage sign-in path funnels through here, and none of them reload the page —
+  // so this is where the in-memory caches left by the previous account have to be dropped.
+  activateAccount(keys.pub);
+
   const check = await checkUserConnected();
-  if (check && check !== false) {
+  // Only trust the existing session when it belongs to the account being signed in:
+  // a leftover cookie from a previous account otherwise answers here and signs the
+  // user straight back into the OLD account's data.
+  if (check && check !== false && check.pubkey === keys.pub) {
     dispatch(setNostrUser(check));
     dispatch(setIsConnected(true));
     return true;

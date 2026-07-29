@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { useDispatch } from "react-redux";
+import { useState, useCallback, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { setToast } from "@/Store/Slices/Extras";
 import {
   getSubscriptionStatus,
@@ -11,6 +11,7 @@ import {
 
 export default function useSubscription() {
   const dispatch = useDispatch();
+  const pubkey = useSelector((state) => state.userKeys?.pub ?? null);
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -20,6 +21,9 @@ export default function useSubscription() {
   const [changingPlan, setChangingPlan] = useState(null);
   const [cancellingChange, setCancellingChange] = useState(false);
 
+  // Keyed on the pubkey so an account switch produces a new `fetch` identity: the consuming
+  // page already runs `useEffect(() => fetch(), [fetch])`, so this re-fetches for the new
+  // account without the page needing to change.
   const fetch = useCallback(async () => {
     setLoading(true);
     setError(false);
@@ -31,7 +35,15 @@ export default function useSubscription() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pubkey]);
+
+  // Drop the previous account's status immediately, so it can't be shown as the new
+  // account's while the refetch above is still in flight.
+  useEffect(() => {
+    setStatus(null);
+    setError(false);
+    setLoading(true);
+  }, [pubkey]);
 
   const cancel = useCallback(async () => {
     setCancelling(true);

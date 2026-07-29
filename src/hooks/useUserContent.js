@@ -17,7 +17,16 @@ export default function useUserContent(selectedTab, articleKind = 30023) {
   const kind = selectedTab === 0 ? 1 : articleKind;
   const key = `${selectedTab}-${kind}`;
 
+  // Keyed only by tab/kind, so on an account switch the previous account's fetched events
+  // stayed in this ref and rendered under the new account (the effects below skip fetching
+  // once `events.length > 0`). Drop the whole ref when the pubkey changes.
   const cacheRef = useRef({});
+  const cacheOwnerRef = useRef(userKeys?.pub ?? null);
+  if (cacheOwnerRef.current !== (userKeys?.pub ?? null)) {
+    cacheOwnerRef.current = userKeys?.pub ?? null;
+    cacheRef.current = {};
+  }
+
   const getEntry = (k) => {
     if (!cacheRef.current[k]) cacheRef.current[k] = emptyEntry();
     return cacheRef.current[k];
