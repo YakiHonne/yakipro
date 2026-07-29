@@ -18,6 +18,7 @@ export class AnalyticsSyncEngine {
     this.ndk = ndk
     this.pubkey = pubkey
     this._liveSubscription = null
+    this._stopped = false
   }
 
   async initialize(attempt = 1) {
@@ -339,6 +340,9 @@ export class AnalyticsSyncEngine {
   }
 
   openLiveSubscription() {
+    // `initialize()` awaits a full backfill before getting here; if the account was
+    // switched away in the meantime, don't open a feed nobody will ever close.
+    if (this._stopped) return
     const now = Math.floor(Date.now() / 1000)
 
     this._liveSubscription = this.ndk.subscribe(
@@ -351,10 +355,24 @@ export class AnalyticsSyncEngine {
     )
 
     this._liveSubscription.on('event', async (event) => {
+      if (this._stopped) return
       const outcome = await this.processEvent(event)
       const toast = this._buildLiveToast(event, outcome)
       if (toast) store.dispatch(setToast(toast))
     })
+  }
+
+  // Closes the live feed for this account. Without it, switching accounts would
+  // leave the previous pubkey's subscription running — still writing its events
+  // to the db and firing toasts under the newly-selected account.
+  stop() {
+    this._stopped = true
+    try {
+      this._liveSubscription?.stop()
+    } catch (err) {
+      console.warn('[SyncEngine] error stopping live subscription', err)
+    }
+    this._liveSubscription = null
   }
 
   _buildLiveToast(event, outcome) {
@@ -537,17 +555,20 @@ export class AnalyticsSyncEngine {
       return 'noop'
     }
 
-    if (existing) {
-      if (event.created_at <= existing.createdAt) return 'noop'
-      await analyticsDb.followerEvents.put({ ...existing, createdAt: event.created_at })
-      return 'noop'
-    }
+    // Already a known follower. `createdAt` records *when they first followed us*
+    // and anchors which bucket they fall into on the growth chart, so it must not
+    // move. Kind 3 is replaceable: this author republishes their whole contact
+    // list on every unrelated follow/unfollow, and advancing `createdAt` here
+    // would keep dragging long-standing followers into the most recent bucket.
+    if (existing) return 'noop'
 
     await analyticsDb.followerEvents.put({
       pubkey: this.pubkey,
       followerPubkey: event.pubkey,
       createdAt: event.created_at,
-      dateKey: today,
+      // Always derived from the same timestamp the row is bucketed by, so the
+      // two can never disagree about which period this follow belongs to.
+      dateKey: dateKeyFromTimestamp(event.created_at),
     })
     await this._modifyProfileStats((row) => {
       row.followersCount = (row.followersCount || 0) + 1

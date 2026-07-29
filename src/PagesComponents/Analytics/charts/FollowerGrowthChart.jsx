@@ -12,14 +12,15 @@ export default function FollowerGrowthChart({ pubkey, days = 365, onBarClick }) 
     return <Skeleton variant="rectangular" height={260} sx={{ borderRadius: 2 }} />
   }
 
-  // Build cumulative series
-  let cumulative = 0
-  const cumData = (data || []).map((entry) => {
-    cumulative += entry.count || 0
-    return { date: entry.date, followers: cumulative, count: entry.count || 0 }
-  })
+  // Per-period series: each bar is the number of followers gained *within* that
+  // bucket, never a running total — a cumulative series can only ever climb and
+  // hides the periods where growth actually slowed.
+  const chartData = (data || []).map((entry) => ({
+    date: entry.date,
+    followers: entry.count || 0,
+  }))
 
-  if (cumData.length === 0) {
+  if (chartData.length === 0) {
     return (
       <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
         {t('A8RA6c7')}
@@ -29,7 +30,7 @@ export default function FollowerGrowthChart({ pubkey, days = 365, onBarClick }) 
 
   return (
     <BarChart
-      dataset={cumData}
+      dataset={chartData}
       xAxis={[{ scaleType: 'band', dataKey: 'date', tickLabelStyle: { fill: 'var(--color-text-secondary)', fontSize: 11 } }]}
       yAxis={[{ tickLabelStyle: { fill: 'var(--color-text-secondary)', fontSize: 11 } }]}
       series={[{ dataKey: 'followers', label: t('AtlqBGm'), color: '#6366f1' }]}
@@ -37,9 +38,9 @@ export default function FollowerGrowthChart({ pubkey, days = 365, onBarClick }) 
       margin={{ top: 16, right: 16, bottom: 40, left: 56 }}
       tooltip={{ trigger: 'item' }}
       onAxisClick={(_, axisData) => {
-        const entry = cumData[axisData?.dataIndex]
+        const entry = chartData[axisData?.dataIndex]
         if (entry && onBarClick)
-          onBarClick({ dateStr: entry.date, bucket, value: entry.count, type: 'followers' })
+          onBarClick({ dateStr: entry.date, bucket, value: entry.followers, type: 'followers' })
       }}
       sx={{
         width: '100%',

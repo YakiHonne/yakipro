@@ -5,13 +5,42 @@ import { store } from "@/Store/Store";
 import { setSyncPhase } from "@/Store/analyticsSlice";
 import { getUserRelaysCache } from "@/Cache/userRelaysCache";
 
+const RELAY_LIST_TIMEOUT_MS = 5000;
+
+// Resolves to null on timeout or failure rather than rejecting: every caller here
+// treats "no relay list" as a valid, non-fatal answer and carries on.
+const withTimeout = (promise, ms) =>
+  Promise.race([
+    Promise.resolve(promise).catch(() => null),
+    new Promise((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+
 export default function AnalyticsProvider({ pubkey, children }) {
   const engineRef = useRef(null);
+  // Which pubkey we've already kicked off a sync for. The effect can re-run for
+  // reasons that have nothing to do with the account changing (StrictMode's
+  // double-invoke, a remount from the post-login redirect, `setUserKeys`
+  // dispatching a fresh object during session restore). Keying off the pubkey
+  // *value* rather than effect lifetime makes a redundant re-run a no-op instead
+  // of tearing down an in-flight startup.
+  const startedForRef = useRef(null);
 
   useEffect(() => {
     if (!pubkey) return;
+    if (startedForRef.current === pubkey) {
+      console.log("[AnalyticsProvider] sync already started for", pubkey);
+      return;
+    }
 
-    let cancelled = false;
+    // A different account than the one currently syncing: tear that one down
+    // first so its live subscription stops writing under the new pubkey.
+    if (engineRef.current) {
+      engineRef.current.stop();
+      engineRef.current = null;
+    }
+
+    startedForRef.current = pubkey;
+
     store.dispatch(setSyncPhase("idle"));
 
     const ndk = getNDK();
@@ -33,8 +62,6 @@ export default function AnalyticsProvider({ pubkey, children }) {
         console.log("[AnalyticsProvider] NDK already connected");
       }
 
-      if (cancelled) return;
-
       // The account's own write relays (where its notes/articles actually live) aren't part of
       // this NDK instance's default relay set — without them, backfill only sees whatever the
       // handful of hardcoded aggregator relays happen to have cached for this pubkey, which is
@@ -46,7 +73,15 @@ export default function AnalyticsProvider({ pubkey, children }) {
 
       if (writeRelayUrls.length === 0) {
         try {
-          const relayEvent = await ndk.fetchEvent({ kinds: [10002], authors: [pubkey] });
+          // Bounded: on a cold first connect this fetch can hang for as long as NDK
+          // is willing to wait, and everything below — including creating the engine
+          // — sits behind it. Extra write relays only ever *widen* backfill coverage,
+          // so it's far better to start syncing against the default relay set now and
+          // miss a few sources than to leave the dashboard with no sync running at all.
+          const relayEvent = await withTimeout(
+            ndk.fetchEvent({ kinds: [10002], authors: [pubkey] }),
+            RELAY_LIST_TIMEOUT_MS
+          );
           if (relayEvent) {
             writeRelayUrls = relayEvent.tags
               .filter((t) => t[0] === "r" && (t[2] === "write" || !t[2]))
@@ -56,8 +91,6 @@ export default function AnalyticsProvider({ pubkey, children }) {
           console.warn("[AnalyticsProvider] failed to fetch NIP-65 relay list", err);
         }
       }
-
-      if (cancelled) return;
 
       for (const url of writeRelayUrls) {
         ndk.addExplicitRelay(url, undefined, true);
@@ -69,11 +102,14 @@ export default function AnalyticsProvider({ pubkey, children }) {
       engine.initialize();
     };
 
-    run();
-
-    return () => {
-      cancelled = true;
-    };
+    run().catch((err) => {
+      // Never leave `startedForRef` pinned to a pubkey whose startup blew up before
+      // the engine existed — otherwise the guard would suppress every later retry
+      // and the dashboard would sit at 'idle' forever.
+      console.error("[AnalyticsProvider] startup failed", err);
+      if (!engineRef.current) startedForRef.current = null;
+      store.dispatch(setSyncPhase("error"));
+    });
   }, [pubkey]);
 
   return children;
