@@ -20,7 +20,7 @@ const navLinksLeft = [
 ];
 
 const navLinksRight = [
-  { path: "/media", label: "Media", icon: "camera" },
+  { path: "/media", label: "Media", icon: "book_image" },
   { path: "/subscription", label: "Subscription", icon: "credit_card_01" },
 ];
 
