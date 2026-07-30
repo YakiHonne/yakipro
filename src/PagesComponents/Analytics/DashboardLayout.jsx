@@ -13,6 +13,9 @@ import FollowerGrowthChart from "./charts/FollowerGrowthChart";
 import PublishingFrequencyChart from "./charts/PublishingFrequencyChart";
 import { useProfileStats } from "@/hooks/analytics/useProfileStats";
 import PremiumFeatureGate from "@/Components/PremiumFeatureGate";
+import DeleteWarning from "@/Components/DeleteWarning";
+import Button from "@/Components/UI/Button";
+import { useAnalyticsSync } from "./AnalyticsProvider";
 
 const PERIOD_OPTIONS = [
   { days: 7, label: "7d" },
@@ -128,6 +131,8 @@ export default function DashboardLayout({ pubkey }) {
   const [gatePeriod, setGatePeriod] = useState(false);
   const [gateDrill, setGateDrill] = useState(false);
   const [showFollowersList, setShowFollowersList] = useState(false);
+  const [confirmResync, setConfirmResync] = useState(false);
+  const { resync } = useAnalyticsSync();
 
   const CHART_TITLES = {
     zaps: "Sats Earned",
@@ -173,7 +178,19 @@ export default function DashboardLayout({ pubkey }) {
       }}
       className="no-scrollbar"
     >
-      <h1 className="box-pad-v-m">Creator Analytics</h1>
+      <div
+        className="fx-scattered fx-wrap"
+        style={{ gap: "0.75rem" }}
+      >
+        <h1 className="box-pad-v-m">Creator Analytics</h1>
+        <Button
+          label="Resync"
+          type="primary"
+          size="s"
+          leftIcon="refresh"
+          onClick={() => setConfirmResync(true)}
+        />
+      </div>
 
       {/* Stat Cards */}
       <div
@@ -328,6 +345,19 @@ export default function DashboardLayout({ pubkey }) {
 
       {gateDrill && (
         <PremiumFeatureGate feature="analytics_drill" onClose={() => setGateDrill(false)} />
+      )}
+
+      {confirmResync && (
+        <DeleteWarning
+          title="Resync your analytics?"
+          description="All analytics data collected so far will be deleted and rebuilt from scratch by re-fetching your history from the relays. This can take a few minutes."
+          actionButtonLabel="Resync"
+          exit={() => setConfirmResync(false)}
+          handleDelete={() => {
+            setConfirmResync(false);
+            resync();
+          }}
+        />
       )}
     </div>
   );

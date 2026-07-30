@@ -47,6 +47,7 @@ import {
   TrendingDown,
   PartyPopper,
   BookImage,
+  RefreshCw,
 } from "lucide-react";
 
 const iconsMap = {
@@ -108,6 +109,7 @@ const iconsMap = {
   trend_up: TrendingUp,
   trend_down: TrendingDown,
   celebrate: PartyPopper,
+  refresh: RefreshCw,
 };
 
 // Icons whose original artwork carries fixed, meaningful color (status badges),

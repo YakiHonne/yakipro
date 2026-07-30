@@ -1,9 +1,16 @@
-import { useEffect, useRef } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef } from "react";
 import { getNDK } from "@/ndkConfig/ndk";
 import { AnalyticsSyncEngine } from "@/lib/analytics/SyncEngine";
 import { store } from "@/Store/Store";
-import { setSyncPhase } from "@/Store/analyticsSlice";
+import { setSyncPhase, setIsFirstRun, setSyncProgress } from "@/Store/analyticsSlice";
 import { getUserRelaysCache } from "@/Cache/userRelaysCache";
+import { purgeAccountAnalytics } from "@/lib/analyticsDb";
+
+const AnalyticsSyncContext = createContext({ resync: async () => {} });
+
+// Lets the dashboard trigger a full re-sync without the provider having to prop-drill
+// through the layout it renders as `children`.
+export const useAnalyticsSync = () => useContext(AnalyticsSyncContext);
 
 const RELAY_LIST_TIMEOUT_MS = 5000;
 
@@ -25,13 +32,7 @@ export default function AnalyticsProvider({ pubkey, children }) {
   // of tearing down an in-flight startup.
   const startedForRef = useRef(null);
 
-  useEffect(() => {
-    if (!pubkey) return;
-    if (startedForRef.current === pubkey) {
-      console.log("[AnalyticsProvider] sync already started for", pubkey);
-      return;
-    }
-
+  const start = useCallback(() => {
     // A different account than the one currently syncing: tear that one down
     // first so its live subscription stops writing under the new pubkey.
     if (engineRef.current) {
@@ -102,7 +103,7 @@ export default function AnalyticsProvider({ pubkey, children }) {
       engine.initialize();
     };
 
-    run().catch((err) => {
+    return run().catch((err) => {
       // Never leave `startedForRef` pinned to a pubkey whose startup blew up before
       // the engine existed — otherwise the guard would suppress every later retry
       // and the dashboard would sit at 'idle' forever.
@@ -112,5 +113,47 @@ export default function AnalyticsProvider({ pubkey, children }) {
     });
   }, [pubkey]);
 
-  return children;
+  useEffect(() => {
+    if (!pubkey) return;
+    if (startedForRef.current === pubkey) {
+      console.log("[AnalyticsProvider] sync already started for", pubkey);
+      return;
+    }
+    start();
+  }, [pubkey, start]);
+
+  // Discards this account's accumulated analytics and re-runs the whole pipeline from
+  // scratch. The engine is stopped *before* the purge so its live subscription can't
+  // write an event back into a table we just cleared; with no cursors left, the fresh
+  // engine sees a first run and does a full backfill behind the onboarding overlay.
+  const resync = useCallback(async () => {
+    if (!pubkey) return;
+
+    if (engineRef.current) {
+      engineRef.current.stop();
+      engineRef.current = null;
+    }
+    startedForRef.current = null;
+
+    store.dispatch(setIsFirstRun(true));
+    store.dispatch(setSyncPhase("backfill"));
+    store.dispatch(setSyncProgress({ percent: 0, message: "Clearing local data…" }));
+
+    try {
+      await purgeAccountAnalytics(pubkey);
+    } catch (err) {
+      console.error("[AnalyticsProvider] resync purge failed", err);
+      store.dispatch(setIsFirstRun(false));
+      store.dispatch(setSyncPhase("error"));
+      return;
+    }
+
+    await start();
+  }, [pubkey, start]);
+
+  return (
+    <AnalyticsSyncContext.Provider value={{ resync }}>
+      {children}
+    </AnalyticsSyncContext.Provider>
+  );
 }

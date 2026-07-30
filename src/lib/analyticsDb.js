@@ -106,6 +106,31 @@ analyticsDb.version(7).stores({
   tx.table('followerEvents').clear(),
 ]))
 
+// Wipes every analytics row belonging to one account, leaving any other account that has
+// synced in this browser untouched. Deleting the whole table (or the whole database) would
+// force those accounts through a full backfill again on their next visit.
+//
+// `contentStats` and `statEvents` are also cleaned up by content id, because `contentStats`
+// rows are keyed by the *event* id with the owner in a non-unique `authorPubkey` column,
+// and reaction/zap `statEvents` reference the content they landed on.
+export async function purgeAccountAnalytics(pubkey) {
+  if (!pubkey) return;
+
+  const ownContentIds = await analyticsDb.contentStats
+    .where('authorPubkey')
+    .equals(pubkey)
+    .primaryKeys();
+
+  await Promise.all([
+    analyticsDb.contentStats.bulkDelete(ownContentIds),
+    analyticsDb.profileStats.delete(pubkey),
+    analyticsDb.syncCursors.where('pubkey').equals(pubkey).delete(),
+    analyticsDb.processedEvents.where('ownerPubkey').equals(pubkey).delete(),
+    analyticsDb.statEvents.where('ownerPubkey').equals(pubkey).delete(),
+    analyticsDb.followerEvents.where('pubkey').equals(pubkey).delete(),
+  ]);
+}
+
 export function appendToTimeSeries(arr, dateKey, field, increment, maxEntries = 1200) {
   const existing = arr.find((e) => e.date === dateKey)
   if (existing) {
