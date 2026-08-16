@@ -401,3 +401,84 @@ export function hexToUint8Array(hex) {
   }
   return array;
 }
+
+// Mirrors the download used on YakiV5 for wallet credentials. `allowMobile` is
+// false there because a touch device typically has nowhere to put the file, and
+// silently "downloading" it would strand the only copy of the NWC secret.
+export const downloadAsFile = (
+  text,
+  type = "application/json",
+  name,
+  allowMobile = true,
+) => {
+  if (typeof window === "undefined") return false;
+  const isTouchScreen = window.matchMedia("(pointer: coarse)").matches;
+  if (isTouchScreen && !allowMobile) return false;
+
+  const content =
+    type === "application/json" ? JSON.stringify(text, null, 2) : text;
+
+  const blob = new Blob([content], { type });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
+  return true;
+};
+
+const LNURL_REGEX =
+  /^(?:http.*[&?]lightning=|lightning:)?(lnurl[0-9]{1,}[02-9ac-hj-np-z]+)/;
+const LN_ADDRESS_REGEX =
+  /^((?:[^<>()\[\]\\.,;:\s@"]+(?:\.[^<>()\[\]\\.,;:\s@"]+)*)|(?:".+"))@((?:\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(?:(?:[a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+const LNURLP_REGEX = /^lnurlp:\/\/.*/;
+
+const parseLnUrl = (url) => {
+  if (!url) return null;
+  const result = LNURL_REGEX.exec(url.toLowerCase());
+  return result ? result[1] : null;
+};
+
+const parseLightningAddress = (address) => {
+  if (!address) return null;
+  const result = LN_ADDRESS_REGEX.exec(address);
+  return result ? { username: result[1], domain: result[2] } : null;
+};
+
+const parseLnurlp = (url) => {
+  if (!url) return null;
+
+  const parsedUrl = url.toLowerCase();
+  if (!LNURLP_REGEX.test(parsedUrl)) return null;
+
+  const protocol = parsedUrl.includes(".onion") ? "http://" : "https://";
+  return parsedUrl.replace("lnurlp://", protocol);
+};
+
+export const decodeUrlOrAddress = (lnUrlOrAddress) => {
+  const bech32Url = parseLnUrl(lnUrlOrAddress);
+  if (bech32Url) {
+    const decoded = bech32.decode(bech32Url, 20000);
+    return Buffer.from(bech32.fromWords(decoded.words)).toString();
+  }
+
+  const address = parseLightningAddress(lnUrlOrAddress);
+  if (address) {
+    const { username, domain } = address;
+    const protocol = domain.match(/\.onion$/) ? "http" : "https";
+    return `${protocol}://${domain}/.well-known/lnurlp/${username}`;
+  }
+
+  return parseLnurlp(lnUrlOrAddress);
+};
+
+export const encodeLud06 = (url) => {
+  try {
+    let words = bech32.toWords(Buffer.from(url, "utf8"));
+    return bech32.encode("lnurl", words, 2000);
+  } catch {
+    return "";
+  }
+};

@@ -12,6 +12,7 @@ import "katex/dist/katex.css";
 import "@uiw/react-md-editor/markdown-editor.css";
 import "@/styles/tiptap.css";
 import "@/PagesComponents/Legal/legalDoc.css";
+import "@/PagesComponents/Profile/profileEdit.css";
 import "@/lib/i18n"; // side-effect: initialise i18next
 import Layout from "@/Components/Layout/Layout";
 
@@ -23,6 +24,8 @@ import Head from "next/head";
 import ReduxProvider from "@/Store/ReduxProvider";
 import Publishing from "@/Components/Publishing";
 import ToastMessages from "@/Components/ToastMessages";
+import PaymentSheetHost from "@/Components/Payment/PaymentSheetHost";
+import OnboardingHost from "@/Components/Onboarding/OnboardingHost";
 
 const NO_LAYOUT_PAGES = new Set([
   "/login",
@@ -66,6 +69,8 @@ function App({ Component, pageProps }) {
       >
         <Publishing />
         <ToastMessages />
+        <PaymentSheetHost />
+        <OnboardingHost />
         <Head>
           <title>YakiPro</title>
           <meta name="description" content="Decentralized social on Nostr" />

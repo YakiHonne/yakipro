@@ -48,6 +48,10 @@ import {
   PartyPopper,
   BookImage,
   RefreshCw,
+  Circle,
+  CircleCheck,
+  CircleAlert,
+  Minus,
 } from "lucide-react";
 
 const iconsMap = {
@@ -110,6 +114,11 @@ const iconsMap = {
   trend_down: TrendingDown,
   celebrate: PartyPopper,
   refresh: RefreshCw,
+  circle: Circle,
+  circle_check: CircleCheck,
+  circle_warning: CircleAlert,
+  remove_minus: Minus,
+  check_big: Check,
 };
 
 // Icons whose original artwork carries fixed, meaningful color (status badges),

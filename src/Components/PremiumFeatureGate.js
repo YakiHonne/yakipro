@@ -1,14 +1,10 @@
 import React from "react";
-import { useRouter } from "next/router";
+import { useDispatch } from "react-redux";
 import Overlay from "./Overlay";
 import Icon from "@/Components/LucideIcon";
+import { openPaymentSheet } from "@/Store/Slices/PaymentSheet";
 
 const FEATURE_META = {
-  ai: {
-    label: "AI Writing Tools",
-    description: "The AI Writing Assistant, Second Reader personas, and Energy Mapper are exclusive to the Pro plan. Get AI-powered feedback, per-paragraph analysis, and emotional pacing insights.",
-    perks: ["AI Writing Assistant — unlimited use", "Second Reader — 5 reader personas", "Energy Mapper — per-sentence emotion graph", "Inline diff viewer — accept / reject changes"],
-  },
   analytics_period: {
     label: "Extended Analytics History",
     description: "Viewing analytics beyond 3 months requires the Pro plan. Unlock up to 3 years of historical data to understand long-term trends in your content performance.",
@@ -22,12 +18,14 @@ const FEATURE_META = {
 };
 
 export default function PremiumFeatureGate({ feature, onClose }) {
-  const router = useRouter();
-  const meta = FEATURE_META[feature] || FEATURE_META.ai;
+  const dispatch = useDispatch();
+  const meta = FEATURE_META[feature] || FEATURE_META.analytics_period;
 
+  // Navigating to the subscription page would discard whatever the user was
+  // writing, so the sheet is raised over the editor instead.
   const handleUpgrade = () => {
     onClose();
-    router.push("/sub-and-usage");
+    dispatch(openPaymentSheet({ source: `gate-${feature}` }));
   };
 
   return (

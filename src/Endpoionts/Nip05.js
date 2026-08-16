@@ -1,4 +1,5 @@
 import axiosInstance from "@/Helpers/HTTP_Client";
+import { toApiError } from "@/Helpers/ApiError";
 
 export const claimNip05 = async ({ name, pubkey }) => {
   try {
@@ -8,7 +9,6 @@ export const claimNip05 = async ({ name, pubkey }) => {
     });
     return data.data;
   } catch (err) {
-    console.log(err);
-    throw err;
+    throw toApiError(err, "Could not claim this nip05 name");
   }
 };

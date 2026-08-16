@@ -1,4 +1,5 @@
 import axiosInstance from "@/Helpers/HTTP_Client";
+import { toApiError, apiError } from "@/Helpers/ApiError";
 
 export const askArticleAI = async (message, article) => {
   try {
@@ -6,9 +7,10 @@ export const askArticleAI = async (message, article) => {
       message,
       article,
     });
-    if (!data.success) throw new Error(data.error || "AI request failed");
+    if (!data.success)
+      throw apiError({ message: data.error || "AI request failed", data });
     return data.data;
   } catch (err) {
-    throw new Error(err?.response?.data?.error || err.message || "AI request failed");
+    throw toApiError(err, "AI request failed");
   }
 };

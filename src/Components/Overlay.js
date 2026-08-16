@@ -8,6 +8,7 @@ export default function Overlay({
   id = "",
   allowOverFlow = false,
   maxHeight = 80,
+  zIndex,
 }) {
   const [mounted, setMounted] = useState(false);
   const [active, setActive] = useState(false);
@@ -43,6 +44,7 @@ export default function Overlay({
       className={`overlay-backdrop fx-centered box-pad-h${active ? " active" : ""}`}
       onClick={handleExit}
       id={id}
+      style={zIndex === undefined ? undefined : { zIndex }}
     >
       <main
         style={{

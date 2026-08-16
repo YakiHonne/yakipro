@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
-import { getPublicKey, generateSecretKey, nip19, finalizeEvent } from "nostr-tools";
+import { getPublicKey, generateSecretKey, nip19 } from "nostr-tools";
+import { bytesToHex } from "@noble/hashes/utils.js";
 import Link from "next/link";
 import Icon from "@/Components/LucideIcon";
 import Orb from "@/Components/Orb/Orb";
@@ -32,197 +33,7 @@ import { FileUpload } from "@/Helpers/FileUpload";
 import RippleGrid from "@/Components/RippleGrid/RippleGrid";
 import QRCode from "react-qr-code";
 import { copyText } from "@/Helpers/Helpers";
-import { trustedKeyDeal, hexShard, hexPubShard } from "@fiatjaf/promenade-trusted-dealer";
-import { sha256 } from "@noble/hashes/sha2.js";
-import { bytesToHex } from "@noble/hashes/utils.js";
-import { CENTRAL_URL, OPERATOR_URLS } from "@/Content/pomegrenate";
-
-// ── Google sign-in helpers ──────────────────────────────────────────────────
-const massageURL = (input) => {
-  let url = input.trim();
-  if (!url.startsWith("http")) {
-    url = "https://" + url;
-  }
-  return new URL(url).origin;
-};
-
-const openPopup = (url, name) => {
-  const width = 600;
-  const height = 700;
-  const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
-  const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
-  return window.open(
-    url,
-    name,
-    `popup=yes,width=${width},height=${height},left=${left},top=${top}`,
-  );
-};
-
-const awaitPopupMessage = (popup, expectedOrigin, extract) => {
-  return new Promise((resolve, reject) => {
-    const POPUP_TIMEOUT_MS = 5 * 60 * 1000;
-
-    const cleanup = () => {
-      window.removeEventListener("message", onMessage);
-      clearInterval(closeMonitor);
-      clearTimeout(timer);
-    };
-
-    const onMessage = (event) => {
-      if (event.origin !== expectedOrigin || event.source !== popup) return;
-      const value = extract(event.data);
-      if (value === undefined) return;
-      cleanup();
-      popup.close();
-      resolve(value);
-    };
-
-    const closeMonitor = setInterval(() => {
-      if (popup.closed) {
-        cleanup();
-        reject(new Error("POPUP_CLOSED"));
-      }
-    }, 300);
-
-    const timer = setTimeout(() => {
-      cleanup();
-      popup.close();
-      reject(new Error("Timed out waiting for Google sign-in"));
-    }, POPUP_TIMEOUT_MS);
-
-    window.addEventListener("message", onMessage);
-  });
-};
-
-const authenticateWithGoogle = async (central) => {
-  const popup = openPopup(`${central}/login/google`, "PomegranateLogin");
-  if (!popup) throw new Error("POPUP_BLOCKED");
-
-  const raw = await awaitPopupMessage(popup, central, (data) => {
-    if (data && typeof data === "object" && typeof data.token === "string") {
-      return data.token;
-    }
-    return undefined;
-  });
-
-  let createdAt = null;
-  let email = "";
-  const parsed = JSON.parse(atob(raw));
-  if (typeof parsed.created_at === "number") createdAt = parsed.created_at * 1000;
-  if (Array.isArray(parsed.tags)) {
-    const emailTag = parsed.tags.find((t) => Array.isArray(t) && t[0] === "email");
-    email = emailTag?.[1] ?? "";
-  }
-  if (!createdAt || Date.now() - createdAt > 24 * 60 * 60 * 1000) {
-    throw new Error("Google sign-in token expired");
-  }
-  return { raw, email, createdAt };
-};
-
-const getAccount = async (central, token) => {
-  const res = await fetch(`${central}/account`, {
-    headers: { Authorization: `Token ${token.raw}` },
-  });
-  if (res.status === 401) throw new Error("Google session expired, please sign in again");
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data?.pubkey ? data : null;
-};
-
-const listProfiles = async (central, token) => {
-  const res = await fetch(`${central}/profiles`, {
-    headers: { Authorization: `Token ${token.raw}` },
-  });
-  if (!res.ok) throw new Error("Failed to load signing profiles");
-  return await res.json();
-};
-
-const createProfile = async (central, token, name) => {
-  const res = await fetch(`${central}/profiles`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Token ${token.raw}`,
-    },
-    body: JSON.stringify({ name }),
-  });
-  if (!res.ok) throw new Error("Signing profile creation failed");
-  return await res.json();
-};
-
-const getBunkerUrl = (central, profile) => {
-  const relay = central.replace(/^http/, "ws");
-  return `bunker://${profile.handler_pubkey}?relay=${encodeURIComponent(relay)}`;
-};
-
-const createPomegranateAccount = async (central, token, operators, threshold, secretKey) => {
-  const session = crypto.randomUUID();
-  const masterSk = BigInt("0x" + bytesToHex(secretKey));
-  const { shards } = trustedKeyDeal(masterSk, threshold, operators.length);
-
-  const regEvent = finalizeEvent(
-    {
-      kind: 20445,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: [
-        ["threshold", String(threshold)],
-        ...operators.map((op, i) => ["operator", op, hexPubShard(shards[i].pubShard)]),
-      ],
-      content: "",
-    },
-    secretKey,
-  );
-
-  const regRes = await fetch(`${central}/register`, {
-    method: "POST",
-    body: JSON.stringify(regEvent),
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Token ${token.raw}`,
-      "X-Pomegranate-Session": session,
-    },
-  });
-  if (!regRes.ok) throw new Error("Central server registration failed");
-
-  const utf8 = new TextEncoder();
-  const results = await Promise.all(
-    operators.map(async (operator, i) => {
-      const event = finalizeEvent(
-        {
-          kind: 20444,
-          created_at: Math.floor(Date.now() / 1000),
-          tags: [
-            ["central", central],
-            ["email", token.email],
-          ],
-          content: hexShard(shards[i]),
-        },
-        secretKey,
-      );
-      const opToken = bytesToHex(sha256(utf8.encode(`${session}:${operator}`)));
-      try {
-        const res = await fetch(`${operator}/po/register`, {
-          method: "POST",
-          body: JSON.stringify(event),
-          headers: {
-            "Content-Type": "application/json",
-            "X-Pomegranate-Operator-Token": opToken,
-          },
-        });
-        return res.ok ? null : operator;
-      } catch {
-        return operator;
-      }
-    }),
-  );
-
-  const failed = results.filter(Boolean);
-  if (operators.length - failed.length < threshold) {
-    throw new Error(
-      `INSUFFICIENT_OPERATORS:${operators.length - failed.length}:${threshold}`,
-    );
-  }
-};
+import PomegranateLoginOverlay from "@/PagesComponents/Login/GoogleLoginOverlay";
 
 // ── Shared backend login helper ───────────────────────────────────────────────
 async function doBackendLogin(dispatch, keys) {
@@ -403,7 +214,7 @@ function BunkerMethod({ onBack, onSuccess }) {
         ndkInstance,
         "wss://nostr-01.yakihonne.com",
         localSigner,
-        { name: "YakiPro", url: "https://yakipro.com", perms: [] },
+        { name: "YakiPro", url: "https://pro.yakihonne.com", perms: [] },
       );
       setNostrConnectUri(signer.nostrConnectUri);
       await signer.blockUntilReady();
@@ -504,246 +315,22 @@ function BunkerMethod({ onBack, onSuccess }) {
 // ── Method: Google ───────────────────────────────────────────────────────────
 function GoogleLoginOverlay({ onClose, onSuccess }) {
   const dispatch = useDispatch();
-  const { t } = useTranslation();
 
-  const [phase, setPhase] = useState("intro");
-  const [status, setStatus] = useState("idle");
-  const [errorMsg, setErrorMsg] = useState("");
-  const [token, setToken] = useState(null);
-  const [secretKey, setSecretKey] = useState(() => generateSecretKey());
-  const [copied, setCopied] = useState(false);
-  const [localKeys] = useState(() => NDKPrivateKeySigner.generate());
-  const central = massageURL(CENTRAL_URL);
-  const operators = OPERATOR_URLS.map(massageURL);
-  const threshold = Math.ceil((operators.length * 7) / 12);
-
-  const nsec = nip19.nsecEncode(secretKey);
-  const busy = !["idle", "error"].includes(status);
-
-  const statusLabel =
-    {
-      authenticating: t("AGoog04"),
-      checking: t("AGoog05"),
-      creating: t("AGoog06"),
-    }[status] || "";
-
-  const handleSaveAccount = async ({ pubkey, bunkerUrl, central, email }) => {
-    const keys = {
-      pub: pubkey,
-      bunker: bunkerUrl,
-      localKeys: {
-        sec: localKeys.privateKey,
-        pub: getPublicKey(hexToUint8Array(localKeys.privateKey)),
-      },
-      central,
-      email,
-    };
-    dispatch(setUserKeys(keys));
+  // The overlay owns the Pomegranate flow; persisting the resulting account
+  // (local store, backend session) stays here with the rest of LoginPage.
+  const persistAccount = async (keys) => {
     localStorage.setItem("_nostruserkeys", JSON.stringify(keys));
     const meta = await fetchUserMetadata(keys.pub);
     saveAccountLocally(keys.pub, keys, meta);
     const ok = await doBackendLogin(dispatch, keys);
     if (ok) onSuccess?.();
-    onClose();
-  };
-
-  const handleStart = async () => {
-    setErrorMsg("");
-    setStatus("authenticating");
-    try {
-      const googleToken = await authenticateWithGoogle(central);
-      setToken(googleToken);
-      setStatus("checking");
-      const account = await getAccount(central, googleToken);
-      if (account) {
-        let profiles = await listProfiles(central, googleToken);
-        if (!profiles.find((p) => p.name === "default")) {
-          await createProfile(central, googleToken, "default");
-          profiles = await listProfiles(central, googleToken);
-        }
-        const profile = profiles.find((p) => p.name === "default") || profiles[0];
-        const bunkerUrl = getBunkerUrl(central, profile);
-        await handleSaveAccount({
-          pubkey: account.pubkey,
-          bunkerUrl,
-          central,
-          email: googleToken.email,
-        });
-        setStatus("idle");
-      } else {
-        const newKey = generateSecretKey();
-        setSecretKey(newKey);
-        downloadAsFile(
-          nip19.nsecEncode(newKey),
-          "text/plain",
-          "nostr-private-key.txt",
-        );
-        dispatch(setToast({ type: 1, desc: t("AGoog10") }));
-        setStatus("idle");
-        setPhase("setup");
-      }
-    } catch (err) {
-      if (err.message === "POPUP_CLOSED") {
-        setStatus("idle");
-        return;
-      }
-      if (err.message === "POPUP_BLOCKED") {
-        setStatus("error");
-        setErrorMsg(t("AGoog12"));
-        return;
-      }
-      setStatus("error");
-      setErrorMsg(err.message || t("AGoog13"));
-    }
-  };
-
-  const handleCreate = async () => {
-    if (!token) return;
-    setErrorMsg("");
-    setStatus("creating");
-    try {
-      await createPomegranateAccount(central, token, operators, threshold, secretKey);
-
-      let account = null;
-      for (let i = 0; i < 10; i++) {
-        await new Promise((r) => setTimeout(r, 1500));
-        account = await getAccount(central, token);
-        if (account) break;
-      }
-      if (!account) throw new Error(t("AGoog15"));
-
-      let profiles = await listProfiles(central, token);
-      if (!profiles.find((p) => p.name === "default")) {
-        await createProfile(central, token, "default");
-        profiles = await listProfiles(central, token);
-      }
-      const profile = profiles.find((p) => p.name === "default") || profiles[0];
-      const bunkerUrl = getBunkerUrl(central, profile);
-
-      await handleSaveAccount({
-        pubkey: account.pubkey,
-        bunkerUrl,
-        central,
-        email: token.email,
-      });
-
-      setStatus("idle");
-    } catch (err) {
-      setStatus("error");
-      if (err.message?.startsWith("INSUFFICIENT_OPERATORS:")) {
-        const [, succeeded, neededThreshold] = err.message.split(":");
-        setErrorMsg(t("AGoog14", { succeeded, threshold: neededThreshold }));
-        return;
-      }
-      setErrorMsg(err.message || t("AGoog13"));
-    }
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard?.writeText(nsec);
-    dispatch(setToast({ type: 1, desc: t("AGoog16") }));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <Overlay exit={onClose} width={420}>
-      <div className="login-google-overlay box-pad-h box-pad-v pos-relative">
-        <div className="close pos-absolute pos-top-16 pos-right-16" onClick={onClose}>
-          <div></div>
-        </div>
-        {phase === "intro" && (
-          <>
-            <div className="login-google-head">
-              <Icon name="google" size={32} />
-              <h4 className="login-card-title-plain" style={{ fontSize: "1.2rem" }}>
-                {t("AGoog01")}
-              </h4>
-              <p className="gray-c p-medium">{t("AGoog02")}</p>
-            </div>
-
-            {errorMsg && (
-              <p className="p-red-c p-medium" style={{ textAlign: "center" }}>
-                {errorMsg}
-              </p>
-            )}
-
-            {busy ? (
-              <div className="login-google-busy fx-centered fx-col">
-                <Spinner size={24} />
-                <p className="gray-c p-medium">{statusLabel}</p>
-              </div>
-            ) : (
-              <button className="btn btn-normal btn-full" onClick={handleStart}>
-                {errorMsg ? t("AGoog11") : t("AGoog03")}
-              </button>
-            )}
-          </>
-        )}
-
-        {phase === "setup" && (
-          <>
-            <div className="login-google-head">
-              <h4 className="login-card-title-plain" style={{ fontSize: "1.2rem" }}>
-                {t("AGoog07")}
-              </h4>
-            </div>
-
-            <div className="login-google-key-field">
-              <p className="p-medium p-bold">{t("AGoog08")}</p>
-              <div className="login-google-key-row">
-                <input
-                  type="text"
-                  className="if"
-                  value={nsec}
-                  readOnly
-                  onClick={(e) => e.target.select()}
-                  style={{ fontFamily: "monospace", fontSize: "0.75rem" }}
-                />
-                <button
-                  className="btn btn-gray fx-centered login-google-copy-btn"
-                  onClick={handleCopy}
-                  disabled={busy}
-                >
-                  <Icon name={copied ? "checkmark" : "copy"} size={16} />
-                </button>
-              </div>
-            </div>
-
-            {errorMsg && (
-              <p className="p-red-c p-medium" style={{ textAlign: "center" }}>
-                {errorMsg}
-              </p>
-            )}
-
-            {busy ? (
-              <div className="login-google-busy fx-centered fx-col">
-                <Spinner size={24} />
-                <p className="gray-c p-medium">{statusLabel}</p>
-              </div>
-            ) : (
-              <div className="login-google-setup-actions">
-                <button
-                  className="btn btn-gray fx-centered login-google-copy-btn"
-                  onClick={() => {
-                    setPhase("intro");
-                    setToken(null);
-                    setStatus("idle");
-                    setErrorMsg("");
-                  }}
-                  disabled={busy}
-                >
-                  <Icon name="arrow" transform="rotate(90deg)" size={16} />
-                </button>
-                <button className="btn btn-normal" onClick={handleCreate} disabled={busy}>
-                  {errorMsg ? t("AGoog11") : t("AGoog09")}
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </Overlay>
+    <PomegranateLoginOverlay
+      onClose={onClose}
+      onSaveAccount={persistAccount}
+    />
   );
 }
 
@@ -1025,49 +612,49 @@ export default function LoginPage() {
           {!isLogin && <SignupScreen onSuccess={handleSuccess} />}
 
           {isLogin && (
-          <div className="login-conversation">
-            <p className="login-convo-question gray-c">{t("ALog002")}</p>
+            <div className="login-conversation">
+              <p className="login-convo-question gray-c">{t("ALog002")}</p>
 
-            {!activeMethod && (
-              <div className="login-convo-options">
-                {methods.map((method, index) => (
-                  <div
-                    key={method.id}
-                    className={`login-convo-option box-pad-h-m box-pad-v-s bg-dropdown-t ${method.disabled ? "disabled" : ""}`}
-                    style={{ "--stagger-i": index }}
-                    onClick={() => handleMethodClick(method)}
-                  >
-                    <span className="login-convo-option-icon">
-                      <Icon
-                        name={method.icon}
-                        v={method.iconV || 1}
-                        size={28}
-                        isColored={method.iconColored}
-                      />
-                    </span>
-                    <span className="login-convo-option-copy">
-                      <b>{method.title}</b>
-                      <span>{method.desc}</span>
-                    </span>
-                    <span className="login-convo-option-go">
-                      {method.id === "extension" && extLoading ? (
-                        <span className="login-spinner" />
-                      ) : (
-                        <Icon name="arrow" size={14} transform="rotate(-90deg)" />
-                      )}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+              {!activeMethod && (
+                <div className="login-convo-options">
+                  {methods.map((method, index) => (
+                    <div
+                      key={method.id}
+                      className={`login-convo-option box-pad-h-m box-pad-v-s bg-dropdown-t ${method.disabled ? "disabled" : ""}`}
+                      style={{ "--stagger-i": index }}
+                      onClick={() => handleMethodClick(method)}
+                    >
+                      <span className="login-convo-option-icon">
+                        <Icon
+                          name={method.icon}
+                          v={method.iconV || 1}
+                          size={28}
+                          isColored={method.iconColored}
+                        />
+                      </span>
+                      <span className="login-convo-option-copy">
+                        <b>{method.title}</b>
+                        <span>{method.desc}</span>
+                      </span>
+                      <span className="login-convo-option-go">
+                        {method.id === "extension" && extLoading ? (
+                          <span className="login-spinner" />
+                        ) : (
+                          <Icon name="arrow" size={14} transform="rotate(-90deg)" />
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-            {activeMethod === "key" && (
-              <KeyMethod onBack={() => setActiveMethod("")} onSuccess={handleSuccess} />
-            )}
-            {activeMethod === "bunker" && (
-              <BunkerMethod onBack={() => setActiveMethod("")} onSuccess={handleSuccess} />
-            )}
-          </div>
+              {activeMethod === "key" && (
+                <KeyMethod onBack={() => setActiveMethod("")} onSuccess={handleSuccess} />
+              )}
+              {activeMethod === "bunker" && (
+                <BunkerMethod onBack={() => setActiveMethod("")} onSuccess={handleSuccess} />
+              )}
+            </div>
           )}
         </div>
       </div>

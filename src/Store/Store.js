@@ -28,6 +28,7 @@ import {
   SubscriptionReducer,
   clearSubscriptionStatus,
 } from "./Slices/Subscription";
+import { PaymentSheetReducer } from "./Slices/PaymentSheet";
 import { resetAccountScopedCaches } from "@/Cache/accountScope";
 
 // Signing in never reloads the page, so module-level caches outlive the account change and
@@ -84,6 +85,7 @@ export const store = configureStore({
     publishers: PublishersReducer,
     analytics: AnalyticsReducer,
     subscription: SubscriptionReducer,
+    paymentSheet: PaymentSheetReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(accountScopeMiddleware),

@@ -1,4 +1,5 @@
 import axiosInstance from "@/Helpers/HTTP_Client";
+import { toApiError, apiError } from "@/Helpers/ApiError";
 
 export const analyzeFullArticle = async (article, personaId) => {
   try {
@@ -6,12 +7,11 @@ export const analyzeFullArticle = async (article, personaId) => {
       "/api/v1/chat/second-reader/full",
       { article, personaId },
     );
-    if (!data.success) throw new Error(data.error || "Analysis failed");
+    if (!data.success)
+      throw apiError({ message: data.error || "Analysis failed", data });
     return data.data;
   } catch (err) {
-    throw new Error(
-      err?.response?.data?.error || err.message || "Analysis failed",
-    );
+    throw toApiError(err, "Analysis failed");
   }
 };
 
@@ -27,13 +27,12 @@ export const analyzeParagraph = async (
       { paragraph, contextBefore, contextAfter, personaId },
     );
     if (!data.success)
-      throw new Error(data.error || "Paragraph analysis failed");
+      throw apiError({
+        message: data.error || "Paragraph analysis failed",
+        data,
+      });
     return data.data;
   } catch (err) {
-    throw new Error(
-      err?.response?.data?.error ||
-        err.message ||
-        "Paragraph analysis failed",
-    );
+    throw toApiError(err, "Paragraph analysis failed");
   }
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   analyzeFullArticle,
   analyzeParagraph,
@@ -9,6 +9,11 @@ import Icon from "@/Components/LucideIcon";
 import { PERSONAS } from "@/Content/SecondReaderPersonas";
 import aiChatDb from "@/lib/aiChatDb";
 import { setToast } from "@/Store/Slices/Extras";
+import QuotaBanner from "@/Components/AI/QuotaBanner";
+import useFeatureQuota, { QUOTA_FEATURES } from "@/hooks/useFeatureQuota";
+import useAccountAccess from "@/hooks/useAccountAccess";
+import useAccessFailure from "@/hooks/useAccessFailure";
+import { scopedKey, purgeLegacyAiStorage } from "@/lib/accountStorage";
 
 let reactionIdCounter = 0;
 
@@ -52,9 +57,11 @@ function hashString(str) {
   return String(h);
 }
 
-async function loadStoredReactions(personaId) {
+async function loadStoredReactions(personaId, pubkey) {
   try {
-    const row = await aiChatDb.secondReaderReactions.get(personaId);
+    const row = await aiChatDb.secondReaderReactions.get(
+      scopedKey(personaId, pubkey),
+    );
     if (!row) return null;
     return {
       reactions: normalizeReactions(row.reactions),
@@ -65,10 +72,10 @@ async function loadStoredReactions(personaId) {
   }
 }
 
-async function saveStoredReactions(personaId, reactions, contentHash) {
+async function saveStoredReactions(personaId, pubkey, reactions, contentHash) {
   try {
     await aiChatDb.secondReaderReactions.put({
-      personaId,
+      personaId: scopedKey(personaId, pubkey),
       reactions,
       contentHash,
       updatedAt: Date.now(),
@@ -76,13 +83,24 @@ async function saveStoredReactions(personaId, reactions, contentHash) {
   } catch {}
 }
 
-async function deleteStoredReactions(personaId) {
+async function deleteStoredReactions(personaId, pubkey) {
   try {
-    await aiChatDb.secondReaderReactions.delete(personaId);
+    await aiChatDb.secondReaderReactions.delete(scopedKey(personaId, pubkey));
   } catch {}
 }
 
-function PersonaPicker({ onSelect, isAnalyzing, onClose, lastUsedPersonaId }) {
+const lastPersonaKey = (pubkey) => scopedKey("sr-last-persona", pubkey);
+
+function PersonaPicker({
+  onSelect,
+  isAnalyzing,
+  onClose,
+  lastUsedPersonaId,
+  quota,
+  showUpgrade,
+  onUpgrade,
+}) {
+  const exhausted = !!quota?.exhausted;
   return (
     <div
       style={{
@@ -108,6 +126,12 @@ function PersonaPicker({ onSelect, isAnalyzing, onClose, lastUsedPersonaId }) {
         </p>
       </div>
 
+      <QuotaBanner
+        quota={quota}
+        showUpgrade={showUpgrade}
+        onUpgrade={onUpgrade}
+      />
+
       <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
         <div
           className="fx-centered fx-col fx-start-h fit-container fx-gap-v-m box-pad-h-m box-pad-v-m"
@@ -115,14 +139,15 @@ function PersonaPicker({ onSelect, isAnalyzing, onClose, lastUsedPersonaId }) {
         >
           {PERSONAS.map((p) => {
             const isLastUsed = p.id === lastUsedPersonaId;
+            const locked = isAnalyzing || exhausted;
             return (
               <div
                 key={p.id}
                 className="pointer fx-centered fx-start-v  fx-gap-h-l fit-container border-all round-corner-m bg-hover box-pad-h-m box-pad-v-m"
-                onClick={() => !isAnalyzing && onSelect(p)}
+                onClick={() => !locked && onSelect(p)}
                 style={{
-                  opacity: isAnalyzing ? 0.5 : 1,
-                  cursor: isAnalyzing ? "not-allowed" : "pointer",
+                  opacity: locked ? 0.5 : 1,
+                  cursor: locked ? "not-allowed" : "pointer",
                   borderColor: isLastUsed
                     ? "var(--color-primary-accent)"
                     : undefined,
@@ -186,7 +211,7 @@ function SentimentIcon({ sentiment }) {
   return <span>💬</span>;
 }
 
-function ReactionCard({ reaction, onFocus, onFix, onIgnore }) {
+function ReactionCard({ reaction, onFocus, onFix, onIgnore, aiExhausted }) {
   const isIgnored = reaction.status === "ignored";
   const isFixed = reaction.status === "fixed";
   const isSuperseded = reaction.status === "superseded";
@@ -214,12 +239,31 @@ function ReactionCard({ reaction, onFocus, onFix, onIgnore }) {
         <div className="sr-reaction-actions">
           <button
             className="sr-fix-btn"
+            disabled={aiExhausted}
+            style={
+              aiExhausted
+                ? {
+                    color: "var(--c1)",
+                    cursor: "not-allowed",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                  }
+                : undefined
+            }
             onClick={(e) => {
               e.stopPropagation();
+              if (aiExhausted) return;
               onFix(reaction);
             }}
           >
-            Fix with AI →
+            {aiExhausted ? (
+              <>
+                <Icon name="warning" size={12} /> Limit reached
+              </>
+            ) : (
+              "Fix with AI →"
+            )}
           </button>
           <button
             className="sr-ignore-btn"
@@ -258,6 +302,10 @@ function ActiveReader({
   onClear,
   reduced,
   onToggleReduced,
+  aiExhausted,
+  readerQuota,
+  showUpgrade,
+  onUpgrade,
 }) {
   const activeReactions = reactions.filter((r) => !r.status);
   const resolvedReactions = reactions.filter(
@@ -325,6 +373,14 @@ function ActiveReader({
       </div>
 
       {!reduced && (
+        <QuotaBanner
+          quota={readerQuota}
+          showUpgrade={showUpgrade}
+          onUpgrade={onUpgrade}
+        />
+      )}
+
+      {!reduced && (
         <div className="sr-reactions">
           {activeReactions.length === 0 && resolvedReactions.length === 0 ? (
             <div className="sr-empty-state">
@@ -339,6 +395,7 @@ function ActiveReader({
                   onFocus={onFocus}
                   onFix={onFix}
                   onIgnore={onIgnore}
+                  aiExhausted={aiExhausted}
                 />
               ))}
 
@@ -357,6 +414,7 @@ function ActiveReader({
                       onFocus={onFocus}
                       onFix={onFix}
                       onIgnore={onIgnore}
+                      aiExhausted={aiExhausted}
                     />
                   ))}
                 </>
@@ -422,39 +480,76 @@ export default function SecondReaderPanel({
   suppressInvalidationRef,
 }) {
   const dispatch = useDispatch();
+  const pubkey = useSelector((state) => state.userKeys?.pub ?? null);
   const [view, setView] = useState("picker");
   const [reduced, setReduced] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  const { isPremium } = useAccountAccess();
+  const { handleAccessFailure, showPaymentSheet } = useAccessFailure();
+  // "Fix with AI" spends the chat-articles allowance, not second-reader's, so
+  // both have to be tracked to render each control honestly.
+  const { quotas, refresh: refreshUsage } = useFeatureQuota([
+    QUOTA_FEATURES.secondReader,
+    QUOTA_FEATURES.chatArticles,
+  ]);
+  const readerQuota = quotas[QUOTA_FEATURES.secondReader];
+  const chatQuota = quotas[QUOTA_FEATURES.chatArticles];
+  const readerExhausted = !!readerQuota?.exhausted;
+  const chatExhausted = !!chatQuota?.exhausted;
+
   useEffect(() => {
     setMounted(true);
+    purgeLegacyAiStorage();
   }, []);
-  const [activePersona, setActivePersona] = useState(() => {
-    try {
-      const id = localStorage.getItem("sr-last-persona");
-      return PERSONAS.find((p) => p.id === id) ?? null;
-    } catch {
-      return null;
-    }
-  });
+  const [activePersona, setActivePersona] = useState(null);
   const [reactions, setReactions] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAnalyzingParagraph, setIsAnalyzingParagraph] = useState(false);
   const reactionsCache = useRef({});
   const baseMarkdownRef = useRef(null);
   const invalidateTimerRef = useRef(null);
+  // Guards the reaction-save effect: while an account switch is resolving it
+  // still points at the outgoing account, and saving then would overwrite that
+  // account's stored reactions with the incoming account's empty state.
+  const storageScopeRef = useRef(pubkey);
 
   useEffect(() => {
-    if (!activePersona) return;
-    loadStoredReactions(activePersona.id).then((stored) => {
+    let cancelled = false;
+
+    setActivePersona(null);
+    setReactions([]);
+    setView("picker");
+    reactionsCache.current = {};
+
+    const restore = async () => {
+      let personaId = null;
+      try {
+        personaId = localStorage.getItem(lastPersonaKey(pubkey));
+      } catch {}
+      const persona = PERSONAS.find((p) => p.id === personaId) ?? null;
+      if (cancelled) return;
+
+      storageScopeRef.current = pubkey;
+      if (!persona) return;
+
+      const stored = await loadStoredReactions(persona.id, pubkey);
+      if (cancelled) return;
+
+      setActivePersona(persona);
       if (stored && stored.reactions.length > 0) {
-        reactionsCache.current[activePersona.id] = stored.reactions;
+        reactionsCache.current[persona.id] = stored.reactions;
         setReactions(stored.reactions);
         setView("active");
       }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    };
+
+    restore();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pubkey]);
 
   useEffect(() => {
     if (!editor) return;
@@ -485,7 +580,7 @@ export default function SecondReaderPanel({
     async (persona) => {
       const persistPersona = (p) => {
         try {
-          localStorage.setItem("sr-last-persona", p.id);
+          localStorage.setItem(lastPersonaKey(pubkey), p.id);
         } catch {}
       };
 
@@ -497,7 +592,7 @@ export default function SecondReaderPanel({
         return;
       }
 
-      const stored = await loadStoredReactions(persona.id);
+      const stored = await loadStoredReactions(persona.id, pubkey);
       if (stored && stored.reactions.length > 0) {
         reactionsCache.current[persona.id] = stored.reactions;
         persistPersona(persona);
@@ -506,6 +601,9 @@ export default function SecondReaderPanel({
         setView("active");
         return;
       }
+
+      // Only a fresh read costs quota; restoring stored reactions above does not.
+      if (readerExhausted) return;
 
       const article = getMarkdown();
       const wordCount = article.trim().split(/\s+/).filter(Boolean).length;
@@ -527,24 +625,44 @@ export default function SecondReaderPanel({
           status: null,
         }));
         reactionsCache.current[persona.id] = loaded;
-        await saveStoredReactions(persona.id, loaded, hashString(article));
+        await saveStoredReactions(
+          persona.id,
+          pubkey,
+          loaded,
+          hashString(article),
+        );
         persistPersona(persona);
         setActivePersona(persona);
         setReactions(loaded);
         setView("active");
       } catch (err) {
-        console.error("[SecondReader] full analysis failed", err);
-        dispatch(
-          setToast({
-            type: 2,
-            desc: err?.message || "Second reader failed. Please try again.",
-          }),
-        );
+        if (
+          !handleAccessFailure(err, {
+            source: "second-reader",
+            autoOpen: false,
+          })
+        ) {
+          console.error("[SecondReader] full analysis failed", err);
+          dispatch(
+            setToast({
+              type: 2,
+              desc: err?.message || "Second reader failed. Please try again.",
+            }),
+          );
+        }
       } finally {
         setIsAnalyzing(false);
+        refreshUsage();
       }
     },
-    [getMarkdown, dispatch],
+    [
+      getMarkdown,
+      dispatch,
+      pubkey,
+      readerExhausted,
+      handleAccessFailure,
+      refreshUsage,
+    ],
   );
 
   const activePersonaRef = useRef(null);
@@ -553,16 +671,21 @@ export default function SecondReaderPanel({
   useEffect(() => {
     const persona = activePersonaRef.current;
     if (!persona) return;
+    if (storageScopeRef.current !== pubkey) return;
     reactionsCache.current[persona.id] = reactions;
     saveStoredReactions(
       persona.id,
+      pubkey,
       reactions,
       hashString(baseMarkdownRef.current || ""),
     );
-  }, [reactions]);
+  }, [reactions, pubkey]);
 
   useEffect(() => {
     if (!activePersona || !lastEditedParagraph) return;
+    // Without this the effect keeps firing on every keystroke once the quota is
+    // spent, burning a rejected request per edit.
+    if (readerExhausted) return;
     const { index, text, before, after } = lastEditedParagraph;
     if (!text.trim()) return;
 
@@ -599,18 +722,31 @@ export default function SecondReaderPanel({
         });
       })
       .catch((err) => {
-        if (!cancelled)
+        if (cancelled) return;
+        if (
+          !handleAccessFailure(err, {
+            source: "second-reader",
+            autoOpen: false,
+          })
+        )
           console.error("[SecondReader] paragraph analysis failed", err);
       })
       .finally(() => {
         if (!cancelled) setIsAnalyzingParagraph(false);
+        refreshUsage();
       });
 
     return () => {
       cancelled = true;
       setIsAnalyzingParagraph(false);
     };
-  }, [lastEditedParagraph, activePersona]);
+  }, [
+    lastEditedParagraph,
+    activePersona,
+    readerExhausted,
+    handleAccessFailure,
+    refreshUsage,
+  ]);
 
   const handleFix = useCallback(
     (reaction) => {
@@ -635,9 +771,9 @@ export default function SecondReaderPanel({
   const handleClear = useCallback(() => {
     if (!activePersona) return;
     delete reactionsCache.current[activePersona.id];
-    deleteStoredReactions(activePersona.id);
+    deleteStoredReactions(activePersona.id, pubkey);
     setReactions([]);
-  }, [activePersona]);
+  }, [activePersona, pubkey]);
 
   if (!mounted) return null;
 
@@ -657,6 +793,9 @@ export default function SecondReaderPanel({
           isAnalyzing={isAnalyzing}
           onClose={onClose}
           lastUsedPersonaId={activePersona?.id ?? null}
+          quota={readerQuota}
+          showUpgrade={!isPremium}
+          onUpgrade={() => showPaymentSheet("second-reader")}
         />
       ) : (
         <ActiveReader
@@ -671,6 +810,10 @@ export default function SecondReaderPanel({
           onClear={handleClear}
           reduced={reduced}
           onToggleReduced={() => setReduced((r) => !r)}
+          aiExhausted={chatExhausted}
+          readerQuota={readerQuota}
+          showUpgrade={!isPremium}
+          onUpgrade={() => showPaymentSheet("second-reader")}
         />
       )}
     </div>,

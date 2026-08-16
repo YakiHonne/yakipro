@@ -16,7 +16,7 @@ export default function CreateContent() {
   //         ],
   //       },
   //     ],
-  //     relayUrls: ["wss://team.yakihonne.com", "wss://pyramid.fiatjaf.com"],
+  //     relayUrls: ["wss://premium.yakihonne.com", "wss://pyramid.fiatjaf.com"],
   //     cacheUsage: "ONLY_RELAY",
   //   });
   //   console.log(data);

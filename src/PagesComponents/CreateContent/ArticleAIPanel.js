@@ -1,37 +1,43 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { useSelector } from "react-redux";
 import { askArticleAI } from "@/Endpoionts/ArticleAI";
 import Button from "@/Components/UI/Button";
 import aiChatDb from "@/lib/aiChatDb";
 import Icon from "@/Components/LucideIcon";
+import QuotaBanner from "@/Components/AI/QuotaBanner";
+import useFeatureQuota, { QUOTA_FEATURES } from "@/hooks/useFeatureQuota";
+import useAccountAccess from "@/hooks/useAccountAccess";
+import useAccessFailure from "@/hooks/useAccessFailure";
+import { scopedSessionId, purgeLegacyAiStorage } from "@/lib/accountStorage";
 
 let msgIdCounter = 0;
 const nextId = () => ++msgIdCounter;
 
-const SESSION_ID = "article-editor";
+const SESSION_BASE = "article-editor";
 
-async function loadSession() {
+async function loadSession(sessionId) {
   try {
-    const row = await aiChatDb.sessions.get(SESSION_ID);
+    const row = await aiChatDb.sessions.get(sessionId);
     return row?.messages ?? [];
   } catch {
     return [];
   }
 }
 
-async function saveSession(messages) {
+async function saveSession(sessionId, messages) {
   try {
     await aiChatDb.sessions.put({
-      sessionId: SESSION_ID,
+      sessionId,
       messages,
       updatedAt: Date.now(),
     });
   } catch {}
 }
 
-async function clearSession() {
+async function clearSession(sessionId) {
   try {
-    await aiChatDb.sessions.delete(SESSION_ID);
+    await aiChatDb.sessions.delete(sessionId);
   } catch {}
 }
 
@@ -72,6 +78,7 @@ export default function ArticleAIPanel({
   setIsAILoading,
   prefillMessage,
 }) {
+  const pubkey = useSelector((state) => state.userKeys?.pub ?? null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sessionLoaded, setSessionLoaded] = useState(false);
@@ -82,32 +89,60 @@ export default function ArticleAIPanel({
   const prefillTimerRef = useRef(null);
   const sendRef = useRef(null);
 
+  const sessionId = scopedSessionId(SESSION_BASE, pubkey);
+  // The save effect below must never write the incoming account's (empty) state
+  // under the outgoing account's key while the reload is still in flight.
+  const sessionIdRef = useRef(sessionId);
+
+  const { isPremium } = useAccountAccess();
+  const { handleAccessFailure, showPaymentSheet } = useAccessFailure();
+  const { quotas, refresh } = useFeatureQuota([QUOTA_FEATURES.chatArticles]);
+  const chatQuota = quotas[QUOTA_FEATURES.chatArticles];
+  const exhausted = !!chatQuota?.exhausted;
+
   useEffect(() => {
     setMounted(true);
+    purgeLegacyAiStorage();
   }, []);
 
   useEffect(() => {
-    loadSession().then((saved) => {
+    let cancelled = false;
+    setSessionLoaded(false);
+    setMessages([]);
+    setInput("");
+
+    loadSession(sessionId).then((saved) => {
+      if (cancelled) return;
       if (saved.length > 0) {
         const maxId = saved.reduce((m, msg) => Math.max(m, msg.id ?? 0), 0);
         if (maxId >= msgIdCounter) msgIdCounter = maxId + 1;
         setMessages(saved);
       }
+      sessionIdRef.current = sessionId;
       setSessionLoaded(true);
     });
+
     return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
+
+  useEffect(
+    () => () => {
       clearTimeout(closeTimerRef.current);
       clearTimeout(prefillTimerRef.current);
-    };
-  }, []);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!sessionLoaded) return;
-    saveSession(messages);
-  }, [messages, sessionLoaded]);
+    if (sessionIdRef.current !== sessionId) return;
+    saveSession(sessionId, messages);
+  }, [messages, sessionLoaded, sessionId]);
 
   useEffect(() => {
-    if (!isOpen || !prefillMessage) return;
+    if (!isOpen || !prefillMessage || exhausted) return;
     setInput(prefillMessage);
     clearTimeout(prefillTimerRef.current);
     prefillTimerRef.current = setTimeout(() => {
@@ -121,7 +156,7 @@ export default function ArticleAIPanel({
       });
     }, 300);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, prefillMessage]);
+  }, [isOpen, prefillMessage, exhausted]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -136,7 +171,7 @@ export default function ArticleAIPanel({
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if (!text || isAILoading) return;
+    if (!text || isAILoading || exhausted) return;
 
     const userMsg = { id: nextId(), role: "user", text };
     setMessages((prev) => [...prev, userMsg]);
@@ -157,6 +192,8 @@ export default function ArticleAIPanel({
         }, 700);
       }
     } catch (err) {
+      // The banner is the upgrade path here, so the sheet must not open by itself.
+      handleAccessFailure(err, { source: "ai-assistant", autoOpen: false });
       const aiMsg = {
         id: nextId(),
         role: "ai",
@@ -165,21 +202,37 @@ export default function ArticleAIPanel({
       setMessages((prev) => [...prev, aiMsg]);
     } finally {
       setIsAILoading(false);
+      // Refreshed unconditionally so the banner appears the moment the last
+      // allowance is consumed, not one request later.
+      refresh();
     }
-  }, [input, isAILoading, getMarkdown, onClose, onDiffReady, setIsAILoading]);
+  }, [
+    input,
+    isAILoading,
+    exhausted,
+    getMarkdown,
+    onClose,
+    onDiffReady,
+    setIsAILoading,
+    handleAccessFailure,
+    refresh,
+  ]);
 
   sendRef.current = handleSend;
 
   const handleClear = useCallback(() => {
     setMessages([]);
-    clearSession();
-  }, []);
+    clearSession(sessionId);
+  }, [sessionId]);
 
+  // Enter sends, Shift+Enter newlines. isComposing guards CJK input methods,
+  // where Enter commits the candidate rather than ending the message.
   const handleKeyDown = (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key !== "Enter") return;
+    if (e.shiftKey) return;
+    if (e.nativeEvent?.isComposing) return;
+    e.preventDefault();
+    handleSend();
   };
 
   if (!mounted) return null;
@@ -239,21 +292,29 @@ export default function ArticleAIPanel({
             <div ref={bottomRef} />
           </div>
 
+          <QuotaBanner
+            quota={chatQuota}
+            showUpgrade={!isPremium}
+            onUpgrade={() => showPaymentSheet("ai-assistant")}
+          />
+
           <div className="ai-panel-input-area">
             <textarea
               ref={textareaRef}
               className="ai-textarea no-scrollbar"
-              placeholder="Ask anything… (⌘↵ to send)"
+              placeholder={
+                exhausted ? "Quota exceeded" : "Ask anything… (↵ to send)"
+              }
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={isAILoading}
+              disabled={isAILoading || exhausted}
               rows={1}
             />
             <button
               className="ai-send-btn"
               onClick={handleSend}
-              disabled={isAILoading || !input.trim()}
+              disabled={isAILoading || exhausted || !input.trim()}
               aria-label="Send"
             >
               <svg

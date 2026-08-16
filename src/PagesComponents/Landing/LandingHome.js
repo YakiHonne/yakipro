@@ -181,7 +181,7 @@ function EditorMockup() {
         <div className="lp-browser-dot" style={{ background: "#E5533D" }} />
         <div className="lp-browser-dot" style={{ background: "#F0B429" }} />
         <div className="lp-browser-dot" style={{ background: "#2FBF71" }} />
-        <div className="lp-browser-url">yakipro.com/create-content</div>
+        <div className="lp-browser-url">pro.yakihonne.com/create-content</div>
       </div>
 
       {/* Mirrors .tiptap-shell layout */}

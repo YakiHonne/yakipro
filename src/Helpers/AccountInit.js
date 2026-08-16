@@ -20,7 +20,11 @@ import {
 } from "@/Endpoionts/Auth";
 import { setIsConnected, setLoadingConnectedUser, setNostrUser } from "@/Store/Slices/User";
 import { setUserRelaysCache } from "@/Cache/userRelaysCache";
-import { setSubscriptionStatus, clearSubscriptionStatus } from "@/Store/Slices/Subscription";
+import {
+  setSubscriptionStatus,
+  clearSubscriptionStatus,
+  seedAccountFields,
+} from "@/Store/Slices/Subscription";
 import { getSubscriptionStatus } from "@/Endpoionts/subscription";
 import { resetAccountScopedCaches } from "@/Cache/accountScope";
 
@@ -207,11 +211,13 @@ export const initAppAccount = async () => {
 
       if (sessionMatchesLocal) {
         store.dispatch(setNostrUser(res));
+        store.dispatch(seedAccountFields(res));
         store.dispatch(setIsConnected(true));
       } else {
         const loginRes = await apiLogin({ publicKey: keys.pub, userKeys: keys });
         if (loginRes && loginRes !== false) {
           store.dispatch(setNostrUser(loginRes));
+          store.dispatch(seedAccountFields(loginRes));
           store.dispatch(setIsConnected(true));
         }
       }
@@ -220,6 +226,7 @@ export const initAppAccount = async () => {
         const loginRes = await apiLogin({ publicKey: keys.pub, userKeys: keys });
         if (loginRes && loginRes !== false) {
           store.dispatch(setNostrUser(loginRes));
+          store.dispatch(seedAccountFields(loginRes));
           store.dispatch(setIsConnected(true));
         }
       } catch (err) {
@@ -299,6 +306,7 @@ export const createAccount = async ({ keys, name, picture }) => {
     return false;
   }
   store.dispatch(setNostrUser(loginRes));
+  store.dispatch(seedAccountFields(loginRes));
   store.dispatch(setIsConnected(true));
   store.dispatch(setLoadingConnectedUser(false));
 

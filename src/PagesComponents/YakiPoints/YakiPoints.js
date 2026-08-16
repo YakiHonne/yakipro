@@ -111,52 +111,64 @@ function ProgressCirc({
 const TierDemo = ({ tier, exit }) => {
   const { t } = useTranslation();
   return (
-    <Overlay exit={exit}>
-      <div
-        className="box-pad-h box-pad-v fx-centered fx-col fx-start-h"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Overlay exit={exit} width={450}>
+      <div className="yp-tier-demo box-pad-h box-pad-v fx-centered fx-col fx-start-h slide-up">
         <div className="box-pad-h-s box-pad-v-s">
           <div className={tier.image} style={{ width: "180px" }} />
         </div>
-        <div
-          className="fx-centered fx-col fit-container"
-          style={{ rowGap: "5px" }}
-        >
-          {!tier.locked && <Icon name="celebrate" size={30} />}
-          {tier.locked && (
-            <div className="round-icon">
-              <Icon name="lock" size={30} />
-            </div>
-          )}
-          {!tier.locked && (
-            <p style={{ color: "var(--color-green-main)" }}>{t("As4WVRZ")}</p>
-          )}
-          {tier.locked && <p className="p-secondary-c">{t("ARAXdTM")}</p>}
-          <h3>{t("AdLQkic", { level: tier.min })}</h3>
-          {tier.locked && (
-            <div className="box-pad-h box-pad-v-s fit-container fx-centered fx-col">
-              <ProgressBar
-                total={tier.min}
-                current={tier.currentLevel}
-                full={true}
-              />
-              <p className="p-orange-c ">
-                {t("AfDrjvB", { level: tier.min - tier.currentLevel })}
+        <div className="fx-centered fx-col fit-container">
+          <div
+            className="fx-centered fx-col fit-container"
+            style={{ rowGap: "5px" }}
+          >
+            {!tier.locked && <p style={{ fontSize: "30px" }}>🎉</p>}
+            {tier.locked && (
+              <div className="round-icon">
+                <p style={{ fontSize: "30px", filter: "grayscale(100%)" }}>🔒</p>
+              </div>
+            )}
+
+            {!tier.locked && (
+              <p style={{ color: "var(--color-green-main)" }}>{t("As4WVRZ")}</p>
+            )}
+            {tier.locked && <p className="p-secondary-c">{t("ARAXdTM")}</p>}
+            <h3>{t("AdLQkic", { level: tier.min })}</h3>
+            {tier.locked && (
+              <div className="box-pad-h box-pad-v-s fit-container fx-centered fx-col">
+                <ProgressBar
+                  total={tier.min}
+                  current={tier.currentLevel}
+                  full={true}
+                />
+                <p className="p-orange-c p-medium">
+                  {t("AfDrjvB", { level: tier.min - tier.currentLevel })}
+                </p>
+              </div>
+            )}
+          </div>
+          <ul>
+            {tier.description.map((desc, i) => (
+              <p className="p-secondary-c p-centered" key={i}>
+                {desc}
               </p>
-            </div>
-          )}
+            ))}
+          </ul>
+          <button
+            className="btn btn-small btn-text-gray"
+            onClick={() =>
+              window.open(
+                `https://yakihonne.com/points-system#${tier.display_name.toLowerCase()}`,
+                "_blank",
+                "noopener,noreferrer",
+              )
+            }
+          >
+            {t("AReadMor")}
+          </button>
+          <button className="btn btn-normal btn-full" onClick={exit}>
+            {t("AGLUuNR")}
+          </button>
         </div>
-        <ul>
-          {tier.description.map((desc, i) => (
-            <p className="p-secondary-c p-centered" key={i}>
-              {desc}
-            </p>
-          ))}
-        </ul>
-        <button className="btn btn-normal btn-full" onClick={exit}>
-          {t("AGLUuNR")}
-        </button>
       </div>
     </Overlay>
   );

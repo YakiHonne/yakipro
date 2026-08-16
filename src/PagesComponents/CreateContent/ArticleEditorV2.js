@@ -31,7 +31,6 @@ import DropDown from "@/Components/UI/DropDown";
 import Icon from "@/Components/LucideIcon";
 import Spinner from "@/Components/Spinner";
 import { SelectTabs } from "@/Components/SelectTabs";
-import PremiumFeatureGate from "@/Components/PremiumFeatureGate";
 import { useTranslation } from "react-i18next";
 
 const draftKey = (pub) => `yp-article-draft-v2-${pub || "anon"}`;
@@ -817,8 +816,6 @@ const lowlight = createLowlight(all);
 export default function ArticleEditorV2({ editEvent = null }) {
   const { t } = useTranslation();
   const userKeys = useSelector((state) => state.userKeys);
-  const subscription = useSelector((state) => state.subscription);
-  const isPremiumPlan = subscription?.status?.plan === "premium" && subscription?.status?.active;
   const pub = userKeys?.pub ?? "anon";
 
   const initialDraft = useRef(null);
@@ -840,7 +837,6 @@ export default function ArticleEditorV2({ editEvent = null }) {
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [showSecondReader, setShowSecondReader] = useState(false);
-  const [showAIGate, setShowAIGate] = useState(false);
   const [aiChatPrefill, setAiChatPrefill] = useState("");
   const [diffHunks, setDiffHunks] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -1114,10 +1110,6 @@ export default function ArticleEditorV2({ editEvent = null }) {
               selectedTab={showSecondReader ? 0 : showAIPanel ? 1 : -1}
               tabs={["Second Reader", "Ask AI"]}
               setSelectedTab={(value) => {
-                if (!isPremiumPlan) {
-                  setShowAIGate(true);
-                  return;
-                }
                 if (value === 0 && !showSecondReader) {
                   setShowSecondReader(true);
                   setShowAIPanel(false);
@@ -1291,10 +1283,6 @@ export default function ArticleEditorV2({ editEvent = null }) {
         lastEditedParagraph={lastEditedParagraph}
         suppressInvalidationRef={srSuppressInvalidationRef}
       />
-
-      {showAIGate && (
-        <PremiumFeatureGate feature="ai" onClose={() => setShowAIGate(false)} />
-      )}
     </>
   );
 }

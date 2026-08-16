@@ -328,15 +328,19 @@ function CurrentPlanCard({ status, onCancel, onResume, cancelling, resuming }) {
       >
         <div className="fit-container fx-scattered">
           <h4>Current plan</h4>
-          <PlanBadge plan={status.plan} />
+          {/* A trial is stored as plan "basic", so the badge would advertise a
+              plan the user has not actually bought. The trial banner below is
+              the accurate label. */}
+          {!status.in_trial && <PlanBadge plan={status.plan} />}
         </div>
 
         {status.in_trial && (
           <div
-            className="fit-container round-corner box-pad-h-m box-pad-v-s fx-centered"
+            className="fit-container box-pad-h-m box-pad-v-s fx-centered"
             style={{
               backgroundColor: "rgba(105,123,216,0.1)",
               border: "1px solid var(--color-primary-accent-v2)",
+              borderRadius: "50px",
               columnGap: "8px",
             }}
           >
@@ -391,7 +395,10 @@ function CurrentPlanCard({ status, onCancel, onResume, cancelling, resuming }) {
           </div>
         )}
 
-        {status.last_subscription > 0 && (
+        {/* last_subscription defaults to the account's creation time, so it is
+            set even for someone who never paid. last_payment_method is only
+            written by an actual payment, so it is what gates this row. */}
+        {status.last_payment_method && status.last_subscription > 0 && (
           <div className="fit-container fx-scattered">
             <p className="p-secondary-c">Last payment</p>
             <p>{fmtDate(status.last_subscription)}</p>

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { useRouter } from "next/router";
 import { logoutUser } from "@/Helpers/AccountInit";
@@ -15,20 +16,24 @@ import axios from "axios";
 import useLightningPayment from "@/hooks/useLightningPayment";
 import Icon from "./LucideIcon";
 import { useTranslation } from "react-i18next";
+import {
+  PAYMENT_SHEET_Z_INDEX,
+  PAYMENT_SHEET_CHILD_Z_INDEX,
+} from "./Payment/paymentSheetConstants";
 
 const COMPARE_ROWS = [
-  { label: "Articles & Notes publishing", creator: true, pro: true },
-  { label: "Nostr-native identity", creator: true, pro: true },
-  { label: "Premium content gating", creator: true, pro: true },
-  { label: "Subscriber management", creator: true, pro: true },
-  { label: "Lightning paywall", creator: true, pro: true },
-  { label: "Blossom media storage", creator: "50 GB", pro: "100 GB" },
-  { label: "Analytics history", creator: "3 months", pro: "3 years" },
-  { label: "Drill-down bar click", creator: false, pro: true },
-  { label: "AI Writing Assistant", creator: false, pro: "weekly limit" },
-  { label: "Second Reader AI", creator: false, pro: "weekly limit" },
-  { label: "Energy Mapper", creator: false, pro: "weekly limit" },
-  { label: "Inline diff — accept / reject", creator: false, pro: true },
+  { labelKey: "APrc035", creator: true, pro: true },
+  { labelKey: "APrc036", creator: true, pro: true },
+  { labelKey: "APrc037", creator: true, pro: true },
+  { labelKey: "APrc015", creator: true, pro: true },
+  { labelKey: "APrc016", creator: true, pro: true },
+  { labelKey: "APrc038", creator: "APrc057", pro: "APrc058" },
+  { labelKey: "APrc039", creator: "APrc059", pro: "APrc060" },
+  { labelKey: "APrc040", creator: false, pro: true },
+  { labelKey: "ALPg021", creator: "APrc061", pro: "APrc062" },
+  { labelKey: "APrc041", creator: "APrc061", pro: "APrc062" },
+  { labelKey: "APrc042", creator: "APrc061", pro: "APrc062" },
+  { labelKey: "APrc043", creator: true, pro: true },
 ];
 
 const FAQ_ITEMS = [
@@ -58,7 +63,7 @@ const FAQ_ITEMS = [
   },
 ];
 
-function CellValue({ value }) {
+function CellValue({ value, t }) {
   if (value === true)
     return <Icon name="check" size={20} v={2} isBoldThemeColor />;
   if (value === false)
@@ -75,14 +80,17 @@ function CellValue({ value }) {
         color: "var(--color-primary-accent)",
       }}
     >
-      {value}
+      {t(value)}
     </span>
   );
 }
 
-function useReveal(dep) {
+function useReveal(dep, rootRef) {
   useEffect(() => {
-    const els = document.querySelectorAll(".ip-reveal");
+    if (rootRef && !rootRef.current) return;
+    const scope = rootRef?.current || document;
+    const els = scope.querySelectorAll(".ip-reveal");
+    if (els.length === 0) return;
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -92,11 +100,11 @@ function useReveal(dep) {
           }
         });
       },
-      { threshold: 0.08 },
+      { root: rootRef?.current || null, threshold: 0.08 },
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, [dep]);
+  }, [dep, rootRef]);
 }
 
 function LightningInvoiceOverlay({
@@ -108,21 +116,6 @@ function LightningInvoiceOverlay({
 }) {
   const router = useRouter();
   const { status, data } = useLightningPayment(userPub);
-
-  // Overlay portals into #portal-root at z-index 1000001, but the paywall this is opened from
-  // sits at 1000003 — so the invoice rendered underneath it and was never visible. Lift the
-  // portal container above the paywall while an invoice is on screen, and restore it after.
-  useEffect(() => {
-    const root = document.getElementById("portal-root");
-    if (!root) return;
-    const previous = root.style.zIndex;
-    root.style.position = "relative";
-    root.style.zIndex = "1000005";
-    return () => {
-      root.style.zIndex = previous;
-      root.style.position = "";
-    };
-  }, []);
 
   useEffect(() => {
     if (status !== "paid") return;
@@ -142,7 +135,7 @@ function LightningInvoiceOverlay({
 
   if (status === "paid") {
     return (
-      <Overlay exit={onClose} width={420}>
+      <Overlay exit={onClose} width={420} zIndex={PAYMENT_SHEET_CHILD_Z_INDEX}>
         <div
           className="fx-centered fx-col box-pad-h box-pad-v"
           style={{ rowGap: "20px", textAlign: "center" }}
@@ -198,7 +191,7 @@ function LightningInvoiceOverlay({
   }
 
   return (
-    <Overlay exit={onClose} width={420}>
+    <Overlay exit={onClose} width={420} zIndex={PAYMENT_SHEET_CHILD_Z_INDEX}>
       <div
         className="fx-centered fx-col box-pad-h box-pad-v"
         style={{ rowGap: "18px" }}
@@ -446,18 +439,21 @@ function PricingCards({ isLn, setIsLn, userPub }) {
               className={`lp-pricing-toggle-btn${!isLn ? " active" : ""}`}
               onClick={() => setIsLn(false)}
             >
-              $ USD
+              {t("APrc007")}
             </button>
             <button
               className={`lp-pricing-toggle-btn${isLn ? " active" : ""}`}
               onClick={() => setIsLn(true)}
             >
-              Sats
+              {t("APrc008")}
             </button>
           </div>
         </div>
 
-        <div className="lp-pricing-cards ip-reveal">
+        <div
+          className="lp-pricing-cards ip-reveal"
+          style={{ maxWidth: 780 }}
+        >
           {plans.map((plan, idx) => {
             const isHighlighted = idx === plans.length - 1;
             return (
@@ -476,20 +472,27 @@ function PricingCards({ isLn, setIsLn, userPub }) {
                         >
                           {plan.sats_price?.toLocaleString()}
                         </span>
-                        <span className="lp-plan-period"> sats / month</span>
+                        <span className="lp-plan-period">
+                          {" "}
+                          sats / {t("APrc031")}
+                        </span>
                       </>
                     ) : (
                       <>
                         <span className="lp-plan-amount">${plan.usd_price}</span>
-                        <span className="lp-plan-period"> / month</span>
+                        <span className="lp-plan-period"> / {t("APrc031")}</span>
                       </>
                     )}
                   </div>
                   <div className="lp-plan-sats">
                     {isLn ? (
-                      <span>~${plan.usd_price} / month</span>
+                      <span>
+                        ~${plan.usd_price} / {t("APrc031")}
+                      </span>
                     ) : (
-                      <span>~{plan.sats_price?.toLocaleString()} sats / month</span>
+                      <span>
+                        ~{plan.sats_price?.toLocaleString()} sats / {t("APrc031")}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -510,7 +513,13 @@ function PricingCards({ isLn, setIsLn, userPub }) {
                   disabled={isLoading}
                   onClick={() => handleCheckout(plan)}
                 >
-                  {isLoading ? <Spinner size={14} /> : `Get ${plan.name}`}
+                  {isLoading ? (
+                    <Spinner size={14} />
+                  ) : isHighlighted ? (
+                    t("APrc021")
+                  ) : (
+                    t("APrc006")
+                  )}
                 </button>
               </div>
             );
@@ -536,6 +545,7 @@ function PricingCards({ isLn, setIsLn, userPub }) {
 }
 
 function CompareTable() {
+  const { t } = useTranslation();
   return (
     <section className="lp-section" style={{ background: "transparent" }}>
       <div className="lp-section-inner">
@@ -543,30 +553,34 @@ function CompareTable() {
           className="ip-reveal"
           style={{ textAlign: "center", marginBottom: 40 }}
         >
-          <span className="lp-section-label">Compare plans</span>
+          <span className="lp-section-label">{t("APrc004")}</span>
           <h2 className="lp-section-title" style={{ color: "var(--color-landing-text)" }}>
-            Everything side by side
+            {t("APrc033")}
           </h2>
         </div>
-        <div className="lp-compare-table ip-reveal ip-reveal-d1">
+        <div
+          className="lp-compare-table ip-reveal ip-reveal-d1"
+          style={{ maxWidth: 780, margin: "0 auto" }}
+        >
           <div className="lp-compare-row header">
-            <div className="lp-compare-cell header-cell">Feature</div>
-            <div className="lp-compare-cell center header-cell">Creator</div>
+            <div className="lp-compare-cell header-cell">{t("APrc034")}</div>
+            <div className="lp-compare-cell center header-cell">
+              {t("APrc009")}
+            </div>
             <div
-              className="lp-compare-cell center header-cell"
-              style={{ color: "var(--color-primary-accent)" }}
+              className="lp-compare-cell center header-cell lp-compare-cell-pro"
             >
-              Pro
+              {t("APrc019")}
             </div>
           </div>
           {COMPARE_ROWS.map((row) => (
-            <div key={row.label} className="lp-compare-row">
-              <div className="lp-compare-cell">{row.label}</div>
+            <div key={row.labelKey} className="lp-compare-row">
+              <div className="lp-compare-cell">{t(row.labelKey)}</div>
               <div className="lp-compare-cell center">
-                <CellValue value={row.creator} />
+                <CellValue value={row.creator} t={t} />
               </div>
               <div className="lp-compare-cell center">
-                <CellValue value={row.pro} />
+                <CellValue value={row.pro} t={t} />
               </div>
             </div>
           ))}
@@ -577,6 +591,7 @@ function CompareTable() {
 }
 
 function FaqSection() {
+  const { t } = useTranslation()
   const [openFaq, setOpenFaq] = useState(null);
   return (
     <section className="lp-section" style={{ background: "transparent" }}>
@@ -597,12 +612,15 @@ function FaqSection() {
           className="ip-reveal"
           style={{ textAlign: "center", marginBottom: 40 }}
         >
-          <span className="lp-section-label">FAQ</span>
+          <span className="lp-section-label">{t("APrc005")}</span>
           <h2 className="lp-section-title" style={{ color: "var(--color-landing-text)" }}>
-            Common questions
+            {t("APrc044")}
           </h2>
         </div>
-        <div className="lp-faq ip-reveal ip-reveal-d1">
+        <div
+          className="lp-faq ip-reveal ip-reveal-d1"
+          style={{ maxWidth: 780, margin: "0 auto" }}
+        >
           {FAQ_ITEMS.map((item, i) => (
             <div
               key={i}
@@ -688,16 +706,28 @@ function PricingOverlay({ trialEnded, onBack }) {
   const userMetadata = useSelector((state) => state.userMetadata);
   const userKeys = useSelector((state) => state.userKeys);
   const [isLn, setIsLn] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const scrollRef = useRef(null);
 
-  useReveal(true);
+  useReveal(mounted, scrollRef);
 
-  return (
+  useEffect(() => {
+    setMounted(true);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  const content = (
     <div
+      ref={scrollRef}
       className="ip-root"
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 1000003,
+        zIndex: PAYMENT_SHEET_Z_INDEX,
         width: "100vw",
         height: "100dvh",
         overflowY: "auto",
@@ -707,7 +737,12 @@ function PricingOverlay({ trialEnded, onBack }) {
     >
       {onBack && (
         <div
-          style={{ position: "fixed", top: "20px", left: "20px", zIndex: 1000004 }}
+          style={{
+            position: "fixed",
+            top: "20px",
+            left: "20px",
+            zIndex: PAYMENT_SHEET_Z_INDEX + 1,
+          }}
         >
           <Button
             size="m"
@@ -766,6 +801,10 @@ function PricingOverlay({ trialEnded, onBack }) {
       <FaqSection />
     </div>
   );
+
+  if (!mounted) return null;
+
+  return createPortal(content, document.body);
 }
 
 export default function IsPremium({ children }) {
@@ -819,3 +858,5 @@ export default function IsPremium({ children }) {
     </>
   );
 }
+
+export { PricingOverlay };

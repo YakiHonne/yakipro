@@ -477,6 +477,17 @@
   gap: 18px;
 }
 
+/* YakiPro's global .close is only a flex box, so inside a column overlay it
+   lands centered. V5 positions it at the top-right of the card. */
+/* Positioned against the card edge the way V5 does it (16px in). The overlay's
+   own padding is the offset parent, so these are measured from the padding box. */
+.login-google-overlay > .close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
 .login-google-close {
   position: absolute;
   top: -4px;
@@ -535,7 +546,14 @@
   gap: 10px;
 }
 
-.login-google-setup-actions .btn-normal {
+/* The back arrow is the first child and must stay square; only the submit
+   button grows. Matching on .btn-normal stretched both, since the round
+   back button carries that class too. */
+.login-google-setup-actions .btn:first-child {
+  flex: 0 0 auto;
+}
+
+.login-google-setup-actions .btn:last-child {
   flex: 1;
 }
 /* ─── Signup ───────────────────────────────────────────────────────────────── */
@@ -655,4 +673,279 @@
   padding-left: 14px;
   padding-right: 14px;
   font-size: 0.85rem;
+}
+
+/* Pomegranate (Google login) — ported from YakiV5 custom.css */
+.pom-identity-cards {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+.pom-identity-card {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 14px;
+    border-radius: 16px;
+    border: 1px solid var(--color-primary-bg-side2);
+    text-align: center;
+}
+
+.pom-identity-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    min-width: 0;
+}
+
+.pom-identity-copy p {
+    width: 100%;
+}
+
+.pom-identity-unknown {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 1px dashed var(--color-primary-bg-side2);
+    font-size: 1.7rem;
+    font-weight: 600;
+    color: var(--color-secondary-text);
+}
+
+/* the central hostname makes this label long for a half-width card */
+.pom-identity-card .btn {
+    margin-top: auto;
+    height: auto;
+    min-height: 2.5rem;
+    padding: 8px 14px;
+    font-size: 0.875rem;
+    line-height: 1.3;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 520px) {
+    .pom-identity-cards {
+        flex-direction: column;
+    }
+
+    .pom-identity-card .btn {
+        margin-top: 0;
+    }
+}
+
+/* Warning badge in the unlink confirmation */
+.pom-warning-badge {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-red-main) 12%, transparent);
+    color: var(--color-red-main);
+}
+
+/* Advanced options: operators list and threshold stepper */
+.pom-operator-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-primary-bg-side2);
+}
+
+.pom-operator-row:last-child {
+    border-bottom: none;
+}
+
+.pom-operator-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.pom-operator-remove:hover {
+    opacity: 1;
+    background: color-mix(in srgb, var(--color-red-main) 12%, transparent);
+}
+
+.pom-stepper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.pom-stepper-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    margin: 0;
+    border-radius: 50%;
+    border: 1px solid var(--color-primary-bg-side2);
+    /* bare <button>, so the UA background has to be cleared explicitly or it
+       paints over the icon */
+    background-color: transparent;
+    color: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+    line-height: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.pom-stepper-btn:hover:not(:disabled) {
+    border-color: var(--color-primary-accent);
+}
+
+.pom-stepper-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.pom-stepper-value {
+    min-width: 18px;
+    text-align: center;
+    font-weight: 600;
+}
+
+/* Section labels inside the advanced panel */
+.pom-advanced-toggle {
+    margin-bottom: 12px;
+}
+
+.pom-section-label {
+    margin-bottom: 8px;
+}
+
+/* Suggested operator chips */
+.pom-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pom-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 30px;
+    border: 1px solid var(--color-primary-bg-side2);
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.pom-chip:hover {
+    border-color: var(--color-primary-accent);
+}
+
+.pom-chip p {
+    line-height: 1;
+}
+
+/* Consent checkbox, mirrors the pro onboarding one */
+.pom-consent-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.pom-checkbox-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.pom-checkbox {
+    width: 19px;
+    height: 19px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    border: 1.5px solid rgba(255, 255, 255, 0.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.pom-checkbox.pom-checkbox-on {
+    background-color: var(--color-primary-accent);
+    border-color: var(--color-primary-accent);
+}
+
+/* The fill is the accent colour in every theme, so the tick stays white
+   rather than following the theme's text colour. */
+.pom-checkbox.pom-checkbox-on svg {
+    color: #ffffff;
+    stroke: #ffffff;
+}
+
+.pom-checkbox-input:focus-visible+.pom-checkbox {
+    box-shadow: 0 0 0 3px rgba(247, 88, 22, 0.3);
+}
+
+.pom-consent-label {
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+[data-theme='light'] .pom-checkbox,
+[data-theme='white'] .pom-checkbox {
+    border-color: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme='creamy'] .pom-checkbox {
+    border-color: rgba(180, 150, 110, 0.45);
+}
+
+[data-theme='light'] .pom-consent-label,
+[data-theme='white'] .pom-consent-label {
+    color: rgba(0, 0, 0, 0.75);
+}
+
+[data-theme='creamy'] .pom-consent-label {
+    color: rgba(0, 0, 0, 0.75);
+}
+
+/* Two equal-width actions that shrink instead of overflowing */
+.pom-confirm-actions {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.pom-confirm-actions .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.login-convo-option.selected-option {
+    border: 1px solid var(--color-primary-accent);
+    background: color-mix(in srgb, var(--color-primary-accent) 8%, transparent);
+}
+
+.login-convo-option.selected-option:hover {
+    transform: none;
 }

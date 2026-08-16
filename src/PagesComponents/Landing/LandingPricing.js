@@ -83,13 +83,13 @@ function useCompareRows(t) {
     { label: t("APrc037"), creator: true, pro: true },
     { label: t("APrc015"), creator: true, pro: true },
     { label: t("APrc016"), creator: true, pro: true },
-    { label: t("APrc038"), creator: "50 GB", pro: "100 GB" },
-    { label: t("APrc039"), creator: "3 months", pro: "3 years" },
+    { label: t("APrc038"), creator: t("APrc057"), pro: t("APrc058") },
+    { label: t("APrc039"), creator: t("APrc059"), pro: t("APrc060") },
     { label: t("APrc040"), creator: false, pro: true },
-    { label: t("ALPg021"), creator: false, pro: "Unlimited" },
-    { label: t("APrc041"), creator: false, pro: "5 personas" },
-    { label: t("APrc042"), creator: false, pro: true },
-    { label: t("APrc043"), creator: false, pro: true },
+    { label: t("ALPg021"), creator: t("APrc061"), pro: t("APrc062") },
+    { label: t("APrc041"), creator: t("APrc061"), pro: t("APrc062") },
+    { label: t("APrc042"), creator: t("APrc061"), pro: t("APrc062") },
+    { label: t("APrc043"), creator: true, pro: true },
   ];
 }
 
@@ -105,7 +105,7 @@ function useFaqItems(t) {
 
 function CellValue({ value }) {
   if (value === true)
-    return <span className="lp-compare-yes">Yes</span>;
+    return <Icon name="check" size={20} v={2} isBoldThemeColor />;
   if (value === false)
     return <span className="lp-compare-no">–</span>;
   return <span className="lp-compare-value">{value}</span>;
@@ -169,12 +169,6 @@ export default function LandingPricing() {
                   key={plan.id}
                   className={`lp-plan-card${isHighlighted ? " lp-plan-card-pro" : ""}`}
                 >
-                  {isHighlighted && (
-                    <div style={{ position: "absolute", top: 18, right: 20 }}>
-                      <span className="lp-plan-badge">Most popular</span>
-                    </div>
-                  )}
-
                   <div>
                     <div className="lp-plan-name">{plan.name}</div>
                     <div className="lp-plan-price-row">
@@ -195,6 +189,17 @@ export default function LandingPricing() {
                         </>
                       )}
                     </div>
+                    <div className="lp-plan-sats">
+                      {isLn ? (
+                        <span>
+                          ~${plan.usd_price} / {t("APrc031")}
+                        </span>
+                      ) : (
+                        <span>
+                          ~{plan.sats_price?.toLocaleString()} sats / {t("APrc031")}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="lp-plan-divider" />
@@ -202,12 +207,9 @@ export default function LandingPricing() {
                   <ul className="lp-plan-features">
                     {(plan.perks || []).map((perk) => (
                       <li key={perk} className="lp-plan-feature">
-                        <Icon
-                          name="check"
-                          v={2}
-                          size={14}
-                          className="lp-plan-feature-check"
-                        />
+                        <span className="lp-plan-feature-icon">
+                          <Icon name="check" size={20} v={2} isBoldThemeColor />
+                        </span>
                         <span>{perk}</span>
                       </li>
                     ))}

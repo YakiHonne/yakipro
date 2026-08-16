@@ -333,7 +333,7 @@ export default function RelaysList() {
       const res = await axios.get(
         "https://cache-v2.yakihonne.com/api/v1/relays/nips/63",
       );
-      setNewRelays([...res.data, "wss://team.yakihonne.com"]);
+      setNewRelays([...res.data, "wss://premium.yakihonne.com"]);
       setShowNewRelays(true);
     } catch (err) {
       console.error(err);

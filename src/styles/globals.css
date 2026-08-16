@@ -902,7 +902,7 @@ input[type=number] {
 /* Sticker badges */
 .sticker-gst-gray {
   padding: 5px 10px;
-  border-radius: 10px;
+  border-radius: 50px;
   border: 1px solid var(--color-divider);
   color: var(--color-secondary-text);
   background: transparent;
@@ -920,7 +920,7 @@ input[type=number] {
 
 .sticker-gst-green {
   padding: 5px 10px;
-  border-radius: 10px;
+  border-radius: 50px;
   border: 1px solid var(--color-green-side);
   color: var(--color-green-main);
   background: transparent;
@@ -938,7 +938,7 @@ input[type=number] {
 
 .sticker-gst-red {
   padding: 5px 10px;
-  border-radius: 10px;
+  border-radius: 50px;
   border: 1px solid var(--color-red-side);
   color: var(--color-red-main);
   background: transparent;
@@ -956,7 +956,7 @@ input[type=number] {
 
 .sticker-gst-orange {
   padding: 5px 10px;
-  border-radius: 10px;
+  border-radius: 50px;
   border: 1px solid var(--color-orange-side);
   color: var(--color-orange-main);
   background: transparent;
@@ -974,7 +974,7 @@ input[type=number] {
 
 .sticker-gray {
   padding: 5px 10px;
-  border-radius: 10px;
+  border-radius: 50px;
   color: var(--color-secondary-text);
   background: var(--color-primary-bg-side2);
   font-size: 1rem;
@@ -1441,6 +1441,64 @@ ul {
 
 .round-icon-tooltip:hover::after {
   display: block;
+}
+
+.round-icon {
+  width: 44px;
+  aspect-ratio: 1/1;
+  border: 1px solid var(--color-divider);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: .2s ease-in-out;
+}
+
+.yp-tier-demo p {
+  line-height: 150%;
+}
+
+.yp-tier-demo.fx-col:not([style*="row-gap"]),
+.yp-tier-demo .fx-col:not([style*="row-gap"]) {
+  row-gap: 8px;
+}
+
+.yp-tier-demo ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  row-gap: 8px;
+}
+
+.bronze-tier,
+.silver-tier,
+.gold-tier,
+.platinum-tier {
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  border-radius: 0;
+  aspect-ratio: 1/1;
+  cursor: pointer;
+}
+
+.platinum-tier {
+  background-image: url(https://yakihonne.s3.ap-east-1.amazonaws.com/media/images/platinum-tier.png);
+}
+
+.bronze-tier {
+  background-image: url(https://yakihonne.s3.ap-east-1.amazonaws.com/media/images/bronze-tier.png);
+}
+
+.silver-tier {
+  background-image: url(https://yakihonne.s3.ap-east-1.amazonaws.com/media/images/silver-tier.png);
+}
+
+.gold-tier {
+  background-image: url(https://yakihonne.s3.ap-east-1.amazonaws.com/media/images/gold-tier.png);
 }
 
 .yp-chart-col {

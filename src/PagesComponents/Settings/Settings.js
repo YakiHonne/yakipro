@@ -1,7 +1,6 @@
 import React from "react";
 import { useSelector } from "react-redux";
 import KeysSection from "./KeysSection";
-import Nip05Section from "./Nip05Section";
 import PreferencesSection from "./PreferencesSection";
 import PagePlaceholder from "@/Components/PlaceholderScreens/PagePlaceholder";
 import { pphValues } from "@/Content/PagesPlaceholdersValues";
@@ -51,15 +50,6 @@ export default function Settings() {
                   <h4>Keys</h4>
                 </div>
                 <KeysSection />
-              </div>
-              <div
-                className="fx-centered fx-col fit-container"
-                style={{ rowGap: "16px" }}
-              >
-                <div className="fit-container border-bottom" style={{ paddingBottom: "8px" }}>
-                  <h4>NIP05</h4>
-                </div>
-                <Nip05Section />
               </div>
               <div
                 className="fx-centered fx-col fit-container"

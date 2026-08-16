@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/router";
-import { nip19 } from "nostr-tools";
 import BrandIcon from "@/Components/Icon";
 import Icon from "@/Components/LucideIcon";
 import { logoutUser } from "@/Helpers/AccountInit";
@@ -287,16 +286,7 @@ export default function TopNavbar() {
               className="uplift-dropdown-item"
               onClick={() => {
                 setShowProfileMenu(false);
-                try {
-                  const npub = nip19.npubEncode(userKeys.pub);
-                  window.open(
-                    `https://yakihonne.com/${npub}`,
-                    "_blank",
-                    "noopener,noreferrer",
-                  );
-                } catch (err) {
-                  console.error("[TopNavbar] failed to open profile", err);
-                }
+                router.push("/profile");
               }}
             >
               <Icon name="user_01" v={2} size={18} />

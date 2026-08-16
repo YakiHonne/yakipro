@@ -24,7 +24,8 @@ import { InitEvent } from "@/Helpers/Encryptions";
 import { publishEvent } from "@/Helpers/Helpers";
 import { publishScheduledEvent } from "@/Helpers/EventSchedulerHelper";
 import { getRelayMetadata } from "@/Cache/relayMetadataCache";
-import PremiumFeatureGate from "@/Components/PremiumFeatureGate";
+import useFeatureQuota, { QUOTA_FEATURES } from "@/hooks/useFeatureQuota";
+import useAccessFailure from "@/hooks/useAccessFailure";
 
 const CLIENT_TAG = [
   "client",
@@ -47,8 +48,12 @@ export default function NoteEditor() {
   const { t } = useTranslation();
   const userKeys = useSelector((state) => state.userKeys);
   const userRelays = useSelector((state) => state.userRelays);
-  const subscription = useSelector((state) => state.subscription);
-  const isPremiumPlan = subscription?.status?.plan === "premium" && subscription?.status?.active;
+  const { handleAccessFailure } = useAccessFailure();
+  const { quotas, refresh: refreshUsage } = useFeatureQuota([
+    QUOTA_FEATURES.energyMapper,
+  ]);
+  const energyQuota = quotas[QUOTA_FEATURES.energyMapper];
+  const energyExhausted = !!energyQuota?.exhausted;
 
   const [note, setNote] = useState(() => getNoteDraft());
   const [imetas, setImetas] = useState([]);
@@ -61,7 +66,6 @@ export default function NoteEditor() {
   const [energyData, setEnergyData] = useState(null);
   const [energyLoading, setEnergyLoading] = useState(false);
   const [showEnergyMap, setShowEnergyMap] = useState(false);
-  const [showEnergyGate, setShowEnergyGate] = useState(false);
   const textareaRef = useRef(null);
 
   useEffect(() => {
@@ -204,7 +208,7 @@ export default function NoteEditor() {
 
   const handleEnergyMap = async () => {
     const text = note;
-    if (!text || !text.trim()) return;
+    if (!text || !text.trim() || energyExhausted) return;
     setShowEnergyMap(true);
     setEnergyLoading(true);
     setEnergyData(null);
@@ -212,9 +216,12 @@ export default function NoteEditor() {
       const result = await analyzeNoteEnergy(text);
       setEnergyData(result);
     } catch (err) {
-      console.error("Energy map failed:", err);
+      if (!handleAccessFailure(err, { source: "energy-mapper", autoOpen: false }))
+        console.error("Energy map failed:", err);
+      setShowEnergyMap(false);
     } finally {
       setEnergyLoading(false);
+      refreshUsage();
     }
   };
 
@@ -247,14 +254,19 @@ export default function NoteEditor() {
         </div>
         <Button
           size="m"
-          label={"Energy mapper"}
+          label={energyExhausted ? "Limit reached" : "Energy mapper"}
           type="gray"
           loading={energyLoading}
+          leftIcon={energyExhausted ? "warning" : undefined}
           onClick={() => {
-            if (!isPremiumPlan) { setShowEnergyGate(true); return; }
             handleEnergyMap();
           }}
-          disabled={energyLoading || !note.trim()}
+          disabled={energyLoading || energyExhausted || !note.trim()}
+          style={
+            energyExhausted
+              ? { color: "var(--c1)", cursor: "not-allowed" }
+              : undefined
+          }
         />
       </div>
       <div
@@ -409,10 +421,6 @@ export default function NoteEditor() {
             setShowDatePicker(false);
           }}
         />
-      )}
-
-      {showEnergyGate && (
-        <PremiumFeatureGate feature="ai" onClose={() => setShowEnergyGate(false)} />
       )}
     </div>
   );

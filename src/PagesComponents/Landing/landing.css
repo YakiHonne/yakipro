@@ -408,7 +408,7 @@
 }
 
 .lp-section-label {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -672,7 +672,6 @@
 }
 
 .lp-plan-card {
-  background: var(--color-landing-surface);
   border: 1px solid var(--color-landing-border);
   border-radius: 14px;
   padding: 36px;
@@ -689,11 +688,11 @@
 
 .lp-plan-card-pro {
   border-top: 2px solid var(--color-primary-accent);
-  box-shadow: 0 0 0 1px rgba(238, 119, 0, 0.10), 0 4px 20px rgba(238, 119, 0, 0.07);
+  box-shadow: 0 0 60px rgba(238, 119, 0, 0.12), 0 0 0 1px rgba(238, 119, 0, 0.08);
 }
 
 .lp-plan-card-pro:hover {
-  box-shadow: 0 0 0 1px rgba(238, 119, 0, 0.16), 0 6px 24px rgba(238, 119, 0, 0.11);
+  box-shadow: 0 0 80px rgba(238, 119, 0, 0.18), 0 0 0 1px rgba(238, 119, 0, 0.15);
 }
 
 .lp-plan-name {
@@ -735,6 +734,15 @@
 .lp-plan-period {
   font-size: 0.875rem;
   color: var(--color-landing-text-muted);
+}
+
+.lp-plan-sats {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-primary-accent);
 }
 
 .lp-plan-desc {
@@ -826,8 +834,6 @@
 .lp-compare-cell.header-cell {
   font-weight: 700;
   color: var(--color-landing-text);
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
 }
 
 .lp-compare-cell-pro {
@@ -852,7 +858,7 @@
 .lp-compare-value {
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--color-primary-accent-v2);
+  color: var(--color-primary-accent);
 }
 
 /* FAQ */
@@ -868,6 +874,7 @@
 }
 
 .lp-faq-item {
+  padding: 18px 22px;
   border-bottom: 1px solid var(--color-landing-border);
   cursor: pointer;
   transition: background 0.15s;
@@ -883,9 +890,8 @@
 
 .lp-faq-trigger {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
+  align-items: center;
   gap: 16px;
 }
 
@@ -897,11 +903,10 @@
 }
 
 .lp-faq-icon {
-  color: var(--color-primary-accent);
-  font-size: 1.1rem;
-  font-weight: 900;
-  flex-shrink: 0;
+  font-size: 1.4rem;
+  color: var(--color-landing-text-muted);
   transition: transform 0.2s;
+  flex-shrink: 0;
 }
 
 .lp-faq-icon.open {
@@ -909,10 +914,9 @@
 }
 
 .lp-faq-a {
-  padding: 0 24px 20px;
-  font-size: 0.875rem;
+  margin: 12px 0 0;
+  font-size: 0.85rem;
   color: var(--color-landing-text-muted);
-  margin: 0;
   line-height: 1.65;
 }
 
