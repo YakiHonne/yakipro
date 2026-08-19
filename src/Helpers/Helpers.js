@@ -145,8 +145,15 @@ export const getSubData = async ({
   raw = false,
   cacheUsage = "CACHE_FIRST",
 }) => {
-  const userRelays = [];
-  // const userRelays = relaysOnPlatform;
+  // An empty list means `relayUrls: undefined`, which hands relay choice to NDK's
+  // outbox model — that only finds anything once the account's relays are in the
+  // pool and connected, so on a cold start it queried nothing. YakiV5 falls back
+  // to the platform relays here; this also unions in the account's own, since
+  // notes living only on a personal relay are invisible to the defaults.
+  const accountRelays = (store.getState()?.userRelays || [])
+    .map((relay) => (typeof relay === "string" ? relay : relay?.url))
+    .filter((url) => typeof url === "string" && url.startsWith("wss://"));
+  const userRelays = [...new Set([...relaysOnPlatform, ...accountRelays])];
   if (!filter || filter.length === 0) return { data: [], pubkeys: [] };
 
   return new Promise((resolve) => {
@@ -329,14 +336,32 @@ export const getEventTags = ({
   return tags;
 };
 
-export const publishEvent = async (event, relays = []) => {
+// `exclusive` means "these relays or nothing". NDK falls back to its outbox
+// calculation whenever the relay set it is handed is empty or missing, so a set
+// that failed to resolve would quietly broadcast to the public pool. For premium
+// content that is a paywall leak, not a degraded publish — so it refuses instead.
+export const publishEvent = async (event, relays = [], exclusive = false) => {
   return new Promise((resolve) => {
     let ev = new NDKEvent(ndkInstance, event);
     let relaySet = undefined;
     if (relays.length > 0) {
-      const ndkRelays = relays.map((r) => ndkInstance.pool.getRelay(r));
-      relaySet = new NDKRelaySet(new Set(ndkRelays), ndkInstance);
+      const ndkRelays = relays
+        .map((r) => ndkInstance.pool.getRelay(r))
+        .filter(Boolean);
+      if (ndkRelays.length > 0) {
+        relaySet = new NDKRelaySet(new Set(ndkRelays), ndkInstance);
+      }
     }
+
+    if (exclusive && !relaySet) {
+      console.error(
+        "[publishEvent] refusing exclusive publish: no relays resolved",
+        relays,
+      );
+      resolve(false);
+      return;
+    }
+
     ev.publish(relaySet);
 
     let sub = ndkInstance.subscribe([{ ids: [event.id] }], {

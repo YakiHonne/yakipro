@@ -6,6 +6,7 @@ export const QUOTA_FEATURES = {
   chatArticles: "chat-articles",
   secondReader: "second-reader",
   energyMapper: "energy-mapper",
+  walletCreation: "wallet-creation",
 };
 
 const UNLIMITED = -1;

@@ -32,6 +32,7 @@ export default function YakiNameField({
   badge = false,
   action,
   onChange,
+  onIntercept,
 }) {
   const { t } = useTranslation();
   const hint = disabled ? null : nameHint({ state, reason }, t);
@@ -45,12 +46,15 @@ export default function YakiNameField({
 
   return (
     <div
-      className="fit-container sc-s-18 no-bg box-pad-v-s"
+      className={`fit-container sc-s-18 no-bg box-pad-v-s${
+        onIntercept ? " pointer" : ""
+      }`}
       style={
         accent
           ? { borderColor: `color-mix(in srgb, ${accent} 35%, transparent)` }
           : undefined
       }
+      onClick={onIntercept}
     >
       <div
         className="fx-centered fx-start-h box-pad-h-m"
@@ -78,6 +82,11 @@ export default function YakiNameField({
           placeholder={placeholder}
           value={value}
           disabled={disabled}
+          readOnly={!!onIntercept}
+          // readOnly alone silently swallows typing for anyone who tabbed in;
+          // focusing or typing should surface the same paywall as a click.
+          onFocus={onIntercept}
+          onKeyDown={onIntercept ? (e) => { e.preventDefault(); onIntercept(); } : undefined}
           spellCheck={false}
           autoCapitalize="none"
           autoCorrect="off"

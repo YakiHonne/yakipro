@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { getSubData } from "@/Helpers/Helpers";
+import { waitForRelays } from "@/Helpers/NDKInstance";
 
 const PAGE_SIZE = 20;
 
@@ -13,6 +14,7 @@ const emptyEntry = () => ({
 
 export default function useUserContent(selectedTab, articleKind = 30023) {
   const userKeys = useSelector((state) => state.userKeys);
+  const userRelays = useSelector((state) => state.userRelays);
 
   const kind = selectedTab === 0 ? 1 : articleKind;
   const key = `${selectedTab}-${kind}`;
@@ -44,6 +46,16 @@ export default function useUserContent(selectedTab, articleKind = 30023) {
     e.fetching = true;
     setLoading(true);
 
+    // Wait for the account's relays before asking them anything. A premium relay
+    // answers an unauthenticated REQ with an immediate empty EOSE, so querying
+    // early returns "no notes" rather than an error — and the page then shows an
+    // empty list for an author who has plenty.
+    const relayUrls = (userRelays || [])
+      .map((relay) => (typeof relay === "string" ? relay : relay?.url))
+      .filter(Boolean);
+    const relaysReady = relayUrls.length > 0;
+    if (relaysReady) await waitForRelays(relayUrls);
+
     const filter = [
       {
         kinds: [kind],
@@ -54,11 +66,15 @@ export default function useUserContent(selectedTab, articleKind = 30023) {
     ];
 
     try {
+      // 100ms was far below a relay round-trip. getSubData starts its timer on the
+      // first EOSE when nothing has arrived yet, so the fastest relay answering
+      // "nothing here" ended the whole subscription before the relay that actually
+      // holds the author's notes had replied — an empty content page on every load.
       const [{ data }, { data: deletions }] = await Promise.all([
-        getSubData({ filter, timeout: 100 }),
+        getSubData({ filter, timeout: 2000 }),
         getSubData({
           filter: [{ kinds: [5], authors: [userKeys.pub] }],
-          timeout: 100,
+          timeout: 2000,
         }),
       ]);
 
@@ -74,7 +90,11 @@ export default function useUserContent(selectedTab, articleKind = 30023) {
         deletedIds.has(ev.id) || deletedAddrs.has(`${ev.kind}:${ev.pubkey}:${(ev.tags || []).find((t) => t[0] === "d")?.[1] || ""}`);
 
       if (!data || data.length === 0) {
-        e.hasMore = false;
+        // Only give up on paging for a *real* empty answer. Before the account's
+        // relays are connected the pool can only reach the platform defaults, and
+        // latching hasMore=false there permanently blocks the retry that would
+        // run once they arrive.
+        if (relaysReady) e.hasMore = false;
         bump((n) => n + 1);
         return;
       }
@@ -102,14 +122,18 @@ export default function useUserContent(selectedTab, articleKind = 30023) {
       e.fetching = false;
       setLoading(false);
     }
-  }, [userKeys?.pub, kind, key]);
+  }, [userKeys?.pub, kind, key, userRelays]);
 
+  // userRelays is in the deps deliberately: landing on this page directly runs the
+  // first fetch before the relay list has loaded, and without a re-run when it
+  // arrives the page stayed empty until the component remounted — which is why
+  // navigating away and back "fixed" it.
   useEffect(() => {
     const e = getEntry(key);
     if (userKeys?.pub && e.events.length === 0 && e.hasMore) {
       fetchPage();
     }
-  }, [userKeys?.pub, key]);
+  }, [userKeys?.pub, key, userRelays]);
 
   const sentinelRef = useRef(null);
 

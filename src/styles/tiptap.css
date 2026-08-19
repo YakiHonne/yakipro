@@ -515,7 +515,8 @@
 
 /* ── Selection ───────────────────────────────────────────────────────── */
 .tiptap-content ::selection {
-  background: rgba(247, 88, 22, 0.18);
+  background: var(--color-selection-bg);
+  color: var(--color-selection-text);
 }
 
 /* ── Legacy compat ───────────────────────────────────────────────────── */
@@ -632,7 +633,12 @@
 }
 
 /* ── btn-small (used by ArticleEditorV2 top bar) ─────────────────────── */
-.btn-small {
+/* Scoped to the editor's own rows: as a bare `.btn-small` this rule loaded after
+   globals.css and squared off every small button in the app, including the
+   pill-shaped ones on the profile page. */
+.tiptap-link-row .btn-small,
+.tiptap-image-row .btn-small,
+.tiptap-toolbar .btn-small {
   font-size: 0.8rem;
   padding: 0 14px;
   height: 34px;

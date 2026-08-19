@@ -7,19 +7,20 @@ import PagePlaceholder from "@/Components/PlaceholderScreens/PagePlaceholder";
 import { pphValues } from "@/Content/PagesPlaceholdersValues";
 import Spinner from "@/Components/Spinner";
 import Icon from "@/Components/LucideIcon";
-import { setToPublish, setToast } from "@/Store/Slices/Publishers";
+import { setToast } from "@/Store/Slices/Publishers";
 import { setUserMetadata } from "@/Store/Slices/UserData";
 import { setSubscriptionStatus } from "@/Store/Slices/Subscription";
 import { getSubscriptionStatus } from "@/Endpoionts/subscription";
 import { claimUsername } from "@/Endpoionts/account";
-import { decodeUrlOrAddress, encodeLud06 } from "@/Helpers/Encryptions";
+import { decodeUrlOrAddress, encodeLud06, InitEvent } from "@/Helpers/Encryptions";
 import { FileUpload } from "@/Helpers/FileUpload";
-import { copyText } from "@/Helpers/Helpers";
+import { copyText, publishEvent } from "@/Helpers/Helpers";
 import useAccountAccess from "@/hooks/useAccountAccess";
 import useAccessFailure from "@/hooks/useAccessFailure";
 import useNameClaim from "@/hooks/useNameClaim";
 import YakiNameField from "./YakiNameField";
 import YakiNip05Overlay from "./YakiNip05Overlay";
+import WalletsSection from "./WalletsSection";
 
 function FilePicker({ element, setFile }) {
   const inputRef = React.useRef(null);
@@ -47,11 +48,11 @@ export default function ProfileEdit() {
   const userMetadata = useSelector((state) => state.userMetadata);
   const userKeys = useSelector((state) => state.userKeys);
   const userRelays = useSelector((state) => state.userRelays);
-  const isPublishing = useSelector((state) => state.publishers.isPublishing);
-  const { handleAccessFailure } = useAccessFailure();
+  const { handleAccessFailure, showPaymentSheet } = useAccessFailure();
   const {
     plan,
     active,
+    inTrial,
     username: yakiUsername,
     hasUsername,
     nip05Name,
@@ -62,6 +63,7 @@ export default function ProfileEdit() {
 
   const [claimingUsername, setClaimingUsername] = useState(false);
   const [showNip05Overlay, setShowNip05Overlay] = useState(false);
+  const [showWalletOverlay, setShowWalletOverlay] = useState(false);
 
   const usernameClaim = useNameClaim({
     kind: "username",
@@ -86,60 +88,99 @@ export default function ProfileEdit() {
     triggerEdit();
   }, [userMetadata]);
 
-  useEffect(() => {
-    if (!isPublishing) setIsLoading(false);
-  }, [isPublishing]);
-
   const hasPendingUsername =
     canUseYakiNames && !hasUsername && usernameClaim.claimable;
 
-  const updateInfos = async () => {
-    if (hasPendingUsername) {
-      const claimed = await claimPendingUsername();
-      if (!claimed) return;
-      if (checkMetadata()) return;
+  // Builds the kind 0 to publish by layering edits ON TOP of the full existing
+  // metadata. Only fields the form actually manages are touched, and each one
+  // only when it holds a real edit (`false` is the "untouched" sentinel these
+  // states are initialised with) — so anything the form does not know about, and
+  // anything the user did not change, survives untouched.
+  const buildMetadata = (patch = {}) => {
+    const content = { ...(userMetadata || {}) };
+
+    const edits = {
+      picture: userPicture,
+      banner: userBanner,
+      name: userName,
+      display_name: userDisplayName,
+      about: userAbout,
+      website: userWebsite,
+      nip05: userNip05,
+      lud06: userLud06,
+      lud16: userLud16,
+    };
+
+    for (const [key, value] of Object.entries(edits)) {
+      if (value !== false) content[key] = value;
     }
 
-    let content = { ...userMetadata };
-    content.picture = userPicture !== false ? userPicture : content.picture;
-    content.banner = userBanner !== false ? userBanner : content.banner;
-    content.name = userName !== false ? userName : content.name;
-    content.display_name =
-      userDisplayName !== false ? userDisplayName : content.display_name;
-    content.about = userAbout !== false ? userAbout : content.about || "";
-    content.website =
-      userWebsite !== false ? userWebsite : content.website || "";
-    content.nip05 = userNip05 !== false ? userNip05 : content.nip05;
-    content.lud06 = userLud06 !== false ? userLud06 : content.lud06;
-    content.lud16 = userLud16 !== false ? userLud16 : content.lud16;
+    return { ...content, ...patch };
+  };
 
+  // Publishes directly rather than routing through the global Publishing
+  // component: that indirection is what made the button hang. The spinner was
+  // tied to a Redux `isPublishing` flag owned elsewhere, so if signing never
+  // settled — an ignored extension prompt, a missing signer — the flag stayed
+  // true and the spinner span forever with no way back.
+  const publishMetadata = async (content) => {
+    if (isLoading) return false;
     setIsLoading(true);
-    dispatch(setUserMetadata(content));
-    dispatch(
-      setToPublish({
-        userKeys: userKeys,
+
+    try {
+      const eventInitEx = await InitEvent({
         kind: 0,
         content: JSON.stringify(content),
         tags: [],
-        allRelays: userRelays,
-      }),
-    );
+      });
+
+      // Signing was refused or failed: nothing was published, so the form must
+      // keep the user's edits rather than pretending they landed.
+      if (!eventInitEx) {
+        dispatch(setToast({ type: 2, desc: t("APubFail") }));
+        return false;
+      }
+
+      // Reflect the change locally as soon as it is signed. publishEvent's
+      // read-back can lag by seconds or time out on a slow relay while the event
+      // is perfectly fine, and the form should not sit stale waiting on that.
+      dispatch(setUserMetadata(content));
+
+      const writeUrls = (userRelays || [])
+        .map((relay) => (typeof relay === "string" ? relay : relay?.url))
+        .filter((url) => typeof url === "string" && url.length > 0);
+
+      await publishEvent(eventInitEx, writeUrls);
+
+      dispatch(setToast({ type: 1, desc: t("A8alhKV") }));
+      return true;
+    } catch (err) {
+      console.error("[ProfileEdit] failed to publish metadata", err);
+      dispatch(setToast({ type: 2, desc: t("APubFail") }));
+      return false;
+    } finally {
+      // Always clears, on every path — this is the guarantee the old Redux
+      // round-trip could not make.
+      setIsLoading(false);
+    }
   };
 
-  const publishField = (patch) => {
-    const content = { ...userMetadata, ...patch };
-    setIsLoading(true);
-    dispatch(setUserMetadata(content));
-    dispatch(
-      setToPublish({
-        userKeys: userKeys,
-        kind: 0,
-        content: JSON.stringify(content),
-        tags: [],
-        allRelays: userRelays,
-      }),
-    );
+  const updateInfos = async () => {
+    const metadataChanged = !checkMetadata();
+
+    if (hasPendingUsername) {
+      const claimed = await claimPendingUsername();
+      // A failed claim must not silently drop pending metadata edits, so the
+      // Nostr half still runs; only the username half is abandoned.
+      if (!claimed && !metadataChanged) return;
+    }
+
+    if (!metadataChanged) return;
+
+    await publishMetadata(buildMetadata());
   };
+
+  const publishField = (patch) => publishMetadata(buildMetadata(patch));
 
   const refreshAccount = async () => {
     try {
@@ -186,28 +227,52 @@ export default function ProfileEdit() {
     }
   };
 
+  const handleUseWallet = (address) => {
+    handleLUD16({ target: { value: address } });
+  };
+
   const handleUseNip05 = (address) => {
     setUserNip05(address);
     publishField({ nip05: address });
     refreshAccount();
   };
 
+  // Every keystroke lands here, so most values are half-typed addresses. Both the
+  // bech32 decode and the LNURL round-trip throw on those; letting either escape
+  // takes down the whole edit form, so nothing here may reject.
   const handleLUD16 = async (e) => {
-    let add = e.target.value;
-
-    let tempAdd = encodeLud06(decodeUrlOrAddress(add));
+    const add = e.target.value;
     setUserLud16(add);
 
-    if (!tempAdd) setUserLud06("");
-    if (tempAdd) {
-      let data = await axios.get(decodeUrlOrAddress(add));
-
-      let metadata = JSON.parse(data.data.metadata);
-      metadata = metadata.find((_) => _[0].includes("identifier"));
-
-      if (metadata) setUserLud16(metadata[1]);
-      setUserLud06(tempAdd);
+    let endpoint = "";
+    try {
+      endpoint = decodeUrlOrAddress(add) || "";
+    } catch {
+      endpoint = "";
     }
+
+    // lud06 is derived from lud16, so it tracks that field. Mirror triggerEdit's
+    // seeding exactly when there is nothing to encode: writing "" where the seed
+    // left undefined reads as a change and publishes an empty lud06 into kind 0
+    // for an account that never had one.
+    const tempAdd = endpoint ? encodeLud06(endpoint) : "";
+    if (!tempAdd) {
+      setUserLud06(add ? "" : userMetadata?.lud06);
+      return;
+    }
+
+    setUserLud06(tempAdd);
+
+    // Resolving the LNURL only upgrades the typed value to the address the server
+    // reports; a failure here is not worth surfacing while the user is still typing.
+    try {
+      const { data } = await axios.get(endpoint);
+      const metadata = JSON.parse(data.metadata);
+      const identifier = metadata.find((entry) =>
+        entry[0].includes("identifier"),
+      );
+      if (identifier) setUserLud16(identifier[1]);
+    } catch {}
   };
 
   const uploadImages = async (data, kind) => {
@@ -245,7 +310,10 @@ export default function ProfileEdit() {
     setUserNip05(userMetadata.nip05);
     setUserLud16(userMetadata.lud16);
     setUserLud06(userMetadata.lud06);
-    setIsLoading(false);
+    // Deliberately does NOT touch isLoading: this runs on every userMetadata
+    // change, including the optimistic dispatch made mid-publish, and clearing
+    // the flag there would drop the spinner while the event is still in flight.
+    // publishMetadata's finally owns that state now.
   };
 
   const checkMetadata = () => {
@@ -258,6 +326,7 @@ export default function ProfileEdit() {
     tempUserMetadata.about = userAbout;
     tempUserMetadata.nip05 = userNip05;
     tempUserMetadata.lud16 = userLud16;
+    tempUserMetadata.lud06 = userLud06;
 
     return JSON.stringify(userMetadata) === JSON.stringify(tempUserMetadata);
   };
@@ -265,8 +334,20 @@ export default function ProfileEdit() {
   const nothingToUpdate = () =>
     checkMetadata() && !hasPendingUsername && !claimingUsername;
 
+  // Separate from nothingToUpdate: while a publish is in flight there IS something
+  // to update, but the button must not accept a second click and sign the same
+  // event twice.
+  const isBusy = isLoading || claimingUsername || isImageUploading;
+
   return (
     <>
+      {showWalletOverlay && (
+        <WalletsSection
+          currentLud16={userLud16}
+          onUse={handleUseWallet}
+          exit={() => setShowWalletOverlay(false)}
+        />
+      )}
       {showNip05Overlay && (
         <YakiNip05Overlay
           pubkey={userKeys?.pub}
@@ -409,7 +490,7 @@ export default function ProfileEdit() {
                         <div className="box-pad-v-s fx-centered fx-col fit-container">
                           <div
                             className="fx-centered fx-col fit-container"
-                            style={{ columnGap: "10px", rowGap: "10px" }}
+                            style={{ columnGap: "10px", rowGap: "16px" }}
                           >
                             {canUseYakiNames && (
                               <>
@@ -450,13 +531,18 @@ export default function ProfileEdit() {
                                     state={usernameClaim.state}
                                     reason={usernameClaim.reason}
                                     onChange={usernameClaim.onChange}
+                                    onIntercept={
+                                      inTrial
+                                        ? () => showPaymentSheet("username")
+                                        : undefined
+                                    }
                                   />
                                 )}
                               </>
                             )}
                             <div
                               className="fx-centered fit-container fx-start-v profile-edit-row"
-                              style={{ columnGap: "10px" }}
+                              style={{ columnGap: "10px", rowGap: "16px" }}
                             >
                               <div className="fit-container sc-s-18 no-bg box-pad-v-s">
                                 <p className="p-medium gray-c box-pad-h-m">
@@ -541,7 +627,11 @@ export default function ProfileEdit() {
                                     <button
                                       className="btn btn-small btn-gray"
                                       style={{ minWidth: "max-content" }}
-                                      onClick={() => setShowNip05Overlay(true)}
+                                      onClick={() =>
+                                        inTrial
+                                          ? showPaymentSheet("nip05")
+                                          : setShowNip05Overlay(true)
+                                      }
                                     >
                                       {t("AikNyQn")}
                                     </button>
@@ -562,6 +652,15 @@ export default function ProfileEdit() {
                                     value={userLud16 || ""}
                                     onChange={handleLUD16}
                                   />
+                                </div>
+                                <div className="box-pad-h-m">
+                                  <button
+                                    className="btn btn-small btn-gray"
+                                    style={{ minWidth: "max-content" }}
+                                    onClick={() => setShowWalletOverlay(true)}
+                                  >
+                                    {t("AWltTitle")}
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -608,7 +707,7 @@ export default function ProfileEdit() {
                           </div>
                           <div
                             className="fx-centered fit-container box-marg fx-col"
-                            style={{ gap: "10px" }}
+                            style={{ gap: "12px", marginTop: "1rem" }}
                           >
                             <div
                               className="fx-centered fit-container"
@@ -616,12 +715,12 @@ export default function ProfileEdit() {
                             >
                               <button
                                 className={`btn btn-normal fx fit-container ${
-                                  nothingToUpdate() && !isImageUploading
+                                  nothingToUpdate() || isBusy
                                     ? "btn-disabled"
                                     : ""
                                 }`}
                                 onClick={updateInfos}
-                                disabled={nothingToUpdate()}
+                                disabled={nothingToUpdate() || isBusy}
                               >
                                 {isLoading || claimingUsername ? (
                                   <Spinner />

@@ -17,10 +17,7 @@ export default function Subscription() {
 
   return (
     <IsUserOnline>
-      <div
-        className="fit-container box-pad-h-m box-pad-v-m fx-gap-v-m fx-col no-scrollbar"
-        style={{ height: "100dvh", overflow: "scroll" }}
-      >
+      <div className="fit-container box-pad-h-m box-pad-v-m fx-gap-v-m fx-col no-scrollbar">
         <div className="fit-container fx-col" style={{ gap: "0.35rem" }}>
           <h1 style={{ margin: 0 }}>{t("AVG3Uga")}</h1>
           <p className="p-secondary-c" style={{ margin: 0, maxWidth: "68ch" }}>

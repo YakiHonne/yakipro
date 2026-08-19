@@ -7,6 +7,7 @@ import UploadModal from "./UploadModal";
 import Button from "@/Components/UI/Button";
 import Input from "@/Components/UI/Input";
 import Icon from "@/Components/LucideIcon";
+import YakiBlossomCard, { YAKI_BLOSSOM } from "./YakiBlossomCard";
 
 export default function MediaPage() {
   const {
@@ -16,6 +17,8 @@ export default function MediaPage() {
     isBlobsLoading,
     blossomColors,
     refreshLists,
+    yakiUsage,
+    isYakiUsageLoading,
   } = useBlossomManagement();
 
   const [selectedServer, setSelectedServer] = useState(null); // null = all
@@ -104,6 +107,7 @@ export default function MediaPage() {
             {userBlossomServers.length > 0 && (
               <Select
                 value={selectedServer ?? "__all__"}
+                isColoredIcons
                 onChange={(v) => setSelectedServer(v === "__all__" ? null : v)}
                 options={[
                   {
@@ -122,6 +126,7 @@ export default function MediaPage() {
                   },
                   ...userBlossomServers.map((server, i) => ({
                     value: server,
+                    iconRight: server === YAKI_BLOSSOM ? "crown" : undefined,
                     display_name: (
                       <div
                         className="fx-centered fx-start-h"
@@ -162,13 +167,31 @@ export default function MediaPage() {
         {/* Server filter */}
 
 
-        {/* Storage title + Search */}
+        {/* Yakihonne's server: always present, and stays put while the list
+            scrolls so the storage figure never leaves the screen. */}
+        <div
+          className="fit-container"
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 2,
+            backgroundColor: "var(--color-primary-bg)",
+            paddingBottom: "4px",
+          }}
+        >
+          <YakiBlossomCard used={yakiUsage} isLoading={isYakiUsageLoading} />
+        </div>
+
+        {/* Storage title + Search. The consumed-storage line is dropped when our
+            own server is the selection — the card above already states it. */}
         {allBlobs.length > 0 && (
           <div
             className="fit-container"
             style={{ display: "flex", flexDirection: "column", gap: "8px" }}
           >
-            <h4 style={{ margin: 0 }}>{storageTitle}</h4>
+            {selectedServer !== YAKI_BLOSSOM && (
+              <h4 style={{ margin: 0 }}>{storageTitle}</h4>
+            )}
             <Input
               placeholder={"Search by type or hash…"}
               value={search}

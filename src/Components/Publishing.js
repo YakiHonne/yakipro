@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { NDKEvent } from "@nostr-dev-kit/ndk";
+import { NDKEvent, NDKRelaySet } from "@nostr-dev-kit/ndk";
 import { ndkInstance } from "@/Helpers/NDKInstance";
 import { setToPublish, setIsPublishing, setToast } from "@/Store/Slices/Publishers";
 
@@ -24,8 +24,14 @@ export default function Publishing() {
 
         await event.sign();
 
-        const relays = userRelays.length > 0 ? userRelays : undefined;
-        const publishedTo = await event.publish(relays);
+        const writeUrls = (userRelays || [])
+          .map((relay) => (typeof relay === "string" ? relay : relay?.url))
+          .filter((url) => typeof url === "string" && url.length > 0);
+        const relaySet =
+          writeUrls.length > 0
+            ? NDKRelaySet.fromRelayUrls(writeUrls, ndkInstance)
+            : undefined;
+        const publishedTo = await event.publish(relaySet);
 
         console.log("[Publishing] Success:", publishedTo);
         dispatch(setToast({ type: 1, desc: "Event published successfully!" }));

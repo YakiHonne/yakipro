@@ -7,6 +7,10 @@ import { useDispatch } from "react-redux";
 import { getSubData, sleepTimer } from "@/Helpers/Helpers";
 import { setToast } from "@/Store/Slices/Extras";
 import { InitEvent } from "@/Helpers/Encryptions";
+import {
+  getRelayMembership,
+  setRelayMembership,
+} from "@/Cache/relayMembershipCache";
 
 export default function useRelaysAccess({ relay }) {
   const dispatch = useDispatch();
@@ -24,11 +28,23 @@ export default function useRelaysAccess({ relay }) {
         relayMetadata.supported_nips.includes(63);
       if (isLocked) {
         setIsMembershipRequired(true);
+
+        // Answered once per account per relay: without this every mount of a
+        // relay row re-ran the same 2s subscription, so simply reopening the
+        // relays screen paid the full round-trip again for relays already known.
+        const cached = getRelayMembership(relay);
+        if (cached !== null) {
+          setIsMember(cached);
+          setIsRelayAccessLoading(false);
+          return;
+        }
+
         setIsRelayAccessLoading(true);
         checkMember({
           relayPubkey: relayMetadata.self || relayMetadata.pubkey,
           userPubkey: userKeys.pub,
         }).then((status) => {
+          setRelayMembership(relay, status);
           setIsMember(status);
           setIsRelayAccessLoading(false);
         });
@@ -55,7 +71,7 @@ export default function useRelaysAccess({ relay }) {
           "#p": [userPubkey],
         },
       ],
-      timeout: 50,
+      timeout: 2000,
       relayUrls: [relay],
       cacheUsage: "ONLY_RELAY",
     });
@@ -83,6 +99,7 @@ export default function useRelaysAccess({ relay }) {
     let status = await publishToRelay({ event: eventInitEx, relay });
     if (status) {
       let v = await verifyMembership();
+      setRelayMembership(relay, v);
       setIsMember(v);
     }
     setIsRelayAccessLoading(false);
@@ -127,7 +144,7 @@ export default function useRelaysAccess({ relay }) {
           authors: [relayMetadata.self || relayMetadata.pubkey],
         },
       ],
-      timeout: 50,
+      timeout: 2000,
       relayUrls: [relay],
     });
     if (data.data.length > 0) {
@@ -155,6 +172,7 @@ export default function useRelaysAccess({ relay }) {
     let status = await publishToRelay({ event: eventInitEx, relay });
     if (status) {
       let v = await verifyMembership();
+      setRelayMembership(relay, v);
       setIsMember(v);
     }
     setIsRelayAccessLoading(false);
@@ -170,7 +188,7 @@ export default function useRelaysAccess({ relay }) {
       if (status) {
         return true;
       }
-      sleepTimer(1000);
+      await sleepTimer(1000);
       attempt++;
     }
     return false;

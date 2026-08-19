@@ -12,7 +12,12 @@ import Toggle from "@/Components/Toggle";
 import Button from "@/Components/UI/Button";
 import { InitEvent } from "@/Helpers/Encryptions";
 import { publishEvent } from "@/Helpers/Helpers";
-import { getRelayMetadata } from "@/Cache/relayMetadataCache";
+import usePlans from "@/hooks/usePlans";
+import PublishResultOverlay from "@/Components/PublishResultOverlay";
+import PremiumRequirementsOverlay, {
+  isPremiumWarningDismissed,
+} from "@/Components/PremiumRequirementsOverlay";
+import { resolvePremiumRelays } from "@/Helpers/PremiumRelays";
 
 const CLIENT_TAG = [
   "client",
@@ -68,7 +73,11 @@ export default function ArticlePublishModalV2({
   const [isCoverUploading, setIsCoverUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const [publishedEvent, setPublishedEvent] = useState(null);
+  const [premiumGate, setPremiumGate] = useState(null);
   const coverInputRef = useRef(null);
+  const { plans } = usePlans();
+  const hasMonetization = !!(plans?.isFiatEnable || plans?.isLnEnabled);
 
   const words = wordCount(postContent);
   const mins = readTime(postContent);
@@ -89,6 +98,19 @@ export default function ArticlePublishModalV2({
     if (file) uploadCover(file);
   };
 
+  // Warns when the author opts into premium, while the setup can still be fixed.
+  // The toggle always flips — publishing enforces the hard requirement separately.
+  const handlePremiumToggle = async (next) => {
+    setIsPremium(next);
+    if (!next || isPremiumWarningDismissed()) return;
+
+    const premiumRelays = await resolvePremiumRelays(userRelays);
+    const hasPremiumRelays = premiumRelays.length > 0;
+    if (!hasPremiumRelays || !hasMonetization) {
+      setPremiumGate({ hasPremiumRelays, hasMonetization });
+    }
+  };
+
   const publish = async (kind = 30023) => {
     if (!title?.trim()) {
       dispatch(setToast({ type: 2, desc: "Title is required." }));
@@ -98,6 +120,16 @@ export default function ArticlePublishModalV2({
       dispatch(setToast({ type: 2, desc: "Article content is empty." }));
       return;
     }
+    const premiumRelays = await resolvePremiumRelays(userRelays);
+
+    // The prerequisites warning fires on the toggle, not here. This remains a hard
+    // stop though: an empty relay list would fall back to the default pool and
+    // leak paywalled content.
+    if (isPremium && premiumRelays.length === 0) {
+      dispatch(setToast({ type: 2, desc: t("AsXohpb") }));
+      return;
+    }
+
     setIsLoading(true);
 
     const created_at = Math.floor(Date.now() / 1000);
@@ -135,38 +167,44 @@ export default function ArticlePublishModalV2({
       ...imetas.map(cloneTag),
     ];
 
-    const premiumRelays = userRelays
-      .filter((r) => {
-        const metadata = getRelayMetadata(r.url);
-        return metadata?.supported_nips?.includes(63) && (r.read || r.write);
-      })
-      .map((r) => r.url);
-
-    // An empty relay list makes publishEvent fall back to the default pool, which
-    // would push paywalled article content to every public relay. Stop first.
-    if (isPremium && premiumRelays.length === 0) {
-      dispatch(setToast({ type: 2, desc: t("AsXohpb") }));
-      setIsLoading(false);
-      return;
-    }
-
     const eventInitEx = await InitEvent({ kind, content: eventContent, tags });
     if (!eventInitEx) {
       setIsLoading(false);
       return;
     }
 
-    const relaysToPublish = isPremium ? premiumRelays : [];
-    const success = await publishEvent(eventInitEx, relaysToPublish);
+    // Same as notes: a normal article goes to the author's own write relays
+    // rather than letting NDK's outbox model pick, so the content page can find
+    // it again. Premium stays restricted to the NIP-63 relays.
+    const writeRelays = (userRelays || [])
+      .filter((r) => r.write !== false)
+      .map((r) => (typeof r === "string" ? r : r?.url))
+      .filter(Boolean);
+    const relaysToPublish = isPremium ? premiumRelays : writeRelays;
+    // exclusive for premium: these relays or the publish fails, never the public
+    // pool.
+    const success = await publishEvent(eventInitEx, relaysToPublish, isPremium);
 
     setIsLoading(false);
-    dispatch(
-      setToast({
-        type: 1,
-        desc: kind === 30024 ? "Draft saved!" : "Article published!",
-      }),
-    );
-    exit();
+
+    if (!success) {
+      dispatch(setToast({ type: 2, desc: t("APubFail") }));
+      return;
+    }
+
+    // A draft has nothing to show off and no public address to link to, so it
+    // keeps the plain toast; only a real publish gets the preview overlay.
+    if (kind === 30024) {
+      dispatch(setToast({ type: 1, desc: "Draft saved!" }));
+      exit();
+      return;
+    }
+
+    // The d tag is regenerated per publish, so leaving the composed fields in
+    // place would stage a second, separate article on the next open rather than
+    // an edit of this one.
+    setIsPremium(false);
+    setPublishedEvent(eventInitEx);
   };
 
   const parsedTags = tagsInput
@@ -174,7 +212,35 @@ export default function ArticlePublishModalV2({
     .map((t) => t.trim().toLowerCase())
     .filter(Boolean);
 
+  if (publishedEvent) {
+    return (
+      <PublishResultOverlay
+        event={publishedEvent}
+        kind="article"
+        article={{
+          title,
+          summary,
+          image: coverUrl,
+          isPremium,
+          readTime: mins,
+        }}
+        exit={() => {
+          setPublishedEvent(null);
+          exit();
+        }}
+      />
+    );
+  }
+
   return (
+    <>
+    {premiumGate && (
+      <PremiumRequirementsOverlay
+        hasPremiumRelays={premiumGate.hasPremiumRelays}
+        hasMonetization={premiumGate.hasMonetization}
+        exit={() => setPremiumGate(null)}
+      />
+    )}
     <Overlay exit={exit} width={600}>
       <div className="fx-centered fx-col fit-container fx-gap-v-l">
         <div className="fit-container box-pad-h-m box-pad-v-m ">
@@ -386,7 +452,7 @@ export default function ArticlePublishModalV2({
             <Toggle
               small
               status={isPremium}
-              setStatus={(val) => setIsPremium(val)}
+              setStatus={handlePremiumToggle}
             />
           </div>
           <div className="fx-centered fx-gap-h">
@@ -406,5 +472,6 @@ export default function ArticlePublishModalV2({
         </div>
       </div>
     </Overlay>
+    </>
   );
 }

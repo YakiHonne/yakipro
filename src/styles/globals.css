@@ -12,11 +12,13 @@ body {
   background-color: var(--color-background);
   color: var(--color-text);
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  font-weight: 400;
   font-optical-sizing: none;
   line-height: 1.6;
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  text-shadow: rgba(0, 0, 0, .3) 0 0 1px;
 }
 
 .no-scrollbar::-webkit-scrollbar,
@@ -81,7 +83,7 @@ h4 {
 p,
 ul {
   font-family: var(--font-inter), sans-serif;
-  font-weight: 300;
+  font-weight: 400;
   margin: 0;
 }
 
@@ -1024,7 +1026,7 @@ input[type=number] {
 .table-container table thead th {
   background: transparent;
   font-family: var(--font-inter);
-  font-weight: 300;
+  font-weight: 400;
   color: var(--color-secondary-text);
   text-align: start;
 }
@@ -1034,7 +1036,7 @@ input[type=number] {
   background: transparent;
   font-size: 1rem;
   font-family: var(--font-inter);
-  font-weight: 300;
+  font-weight: 400;
 }
 
 .table-container table tbody tr:last-child {

@@ -24,8 +24,14 @@ import { InitEvent } from "@/Helpers/Encryptions";
 import { publishEvent } from "@/Helpers/Helpers";
 import { publishScheduledEvent } from "@/Helpers/EventSchedulerHelper";
 import { getRelayMetadata } from "@/Cache/relayMetadataCache";
+import { resolvePremiumRelays } from "@/Helpers/PremiumRelays";
 import useFeatureQuota, { QUOTA_FEATURES } from "@/hooks/useFeatureQuota";
 import useAccessFailure from "@/hooks/useAccessFailure";
+import usePlans from "@/hooks/usePlans";
+import PublishResultOverlay from "@/Components/PublishResultOverlay";
+import PremiumRequirementsOverlay, {
+  isPremiumWarningDismissed,
+} from "@/Components/PremiumRequirementsOverlay";
 
 const CLIENT_TAG = [
   "client",
@@ -54,6 +60,8 @@ export default function NoteEditor() {
   ]);
   const energyQuota = quotas[QUOTA_FEATURES.energyMapper];
   const energyExhausted = !!energyQuota?.exhausted;
+  const { plans } = usePlans();
+  const hasMonetization = !!(plans?.isFiatEnable || plans?.isLnEnabled);
 
   const [note, setNote] = useState(() => getNoteDraft());
   const [imetas, setImetas] = useState([]);
@@ -66,6 +74,8 @@ export default function NoteEditor() {
   const [energyData, setEnergyData] = useState(null);
   const [energyLoading, setEnergyLoading] = useState(false);
   const [showEnergyMap, setShowEnergyMap] = useState(false);
+  const [publishedEvent, setPublishedEvent] = useState(null);
+  const [premiumGate, setPremiumGate] = useState(null);
   const textareaRef = useRef(null);
 
   useEffect(() => {
@@ -99,6 +109,20 @@ export default function NoteEditor() {
     }, 0);
   };
 
+  // Warns at the moment the author opts into premium, while there is still time to
+  // fix the setup. The toggle itself always flips: this is information, not a
+  // veto — publishing enforces the hard requirement separately.
+  const handlePremiumToggle = async (next) => {
+    setIsPremium(next);
+    if (!next || isPremiumWarningDismissed()) return;
+
+    const premiumRelays = await resolvePremiumRelays(userRelays);
+    const hasPremiumRelays = premiumRelays.length > 0;
+    if (!hasPremiumRelays || !hasMonetization) {
+      setPremiumGate({ hasPremiumRelays, hasMonetization });
+    }
+  };
+
   const publishNote = async () => {
     if (isLoading || !userKeys) return;
     if (!note.trim()) {
@@ -108,23 +132,18 @@ export default function NoteEditor() {
       return;
     }
 
-    setIsLoading(true);
+    const premiumRelays = await resolvePremiumRelays(userRelays);
 
-    const premiumRelays = userRelays
-      .filter((r) => {
-        const metadata = getRelayMetadata(r.url);
-        return metadata?.supported_nips?.includes(63) && (r.read || r.write);
-      })
-      .map((r) => r.url);
-
-    // Publishing premium content with an empty relay list falls through to NDK's
-    // default pool — i.e. it would broadcast paywalled content to every public
-    // relay. Refuse instead: no premium relay means there is nowhere safe to put it.
+    // The prerequisites warning fires when the toggle is switched on, not here —
+    // finding out at publish time is too late to be useful. This remains a hard
+    // stop though: with no NIP-63 relay the note would fall through to NDK's
+    // default pool, broadcasting paywalled content to every public relay.
     if (isPremium && premiumRelays.length === 0) {
       dispatch(setToast({ type: 2, desc: t("AsXohpb") }));
-      setIsLoading(false);
       return;
     }
+
+    setIsLoading(true);
 
     const { content, tags: contentTags } = extractNip19(note);
     const filteredImetas = filterImetas({ note, imetas });
@@ -147,7 +166,15 @@ export default function NoteEditor() {
       return;
     }
 
-    const relaysToPublish = isPremium ? premiumRelays : [];
+    // A normal note goes to the author's own write relays. Passing [] instead
+    // handed the choice to NDK's outbox model, which could place the note on
+    // relays the content page never reads — the note existed but was invisible.
+    // Premium stays restricted to the NIP-63 relays.
+    const writeRelays = (userRelays || [])
+      .filter((r) => r.write !== false)
+      .map((r) => (typeof r === "string" ? r : r?.url))
+      .filter(Boolean);
+    const relaysToPublish = isPremium ? premiumRelays : writeRelays;
 
     if (scheduledAt) {
       const scheduled = await publishScheduledEvent({
@@ -168,7 +195,19 @@ export default function NoteEditor() {
       }
       dispatch(setToast({ type: 1, desc: "Note scheduled." }));
     } else {
-      await publishEvent(eventInitEx, relaysToPublish);
+      // exclusive for premium: these relays or the publish fails, never the
+      // public pool.
+      const published = await publishEvent(
+        eventInitEx,
+        relaysToPublish,
+        isPremium,
+      );
+      if (!published) {
+        dispatch(setToast({ type: 2, desc: t("APubFail") }));
+        setIsLoading(false);
+        return;
+      }
+      setPublishedEvent(eventInitEx);
     }
 
     updateNoteDraft("");
@@ -236,6 +275,21 @@ export default function NoteEditor() {
   );
 
   return (
+    <>
+    {publishedEvent && (
+      <PublishResultOverlay
+        event={publishedEvent}
+        kind="note"
+        exit={() => setPublishedEvent(null)}
+      />
+    )}
+    {premiumGate && (
+      <PremiumRequirementsOverlay
+        hasPremiumRelays={premiumGate.hasPremiumRelays}
+        hasMonetization={premiumGate.hasMonetization}
+        exit={() => setPremiumGate(null)}
+      />
+    )}
     <div
       className="fit-container round-corner-m border-all fx-centered fx-col fx-start-v"
       style={{ overflow: "visible" }}
@@ -383,7 +437,7 @@ export default function NoteEditor() {
             <Icon name={"crown"} />
             <p>Premium content</p>
 
-            <Toggle status={isPremium} setStatus={setIsPremium} small />
+            <Toggle status={isPremium} setStatus={handlePremiumToggle} small />
           </div>
         </div>
 
@@ -423,5 +477,6 @@ export default function NoteEditor() {
         />
       )}
     </div>
+    </>
   );
 }

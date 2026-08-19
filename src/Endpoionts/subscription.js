@@ -28,6 +28,11 @@ export const changeSubscriptionPlan = async ({ new_plan, new_price_id }) => {
   return data;
 };
 
+export const getCreatorPaymentHistory = async () => {
+  const { data } = await axiosInstance.get("/api/v1/creator/payment-history");
+  return data;
+};
+
 export const cancelPendingChange = async () => {
   const { data } = await axiosInstance.post("/api/v1/subscription-change-cancel");
   return data;

@@ -3,7 +3,8 @@ import Select from "@/Components/UI/Select";
 import Spinner from "@/Components/Spinner";
 import useUserContent from "@/hooks/useUserContent";
 import useScheduledEvents from "@/hooks/useScheduledEvents";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import ArticleCard from "./ArticleCard";
 import NoteCard from "./NoteCard";
@@ -18,9 +19,20 @@ const NOTE_FILTER_OPTIONS = [
 
 export default function Content() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [selectedTab, setSelectedTab] = useState(0);
   const [articleKind, setArticleKind] = useState(30023);
   const [noteFilter, setNoteFilter] = useState("published");
+  // Landing here from the publish overlay carries ?tab=, so the author sees the
+  // list their content actually went into. Read on router readiness rather than
+  // on mount: query is empty during the first render of a client-side nav.
+  useEffect(() => {
+    if (!router.isReady) return;
+    const tab = router.query.tab;
+    if (tab === "articles") setSelectedTab(1);
+    else if (tab === "notes") setSelectedTab(0);
+  }, [router.isReady, router.query.tab]);
+
   const { events, loading, hasMore, sentinelRef, refresh } = useUserContent(selectedTab, articleKind);
   const { scheduledEvents, loading: scheduledLoading } = useScheduledEvents();
   const [deletedIds, setDeletedIds] = useState(new Set());

@@ -19,6 +19,8 @@ import { getEventTags, publishEvent } from "@/Helpers/Helpers";
 import { InitEvent } from "@/Helpers/Encryptions";
 import { useDispatch } from "react-redux";
 import { setToast } from "@/Store/Slices/Extras";
+import useAccountAccess from "@/hooks/useAccountAccess";
+import useAccessFailure from "@/hooks/useAccessFailure";
 
 export default function SubPlansTab() {
   const { t } = useTranslation();
@@ -39,6 +41,19 @@ export default function SubPlansTab() {
   const [scPricings, setScPricings] = useState([]);
   const [lightningPricings, setLightningPricings] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { inTrial } = useAccountAccess();
+  const { showPaymentSheet } = useAccessFailure();
+
+  // Receiving funds is a paid-account capability. A trial account may look at the
+  // switches, but flipping either one opens the payment sheet instead of arming
+  // the toggle — the trial is for evaluating the product, not for taking money.
+  const gateMonetization = (setStatus, source) => (value) => {
+    if (inTrial) {
+      showPaymentSheet(source);
+      return;
+    }
+    setStatus(value);
+  };
 
   const enableSaving = useMemo(() => {
     return (
@@ -214,7 +229,7 @@ export default function SubPlansTab() {
             <p>{t("AHhPGax")}</p>
             <Toggle
               status={!stripeAccount?.is_setup ? false : enableFiat}
-              setStatus={setEnableFiat}
+              setStatus={gateMonetization(setEnableFiat, "monetization-fiat")}
               disabled={!stripeAccount?.is_setup}
             />
           </div>
@@ -232,7 +247,11 @@ export default function SubPlansTab() {
               <Button
                 size="m"
                 label={t("A1jhS42")}
-                onClick={() => setShowEnableStripe(true)}
+                onClick={() =>
+                  inTrial
+                    ? showPaymentSheet("monetization-fiat")
+                    : setShowEnableStripe(true)
+                }
                 type="primary"
                 loading={loading}
                 disabled={loading}
@@ -262,7 +281,13 @@ export default function SubPlansTab() {
         </div>
         <div className="fit-container fx-scattered box-pad-h-m box-pad-v-m round-corner-m border-all">
           <p>{t("AHMARaK")}</p>
-          <Toggle status={enableLightning} setStatus={setEnableLightning} />
+          <Toggle
+            status={enableLightning}
+            setStatus={gateMonetization(
+              setEnableLightning,
+              "monetization-lightning",
+            )}
+          />
         </div>
         <div className="fit-container fx-scattered">
           <h3 className="p-primary-c">{t("AO0OqWT")}</h3>

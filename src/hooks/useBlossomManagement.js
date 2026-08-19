@@ -3,6 +3,8 @@ import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 
+const YAKI_BLOSSOM = process.env.NEXT_PUBLIC_BLOSSOM_SERVER;
+
 export default function useBlossomManagement() {
   const userKeys = useSelector((state) => state.userKeys);
   const userBlossomServers = useSelector((state) => state.userBlossomServers);
@@ -12,6 +14,8 @@ export default function useBlossomManagement() {
   const [isBlobsLoading, setIsBlobsLoading] = useState(true);
   const [authHeader, setAuthHeader] = useState(null);
   const [timestamp, setTimestamp] = useState(null);
+  const [yakiUsage, setYakiUsage] = useState(null);
+  const [isYakiUsageLoading, setIsYakiUsageLoading] = useState(true);
 
   const blossomColors = useMemo(
     () => userBlossomServers.map((_, i) => `hsl(${i * 47}, 65%, 55%)`),
@@ -25,7 +29,50 @@ export default function useBlossomManagement() {
     setAuthHeader(null);
     setBlobs({});
     setAllBlobs([]);
+    setYakiUsage(null);
   }, [userKeys?.pub]);
+
+  // Our server's consumption is shown whether or not the user has added it to
+  // their list, so it cannot be derived from the per-server blobs above — those
+  // only cover listed servers. Queried on its own from first connection.
+  useEffect(() => {
+    if (!userKeys || !YAKI_BLOSSOM) {
+      setIsYakiUsageLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const fetchYakiUsage = async () => {
+      setIsYakiUsageLoading(true);
+      try {
+        const token = await generateAuthorizationHeaderForBlossomServer({
+          servers: [YAKI_BLOSSOM],
+          tTag: "list",
+        });
+        const { data } = await axios.get(
+          `${YAKI_BLOSSOM}/list/${userKeys.pub}`,
+          { headers: { Authorization: `Nostr ${token}` } },
+        );
+        if (cancelled) return;
+        const used = Array.isArray(data)
+          ? data.reduce((sum, blob) => sum + (blob.size || 0), 0)
+          : 0;
+        setYakiUsage(used);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("[useBlossomManagement] yaki usage failed", err);
+          setYakiUsage(null);
+        }
+      } finally {
+        if (!cancelled) setIsYakiUsageLoading(false);
+      }
+    };
+
+    fetchYakiUsage();
+    return () => {
+      cancelled = true;
+    };
+  }, [userKeys?.pub, timestamp]);
 
   useEffect(() => {
     if (!userKeys || userBlossomServers.length === 0) {
@@ -105,5 +152,7 @@ export default function useBlossomManagement() {
     isBlobsLoading,
     blossomColors,
     refreshLists,
+    yakiUsage,
+    isYakiUsageLoading,
   };
 }
