@@ -1,6 +1,7 @@
 import LegacyIcon from "@/Components/Icon";
 import {
   TriangleAlert,
+  Clapperboard,
   Smile,
   Search,
   X,
@@ -99,6 +100,7 @@ const iconsMap = {
   more_horizontal: MoreHorizontal,
   trash_full: Trash2,
   cloud_upload: Cloud,
+  clapperboard: Clapperboard,
   image_01: Image,
   chart_line: BarChart2,
   file_blank: FileText,

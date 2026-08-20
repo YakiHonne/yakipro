@@ -18,7 +18,7 @@ export default function UploadModal({ servers, refreshLists, exit }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [fileType, setFileType] = useState(null);
-  const [selectedServers, setSelectedServers] = useState(servers.slice());
+  const [selectedServers, setSelectedServers] = useState([]);
   const [progress, setProgress] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -86,97 +86,113 @@ export default function UploadModal({ servers, refreshLists, exit }) {
     }
   };
 
-  return (
-    <Overlay exit={exit} width={520}>
-      <div>
-        {/* Header */}
-        <div
-          className="fx-scattered fx-centered box-pad-h-m box-pad-v-s"
-          style={{ borderBottom: "1px solid var(--color-divider)" }}
-        >
-          <h4 style={{ margin: 0 }}>Upload media</h4>
-          <div className="close" onClick={exit}>
-            <div />
-          </div>
-        </div>
+  const canUpload = !!file && selectedServers.length > 0 && !isLoading;
 
+  return (
+    <Overlay exit={exit} width={480}>
+      <div
+        className="fx-col box-pad-h box-pad-v fit-container"
+        style={{ gap: "1rem" }}
+      >
+        <style>{`
+          .upload-modal-icon svg { stroke-width: 1.5; }
+        `}</style>
+        {/* Drop zone — the whole panel is the target, matching the reference:
+            icon, title, subtitle, then the action button inside the panel. */}
         <div
-          className="box-pad-h box-pad-v"
-          style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            handleFile(e.dataTransfer.files[0]);
+          }}
+          className="fit-container fx-col fx-centered"
+          style={{
+            border: `1px dashed ${
+              isDragging
+                ? "var(--color-primary-accent)"
+                : "var(--color-divider)"
+            }`,
+            borderRadius: "var(--radius-xl)",
+            background: isDragging
+              ? "var(--color-primary-bg-side)"
+              : "transparent",
+            padding: "2.5rem 1.5rem",
+            gap: "1rem",
+            transition: "all .15s",
+            position: "relative",
+            overflow: "hidden",
+          }}
         >
-          {/* Drop zone */}
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragging(true);
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setIsDragging(false);
-              handleFile(e.dataTransfer.files[0]);
-            }}
-            onClick={() => !file && inputRef.current?.click()}
-            style={{
-              border: `2px dashed ${isDragging ? "var(--color-primary-accent)" : "var(--color-divider)"}`,
-              borderRadius: "var(--radius-lg)",
-              background: isDragging ? "var(--color-primary-light)" : "transparent",
-              minHeight: "180px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "10px",
-              cursor: file ? "default" : "pointer",
-              transition: "all 0.15s",
-              overflow: "hidden",
-              position: "relative",
-            }}
-          >
-            {!file ? (
-              <>
-                <Icon name="cloud_upload" v={2} size={36} />
-                <p style={{ margin: 0, fontWeight: 500 }}>
-                  Drop a file or click to browse
+          {!file ? (
+            <>
+              <span className="upload-modal-icon">
+                <Icon name="clapperboard" size={36} />
+              </span>
+              <div className="fx-col fx-centered" style={{ gap: ".4rem" }}>
+                <p style={{ margin: 0, fontWeight: 400, fontSize: "1rem" }}>
+                  Upload file
                 </p>
                 <p
                   className="p-secondary-c"
-                  style={{ margin: 0, fontSize: "0.82rem" }}
+                  style={{ margin: 0, fontSize: ".9rem" }}
                 >
-                  Images and videos supported
+                  Drag and drop or select a file
                 </p>
-              </>
-            ) : fileType === "image" ? (
-              <img
-                src={preview}
-                alt=""
-                style={{
-                  width: "100%",
-                  maxHeight: "240px",
-                  objectFit: "contain",
-                }}
-              />
-            ) : fileType === "video" ? (
-              <video
-                src={preview}
-                controls
-                style={{ width: "100%", maxHeight: "240px" }}
-              />
-            ) : (
-              <div className="fx-centered fx-col" style={{ gap: "8px" }}>
-                <span style={{ fontSize: "2.5rem" }}>📄</span>
-                <span style={{ fontSize: "0.85rem" }}>{file.name}</span>
               </div>
-            )}
-
-            {file && (
               <button
-                className="btn btn-gst btn-s"
-                style={{
-                  position: "absolute",
-                  top: "8px",
-                  right: "8px",
-                }}
+                className="btn btn-normal"
+                style={{ marginTop: ".35rem" }}
+                onClick={() => inputRef.current?.click()}
+              >
+                Upload file
+              </button>
+            </>
+          ) : (
+            <>
+              {fileType === "image" ? (
+                <img
+                  src={preview}
+                  alt=""
+                  style={{
+                    width: "100%",
+                    maxHeight: "220px",
+                    objectFit: "contain",
+                    borderRadius: "var(--radius-md)",
+                  }}
+                />
+              ) : fileType === "video" ? (
+                <video
+                  src={preview}
+                  controls
+                  style={{
+                    width: "100%",
+                    maxHeight: "220px",
+                    borderRadius: "var(--radius-md)",
+                  }}
+                />
+              ) : (
+                <div className="fx-centered fx-col" style={{ gap: ".5rem" }}>
+                  <Icon name="clapperboard" size={40} />
+                  <span style={{ fontSize: ".85rem" }}>{file.name}</span>
+                </div>
+              )}
+              <div
+                className="fit-container fx-scattered"
+                style={{ fontSize: ".82rem" }}
+              >
+                <span className="p-secondary-c p-one-line">{file.name}</span>
+                <span className="p-secondary-c" style={{ flexShrink: 0 }}>
+                  {formatBytes(file.size)}
+                </span>
+              </div>
+              <button
+                className="btn btn-gst btn-small"
+                style={{ position: "absolute", top: "10px", right: "10px" }}
                 onClick={(e) => {
                   e.stopPropagation();
                   setFile(null);
@@ -186,144 +202,89 @@ export default function UploadModal({ servers, refreshLists, exit }) {
               >
                 Remove
               </button>
-            )}
-          </div>
-
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*,video/*"
-            style={{ display: "none" }}
-            onChange={(e) => handleFile(e.target.files?.[0])}
-          />
-
-          {/* File info */}
-          {file && (
-            <div
-              style={{
-                background: "var(--color-primary-bg-side)",
-                borderRadius: "var(--radius-md)",
-                padding: "10px 14px",
-                fontSize: "0.82rem",
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
-              <span className="p-secondary-c">{file.name}</span>
-              <span className="p-secondary-c">{formatBytes(file.size)}</span>
-            </div>
+            </>
           )}
-
-          {/* Server selection */}
-          {servers.length > 0 ? (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
-            >
-              <p style={{ margin: 0, fontWeight: 600, fontSize: "0.88rem" }}>
-                Upload to
-              </p>
-              {servers.map((server, i) => {
-                const checked = selectedServers.includes(server);
-                const pct = progress[server];
-                return (
-                  <div
-                    key={server}
-                    onClick={() => !isLoading && toggleServer(server)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      padding: "10px 14px",
-                      borderRadius: "var(--radius-md)",
-                      border: `1px solid ${checked ? "var(--color-primary-accent)" : "var(--color-divider)"}`,
-                      cursor: isLoading ? "default" : "pointer",
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: "10px",
-                        height: "10px",
-                        borderRadius: "50%",
-                        background: `hsl(${i * 47}, 65%, 55%)`,
-                        flexShrink: 0,
-                        display: "inline-block",
-                      }}
-                    />
-                    <span
-                      style={{
-                        flex: 1,
-                        fontSize: "0.85rem",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {new URL(server).hostname}
-                    </span>
-                    {isLoading && pct !== undefined && (
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--color-primary-accent)",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {pct}%
-                      </span>
-                    )}
-                    <div
-                      style={{
-                        width: "18px",
-                        height: "18px",
-                        flexShrink: 0,
-                        borderRadius: "4px",
-                        border: `1.5px solid ${checked ? "var(--color-primary-accent)" : "var(--color-divider)"}`,
-                        background: checked ? "var(--color-primary-accent)" : "transparent",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      {checked && (
-                        <Icon
-                          name="check"
-                          v={2}
-                          size={12}
-                          isColored
-                          className="checkbox-check-icon"
-                        />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p
-              className="p-secondary-c"
-              style={{ fontSize: "0.85rem", margin: 0 }}
-            >
-              No blossom servers configured. Add servers via your Nostr client.
-            </p>
-          )}
-
-          {/* Actions */}
-          <div className="fx-centered" style={{ gap: "10px" }}>
-            <button className="btn btn-gst" style={{ flex: 1 }} onClick={exit}>
-              Cancel
-            </button>
-            <button
-              className="btn btn-normal"
-              style={{ flex: 1 }}
-              disabled={!file || selectedServers.length === 0 || isLoading}
-              onClick={handleUpload}
-            >
-              {isLoading ? <Spinner size={18} color="#fff" /> : "Upload"}
-            </button>
-          </div>
         </div>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*,video/*"
+          style={{ display: "none" }}
+          onChange={(e) => handleFile(e.target.files?.[0])}
+        />
+
+        {/* Servers — a plain checkbox on the LEFT of each row, per the reference. */}
+        {servers.length > 0 ? (
+          <div className="fx-col fit-container" style={{ gap: ".5rem" }}>
+            <p style={{ margin: 0, fontWeight: 400, fontSize: ".95rem" }}>
+              Servers
+            </p>
+            {servers.map((server) => {
+              const checked = selectedServers.includes(server);
+              const pct = progress[server];
+              return (
+                <div
+                  key={server}
+                  onClick={() => !isLoading && toggleServer(server)}
+                  className="fit-container fx-centered fx-start-h"
+                  style={{
+                    gap: ".75rem",
+                    padding: ".5rem .85rem",
+                    borderRadius: "var(--radius-full)",
+                    backgroundColor: "transparent",
+                    border: "1px solid var(--color-divider)",
+                    cursor: isLoading ? "default" : "pointer",
+                    transition: "border-color .15s",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    readOnly
+                    style={{
+                      width: "16px",
+                      height: "16px",
+                      flexShrink: 0,
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <span
+                    className="p-one-line"
+                    style={{ flex: 1, fontSize: ".92rem" }}
+                  >
+                    {server}
+                  </span>
+                  {isLoading && pct !== undefined && (
+                    <span
+                      style={{
+                        fontSize: ".75rem",
+                        color: "var(--color-primary-accent)",
+                        fontWeight: 600,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {pct}%
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="p-secondary-c" style={{ fontSize: ".85rem", margin: 0 }}>
+            No blossom servers configured. Add servers via your Nostr client.
+          </p>
+        )}
+
+        {/* Single full-width action, as in the reference. */}
+        <button
+          className={`btn btn-full ${canUpload ? "btn-normal" : "btn-disabled"}`}
+          disabled={!canUpload}
+          onClick={handleUpload}
+        >
+          {isLoading ? <Spinner size={18} color="#fff" /> : "Upload file"}
+        </button>
       </div>
     </Overlay>
   );

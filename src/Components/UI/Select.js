@@ -28,7 +28,15 @@ export default function Select({
       style={{ padding: "10px", borderRadius: "10px" }}
     >
       <div className="fx-centered fx-start-h fx-gap-h">
-        {option.iconLeft && <Icon name={option.iconLeft} size={16} isColored={isColoredIcons} />}
+        {option.left_el
+          ? option.left_el
+          : option.iconLeft && (
+              <Icon
+                name={option.iconLeft}
+                size={16}
+                isColored={isColoredIcons}
+              />
+            )}
         <div className={value === option.value ? "p-primary-c" : "gray-c"}>
           {option.display_name}
         </div>

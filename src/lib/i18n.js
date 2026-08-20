@@ -29,4 +29,18 @@ if (!i18n.isInitialized) {
     });
 }
 
+// Arabic is a supported app language, so document direction must follow the
+// active language — on first load as well as on every change.
+const RTL_LANGUAGES = ["ar", "he", "fa", "ur"];
+
+const applyDirection = (lang) => {
+  if (typeof document === "undefined") return;
+  document.documentElement.dir = RTL_LANGUAGES.includes(lang) ? "rtl" : "ltr";
+};
+
+if (typeof window !== "undefined") {
+  applyDirection(i18n.resolvedLanguage || i18n.language);
+  i18n.on("languageChanged", applyDirection);
+}
+
 export default i18n;

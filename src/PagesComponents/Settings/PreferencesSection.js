@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { supportedLanguage } from "@/Content/SupportedLanguages";
 import Select from "@/Components/UI/Select";
 
+
 export default function PreferencesSection() {
   const { t, i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
