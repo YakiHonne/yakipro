@@ -34,6 +34,7 @@ const NO_LAYOUT_PAGES = new Set([
   "/pricing",
   "/terms",
   "/terms-app",
+  "/child-safety",
   "/privacy",
   "/refund-policy",
 ]);
