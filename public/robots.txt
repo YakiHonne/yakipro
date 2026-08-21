@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Unlisted page: reachable by direct URL only, not linked from the site.
+Disallow: /terms-app
