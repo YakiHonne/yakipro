@@ -27,6 +27,15 @@ import ToastMessages from "@/Components/ToastMessages";
 import PaymentSheetHost from "@/Components/Payment/PaymentSheetHost";
 import OnboardingHost from "@/Components/Onboarding/OnboardingHost";
 
+// Link-preview metadata. NEXT_PUBLIC_SITE_URL lets a preview/staging deploy
+// advertise its own origin; the production domain is the fallback.
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || "https://pro.yakihonne.com"
+).replace(/\/$/, "");
+const SITE_NAME = "YakiPro";
+const SITE_DESCRIPTION = "Decentralized social on Nostr";
+const SITE_IMAGE = "/thumbnail-yaki-pro.png";
+
 const NO_LAYOUT_PAGES = new Set([
   "/login",
   "/404",
@@ -74,10 +83,30 @@ function App({ Component, pageProps }) {
         <PaymentSheetHost />
         <OnboardingHost />
         <Head>
-          <title>YakiPro</title>
-          <meta name="description" content="Decentralized social on Nostr" />
+          <title>{SITE_NAME}</title>
+          <meta name="description" content={SITE_DESCRIPTION} />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <link rel="icon" href="/favicon.ico" sizes="any" />
+
+          {/* Link previews. og:image must be an absolute URL — crawlers do not
+              resolve relative paths, so the preview silently breaks without it. */}
+          <meta property="og:type" content="website" />
+          <meta property="og:site_name" content={SITE_NAME} />
+          <meta property="og:title" content={SITE_NAME} />
+          <meta property="og:description" content={SITE_DESCRIPTION} />
+          <meta property="og:url" content={SITE_URL} />
+          <meta property="og:image" content={`${SITE_URL}${SITE_IMAGE}`} />
+          <meta property="og:image:secure_url" content={`${SITE_URL}${SITE_IMAGE}`} />
+          <meta property="og:image:type" content="image/png" />
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="700" />
+          <meta property="og:image:alt" content={SITE_NAME} />
+
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={SITE_NAME} />
+          <meta name="twitter:description" content={SITE_DESCRIPTION} />
+          <meta name="twitter:image" content={`${SITE_URL}${SITE_IMAGE}`} />
+          <meta name="twitter:image:alt" content={SITE_NAME} />
         </Head>
 
         {/* Route-change progress bar */}
