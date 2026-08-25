@@ -224,47 +224,64 @@ function ReactionCard({ reaction, onFocus, onFix, onIgnore, aiExhausted }) {
         ? " severity-critical"
         : "";
 
+  const isPositive = reaction.sentiment === "positive";
+  const showFixButton = !isPositive;
+  const fixLabel =
+    reaction.sentiment === "negative" ? "Fix with AI →" : "Improve with AI →";
+
+  const resolvedClass = isFixed
+    ? " sr-reaction-treated"
+    : isResolved
+      ? " sr-reaction-ignored"
+      : "";
+
   return (
     <div
-      className={`sr-reaction-card${severityClass}${isResolved ? " sr-reaction-ignored" : ""}`}
+      className={`sr-reaction-card${severityClass}${resolvedClass}`}
       onClick={() => !isResolved && onFocus(reaction.paragraphIndex)}
     >
       <div className="sr-reaction-meta">
         <span className="sr-para-label">¶{reaction.paragraphIndex + 1}</span>
         <SentimentIcon sentiment={reaction.sentiment} />
       </div>
-      <p className="sr-reaction-text">{reaction.comment}</p>
+      <p
+        className={`sr-reaction-text${isResolved ? " sr-reaction-text-done" : ""}`}
+      >
+        {reaction.comment}
+      </p>
 
       {!isResolved && (
         <div className="sr-reaction-actions">
-          <button
-            className="sr-fix-btn"
-            disabled={aiExhausted}
-            style={
-              aiExhausted
-                ? {
-                    color: "var(--c1)",
-                    cursor: "not-allowed",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "5px",
-                  }
-                : undefined
-            }
-            onClick={(e) => {
-              e.stopPropagation();
-              if (aiExhausted) return;
-              onFix(reaction);
-            }}
-          >
-            {aiExhausted ? (
-              <>
-                <Icon name="warning" size={12} /> Limit reached
-              </>
-            ) : (
-              "Fix with AI →"
-            )}
-          </button>
+          {showFixButton && (
+            <button
+              className="sr-fix-btn"
+              disabled={aiExhausted}
+              style={
+                aiExhausted
+                  ? {
+                      color: "var(--c1)",
+                      cursor: "not-allowed",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                    }
+                  : undefined
+              }
+              onClick={(e) => {
+                e.stopPropagation();
+                if (aiExhausted) return;
+                onFix(reaction);
+              }}
+            >
+              {aiExhausted ? (
+                <>
+                  <Icon name="warning" size={12} /> Limit reached
+                </>
+              ) : (
+                fixLabel
+              )}
+            </button>
+          )}
           <button
             className="sr-ignore-btn"
             onClick={(e) => {
@@ -278,8 +295,8 @@ function ReactionCard({ reaction, onFocus, onFix, onIgnore, aiExhausted }) {
       )}
 
       {isFixed && (
-        <p className="sr-ignored-label">
-          <Icon name="checkmark" size={12} /> Sent to AI for fixing
+        <p className="sr-treated-label">
+          <Icon name="checkmark" size={12} /> Treated
         </p>
       )}
       {isIgnored && <p className="sr-ignored-label">Marked as read</p>}
@@ -478,6 +495,8 @@ export default function SecondReaderPanel({
   onOpenAIChat,
   lastEditedParagraph,
   suppressInvalidationRef,
+  resetSignal = 0,
+  reanalyzeOnReset = false,
 }) {
   const dispatch = useDispatch();
   const pubkey = useSelector((state) => state.userKeys?.pub ?? null);
@@ -513,6 +532,7 @@ export default function SecondReaderPanel({
   // still points at the outgoing account, and saving then would overwrite that
   // account's stored reactions with the incoming account's empty state.
   const storageScopeRef = useRef(pubkey);
+  const resetSignalRef = useRef(resetSignal);
 
   useEffect(() => {
     let cancelled = false;
@@ -521,6 +541,8 @@ export default function SecondReaderPanel({
     setReactions([]);
     setView("picker");
     reactionsCache.current = {};
+
+    const signalAtRestore = resetSignalRef.current;
 
     const restore = async () => {
       let personaId = null;
@@ -535,6 +557,7 @@ export default function SecondReaderPanel({
 
       const stored = await loadStoredReactions(persona.id, pubkey);
       if (cancelled) return;
+      if (resetSignalRef.current !== signalAtRestore) return;
 
       setActivePersona(persona);
       if (stored && stored.reactions.length > 0) {
@@ -575,6 +598,42 @@ export default function SecondReaderPanel({
       clearTimeout(invalidateTimerRef.current);
     };
   }, [editor, getMarkdown, suppressInvalidationRef]);
+
+  const reanalyzeOnResetRef = useRef(reanalyzeOnReset);
+  reanalyzeOnResetRef.current = reanalyzeOnReset;
+  resetSignalRef.current = resetSignal;
+  const selectPersonaRef = useRef(null);
+
+  useEffect(() => {
+    if (!resetSignal) return;
+    let cancelled = false;
+
+    const persona = activePersona;
+    const cachedIds = Object.keys(reactionsCache.current);
+    const ids = new Set([...cachedIds, ...(persona ? [persona.id] : [])]);
+
+    reactionsCache.current = {};
+    setReactions([]);
+
+    (async () => {
+      await Promise.all(
+        [...ids].map((id) => deleteStoredReactions(id, pubkey)),
+      );
+      if (cancelled) return;
+
+      if (reanalyzeOnResetRef.current && persona) {
+        selectPersonaRef.current?.(persona);
+      } else {
+        setActivePersona(null);
+        setView("picker");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetSignal]);
 
   const handleSelectPersona = useCallback(
     async (persona) => {
@@ -664,6 +723,8 @@ export default function SecondReaderPanel({
       refreshUsage,
     ],
   );
+
+  selectPersonaRef.current = handleSelectPersona;
 
   const activePersonaRef = useRef(null);
   activePersonaRef.current = activePersona;

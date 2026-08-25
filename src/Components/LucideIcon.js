@@ -15,6 +15,7 @@ import {
   Infinity as InfinityIcon,
   Server,
   NotebookPen,
+  SquarePen,
   KeyRound,
   Puzzle,
   Zap,
@@ -32,6 +33,8 @@ import {
   EyeOff,
   LogOut,
   Crown,
+  Info,
+  Smartphone,
   Image,
   Upload,
   MoreHorizontal,
@@ -72,6 +75,7 @@ const iconsMap = {
   infinity: InfinityIcon,
   server: Server,
   "add-note": NotebookPen,
+  edit: SquarePen,
   "key-icon": KeyRound,
   puzzle: Puzzle,
   bolt: Zap,
@@ -91,6 +95,8 @@ const iconsMap = {
   code: Code,
   logout: LogOut,
   crown: Crown,
+  info: Info,
+  mobile: Smartphone,
   book_image: BookImage,
 
   // v2 (snake_case, IconV2URL.js)
@@ -99,6 +105,7 @@ const iconsMap = {
   file_download: Download,
   more_horizontal: MoreHorizontal,
   trash_full: Trash2,
+  cloud: Cloud,
   cloud_upload: Cloud,
   clapperboard: Clapperboard,
   image_01: Image,
@@ -129,6 +136,7 @@ const fixedColors = {
   checkmark: "#00C04D",
   check: "#00C04D",
   warning: "#ee7700",
+  trash: "#ff6b6b",
 };
 
 // Brand marks with no lucide equivalent — kept on the legacy image-based Icon.

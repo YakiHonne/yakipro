@@ -21,6 +21,7 @@ import { pdfFileToMarkdown } from "@/Helpers/PdfToMarkdown";
 import { useSelector } from "react-redux";
 import { FileUpload } from "@/Helpers/FileUpload";
 import ArticlePublishModalV2 from "./ArticlePublishModalV2";
+import Overlay from "@/Components/Overlay";
 import ArticleAIPanel from "./ArticleAIPanel";
 import AIDiffViewer from "./AIDiffViewer";
 import SecondReaderPanel from "./SecondReaderPanel";
@@ -837,7 +838,12 @@ export default function ArticleEditorV2({ editEvent = null }) {
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [showSecondReader, setShowSecondReader] = useState(false);
-  const [aiChatPrefill, setAiChatPrefill] = useState("");
+  const [aiChatPrefill, setAiChatPrefill] = useState(null);
+  const [aiResetSignal, setAiResetSignal] = useState(0);
+  const [srResetSignal, setSrResetSignal] = useState(0);
+  const [srReanalyzeOnReset, setSrReanalyzeOnReset] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const editHistoryClearedRef = useRef(false);
   const [diffHunks, setDiffHunks] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
@@ -1014,7 +1020,7 @@ export default function ArticleEditorV2({ editEvent = null }) {
   );
 
   const handleOpenAIChat = useCallback((prefillMessage) => {
-    setAiChatPrefill(prefillMessage);
+    setAiChatPrefill({ text: prefillMessage, token: Date.now() });
     setShowAIPanel(true);
     setShowSecondReader(false);
   }, []);
@@ -1034,6 +1040,23 @@ export default function ArticleEditorV2({ editEvent = null }) {
     setSaveStatus("idle");
     setShowRestored(false);
   };
+
+  const handleConfirmClear = () => {
+    handleClear();
+    setSrReanalyzeOnReset(false);
+    setAiResetSignal((n) => n + 1);
+    setSrResetSignal((n) => n + 1);
+    setShowClearConfirm(false);
+  };
+
+  useEffect(() => {
+    if (editHistoryClearedRef.current) return;
+    if (!editEvent?.content) return;
+    editHistoryClearedRef.current = true;
+    setSrReanalyzeOnReset(true);
+    setAiResetSignal((n) => n + 1);
+    setSrResetSignal((n) => n + 1);
+  }, [editEvent?.content]);
 
   const mdImportRef = useRef(null);
 
@@ -1100,10 +1123,42 @@ export default function ArticleEditorV2({ editEvent = null }) {
         />
       )}
 
-      <div className="fit-container fx-col" style={{ gap: "1rem" }}>
+      {showClearConfirm && (
+        <Overlay width={480} exit={() => setShowClearConfirm(false)}>
+          <div className="fx-col" style={{ gap: "1rem", padding: "24px" }}>
+            <h3 style={{ margin: 0 }}>Clear the editor?</h3>
+            <p className="p-secondary-c" style={{ margin: 0 }}>
+              This erases the article you are writing. Your existing Second
+              Reader messages and AI assistant responses will be wiped out too,
+              and none of it can be recovered.
+            </p>
+            <div className="fx-centered fx-end-h" style={{ gap: ".5rem" }}>
+              <button
+                className="btn btn-gst btn-small"
+                onClick={() => setShowClearConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-red btn-small"
+                onClick={handleConfirmClear}
+              >
+                Clear everything
+              </button>
+            </div>
+          </div>
+        </Overlay>
+      )}
+
+      <div
+        className="fit-container fx-col"
+        style={{ gap: "1rem" }}
+        data-ai-panel-keep-open
+      >
         <div
           className="fit-container fx-scattered "
           style={{ gap: "8px" }}
+          data-ai-panel-keep-open
         >
           <div>
             <SelectTabs
@@ -1198,7 +1253,9 @@ export default function ArticleEditorV2({ editEvent = null }) {
                       opacity: saveStatus === "saving" ? 0.7 : 1,
                       cursor: saveStatus === "saving" ? "not-allowed" : "pointer",
                     }}
-                    onClick={() => saveStatus !== "saving" && handleClear()}
+                    onClick={() =>
+                      saveStatus !== "saving" && setShowClearConfirm(true)
+                    }
                     title="Clear editor"
                   >
                     {saveStatus === "saving" ? (
@@ -1262,7 +1319,7 @@ export default function ArticleEditorV2({ editEvent = null }) {
         isOpen={showAIPanel}
         onClose={() => {
           setShowAIPanel(false);
-          setAiChatPrefill("");
+          setAiChatPrefill(null);
         }}
         getMarkdown={getMarkdown}
         editor={editor}
@@ -1270,6 +1327,8 @@ export default function ArticleEditorV2({ editEvent = null }) {
         isAILoading={isAILoading}
         setIsAILoading={setIsAILoading}
         prefillMessage={aiChatPrefill}
+        onPrefillConsumed={() => setAiChatPrefill(null)}
+        resetSignal={aiResetSignal}
       />
 
       <SecondReaderPanel
@@ -1282,6 +1341,8 @@ export default function ArticleEditorV2({ editEvent = null }) {
         onOpenAIChat={handleOpenAIChat}
         lastEditedParagraph={lastEditedParagraph}
         suppressInvalidationRef={srSuppressInvalidationRef}
+        resetSignal={srResetSignal}
+        reanalyzeOnReset={srReanalyzeOnReset}
       />
     </>
   );

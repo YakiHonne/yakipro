@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import BrandIcon from "@/Components/Icon";
 import Icon from "@/Components/LucideIcon";
+import MobileDemo from "@/Components/MobileDemo";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 
@@ -117,6 +118,7 @@ function Nav() {
   const userKeys = useSelector((state) => state.userKeys);
   const isConnected = useSelector((state) => state.isConnected);
   const authed = !!(userKeys || isConnected);
+  const [showDemo, setShowDemo] = useState(false);
 
   return (
     <nav className="lp-nav">
@@ -154,8 +156,22 @@ function Nav() {
         <Link href="/pricing" className="lp-nav-link">
           {t("ALog013")}
         </Link>
+        <button
+          type="button"
+          className="lp-nav-link lp-nav-link-btn"
+          onClick={() => setShowDemo(true)}
+        >
+          {t("AMob001")}
+        </button>
       </div>
       <div className="lp-nav-actions">
+        <button
+          type="button"
+          className="lp-nav-link lp-nav-link-btn lp-nav-download-compact"
+          onClick={() => setShowDemo(true)}
+        >
+          {t("AMob001")}
+        </button>
         <Link
           href={authed ? "/home" : "/login"}
           className="lp-btn lp-btn-outline lp-btn-sm"
@@ -169,6 +185,7 @@ function Nav() {
           {t("ALPg012")}
         </Link>
       </div>
+      {showDemo && <MobileDemo exit={() => setShowDemo(false)} />}
     </nav>
   );
 }

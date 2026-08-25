@@ -14,6 +14,7 @@ const NO_NAVBAR_PAGES = new Set([
   "/terms",
   "/terms-app",
   "/child-safety",
+  "/demo",
   "/privacy",
   "/refund-policy",
 ]);

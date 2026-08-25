@@ -44,6 +44,8 @@ const NO_LAYOUT_PAGES = new Set([
   "/terms",
   "/terms-app",
   "/child-safety",
+  "/demo",
+  "/yakipro-mobile-app-links",
   "/privacy",
   "/refund-policy",
 ]);

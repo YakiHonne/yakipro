@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
 import { askArticleAI } from "@/Endpoionts/ArticleAI";
-import Button from "@/Components/UI/Button";
 import aiChatDb from "@/lib/aiChatDb";
 import Icon from "@/Components/LucideIcon";
 import QuotaBanner from "@/Components/AI/QuotaBanner";
@@ -77,6 +76,8 @@ export default function ArticleAIPanel({
   isAILoading,
   setIsAILoading,
   prefillMessage,
+  onPrefillConsumed,
+  resetSignal = 0,
 }) {
   const pubkey = useSelector((state) => state.userKeys?.pub ?? null);
   const [messages, setMessages] = useState([]);
@@ -84,9 +85,12 @@ export default function ArticleAIPanel({
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [mounted, setMounted] = useState(false);
   const bottomRef = useRef(null);
+  const panelRef = useRef(null);
   const textareaRef = useRef(null);
   const closeTimerRef = useRef(null);
   const prefillTimerRef = useRef(null);
+  const consumedPrefillTokenRef = useRef(null);
+  const resetSignalRef = useRef(resetSignal);
   const sendRef = useRef(null);
 
   const sessionId = scopedSessionId(SESSION_BASE, pubkey);
@@ -107,12 +111,18 @@ export default function ArticleAIPanel({
 
   useEffect(() => {
     let cancelled = false;
+    const signalAtLoad = resetSignalRef.current;
     setSessionLoaded(false);
     setMessages([]);
     setInput("");
 
     loadSession(sessionId).then((saved) => {
       if (cancelled) return;
+      if (resetSignalRef.current !== signalAtLoad) {
+        sessionIdRef.current = sessionId;
+        setSessionLoaded(true);
+        return;
+      }
       if (saved.length > 0) {
         const maxId = saved.reduce((m, msg) => Math.max(m, msg.id ?? 0), 0);
         if (maxId >= msgIdCounter) msgIdCounter = maxId + 1;
@@ -126,6 +136,14 @@ export default function ArticleAIPanel({
       cancelled = true;
     };
   }, [sessionId]);
+
+  useEffect(() => {
+    resetSignalRef.current = resetSignal;
+    if (!resetSignal) return;
+    setMessages([]);
+    setInput("");
+    clearSession(sessionId);
+  }, [resetSignal, sessionId]);
 
   useEffect(
     () => () => {
@@ -142,14 +160,19 @@ export default function ArticleAIPanel({
   }, [messages, sessionLoaded, sessionId]);
 
   useEffect(() => {
-    if (!isOpen || !prefillMessage || exhausted) return;
-    setInput(prefillMessage);
+    if (!isOpen || !prefillMessage?.text || exhausted) return;
+    const token = prefillMessage.token;
+    if (consumedPrefillTokenRef.current === token) return;
+    consumedPrefillTokenRef.current = token;
+
+    setInput(prefillMessage.text);
     clearTimeout(prefillTimerRef.current);
     prefillTimerRef.current = setTimeout(() => {
       setInput((current) => {
         if (current.trim()) {
           setTimeout(() => {
             sendRef.current?.();
+            onPrefillConsumed?.();
           }, 0);
         }
         return current;
@@ -157,6 +180,17 @@ export default function ArticleAIPanel({
     }, 300);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, prefillMessage, exhausted]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onMouseDown = (e) => {
+      if (panelRef.current?.contains(e.target)) return;
+      if (e.target.closest?.("[data-ai-panel-keep-open]")) return;
+      onClose();
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -187,7 +221,6 @@ export default function ArticleAIPanel({
 
       if (content) {
         closeTimerRef.current = setTimeout(() => {
-          onClose();
           onDiffReady(content);
         }, 700);
       }
@@ -211,7 +244,6 @@ export default function ArticleAIPanel({
     isAILoading,
     exhausted,
     getMarkdown,
-    onClose,
     onDiffReady,
     setIsAILoading,
     handleAccessFailure,
@@ -245,16 +277,12 @@ export default function ArticleAIPanel({
           opacity: isOpen ? 1 : 0,
           pointerEvents: isOpen ? "all" : "none",
         }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
       >
         <div
+          ref={panelRef}
           className="ai-panel"
           style={{ transform: isOpen ? "translateY(0)" : "translateY(100%)" }}
           aria-hidden={!isOpen}
-          onClick={(e) => e.stopPropagation()}
         >
           <div
             className="close pos-absolute pos-right-16 pos-top-16"
@@ -270,8 +298,8 @@ export default function ArticleAIPanel({
           <div className="ai-panel-messages">
             {messages.length === 0 && !isAILoading && (
               <div className="ai-empty-state">
-                <span className="ai-spark" style={{ fontSize: "1.5rem" }}>
-                  <Icon name="sparkles" size={16} />
+                <span className="ai-spark ai-spark-lg">
+                  <Icon name="sparkles" size={44} />
                 </span>
                 <p>
                   Ask me to improve your article, rewrite a section, add an
@@ -326,14 +354,14 @@ export default function ArticleAIPanel({
                 <path d="M2 21l21-9L2 3v7l15 2-15 2z" />
               </svg>
             </button>
-            <Button
-              label=""
-              type="gray"
-              size="m"
-              leftIcon="trash"
-              disabled={messages.length === 0 || isAILoading}
+            <button
+              className="ai-clear-btn"
               onClick={handleClear}
-            />
+              disabled={messages.length === 0 || isAILoading}
+              aria-label="Clear conversation"
+            >
+              <Icon name="trash" size={16} />
+            </button>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Icon from "@/Components/LucideIcon";
 import { useTranslation } from "react-i18next";
 import IsUserOnline from "@/Components/IsUserOnline";
 import { SelectTabs } from "@/Components/SelectTabs";
@@ -9,6 +10,8 @@ import SubManagementTab from "../SubManagement/SubManagementTab";
 export default function Subscription() {
   const { t } = useTranslation();
   const [selectedTab, setSelectedTab] = useState(0);
+  // Bumped by the info button; SubManagementTab reopens the tour on each bump.
+  const [tourNonce, setTourNonce] = useState(0);
 
   // Landing here from a checkout redirect (success_url = /subscription) or
   // returning to this tab pulls fresh server subscription/session state so the
@@ -25,7 +28,7 @@ export default function Subscription() {
           </p>
         </div>
 
-        <div className="fx-centered fx-start-h fit-container" style={{ maxWidth: "320px" }}>
+        <div className="fx-centered fx-start-h fit-container fx-gap-h">
           <div>
             <SelectTabs
               selectedTab={selectedTab}
@@ -33,9 +36,37 @@ export default function Subscription() {
               tabs={["Plans", "Manage subs"]}
             />
           </div>
+
+          {/* Reopens the tour on demand. Sits outside the tab control so it
+              never reads as a third tab, and only while Manage subs is the
+              active tab, since that is all it explains. */}
+          {selectedTab === 1 && (
+            <button
+              aria-label="What is this?"
+              title="What is this?"
+              onClick={() => setTourNonce((n) => n + 1)}
+              className="fx-centered pointer"
+              style={{
+                background: "transparent",
+                border: "none",
+                padding: "4px",
+                lineHeight: 0,
+                color: "var(--color-primary-text)",
+                // Explicit: a <button> carries a UA default of cursor:default
+                // which beats the .pointer class on some engines.
+                cursor: "pointer",
+              }}
+            >
+              <Icon name="info" size={24} />
+            </button>
+          )}
         </div>
 
-        {selectedTab === 0 ? <SubPlansTab /> : <SubManagementTab />}
+        {selectedTab === 0 ? (
+          <SubPlansTab />
+        ) : (
+          <SubManagementTab tourNonce={tourNonce} />
+        )}
       </div>
     </IsUserOnline>
   );

@@ -7,6 +7,7 @@ import Icon from "@/Components/LucideIcon";
 import { logoutUser } from "@/Helpers/AccountInit";
 import useYakiPoints from "@/hooks/useYakiPoints";
 import LoginSignup from "../LoginSignup";
+import MobileDemo from "@/Components/MobileDemo";
 
 const minimizeKey = (key) => {
   if (!key) return "";
@@ -19,7 +20,7 @@ const navLinksLeft = [
 ];
 
 const navLinksRight = [
-  { path: "/media", label: "Media", icon: "book_image" },
+  { path: "/media", label: "Media", icon: "cloud" },
   { path: "/subscription", label: "Subscription", icon: "credit_card_01" },
 ];
 
@@ -121,6 +122,7 @@ export default function TopNavbar() {
 
   const [showLogin, setShowLogin] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
   const [navHidden, setNavHidden] = useState(false);
   const [profilePos, setProfilePos] = useState({ top: 72, right: 16 });
 
@@ -331,6 +333,17 @@ export default function TopNavbar() {
               <span>Settings</span>
             </div>
 
+            <div
+              className="uplift-dropdown-item"
+              onClick={() => {
+                setShowProfileMenu(false);
+                setShowDemo(true);
+              }}
+            >
+              <Icon name="mobile" size={18} />
+              <span>Download app</span>
+            </div>
+
             <div className="uplift-dropdown-divider" />
 
             <div
@@ -347,6 +360,8 @@ export default function TopNavbar() {
         </>,
         document.body
       )}
+
+      {showDemo && <MobileDemo exit={() => setShowDemo(false)} />}
     </>
   );
 }

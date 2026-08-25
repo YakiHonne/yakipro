@@ -1869,3 +1869,77 @@ ul {
   background-color: rgba(0, 0, 0, 0.06);
   border-radius: 10px;
 }
+/* ── Mobile-app promo overlay ─────────────────────────────────────────────── */
+.mobile-demo-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--color-primary-bg-side);
+  cursor: pointer;
+  transform: scale(0);
+  animation: mobile-demo-pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.3s
+    forwards;
+}
+
+html[dir="rtl"] .mobile-demo-close {
+  right: auto;
+  left: 16px;
+}
+
+.mobile-demo-close::after {
+  content: "\2715";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 0.72rem;
+  line-height: 1;
+  color: var(--color-primary-text);
+}
+
+.mobile-demo-close:hover {
+  filter: invert();
+}
+
+@keyframes mobile-demo-pop {
+  to {
+    transform: scale(1);
+  }
+}
+
+.mobile-demo-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px 20px;
+  border-radius: var(--radius-xl);
+  background-color: var(--color-primary-bg-side2);
+  animation: mobile-demo-rise 0.35s ease-out both;
+}
+
+@keyframes mobile-demo-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-demo-close,
+  .mobile-demo-card {
+    animation-duration: 0.001s !important;
+  }
+}
