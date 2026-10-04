@@ -1,10 +1,6 @@
 import { getRelayMetadata } from "@/Cache/relayMetadataCache";
 import { saveRelayMetadata } from "@/Helpers/Helpers";
 
-// NIP-11 metadata is read from a synchronous cache that is cold until something
-// populates it. The publish path cannot rely on another screen having warmed it:
-// on a fresh load every relay looks non-premium, which would tell an author with
-// a perfectly good premium relay that they have none. Fetch first, then filter.
 export const resolvePremiumRelays = async (userRelays) => {
   const usable = (userRelays || []).filter((r) => r?.url && (r.read || r.write));
 

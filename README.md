@@ -48,7 +48,6 @@ YakiHonne runs its own relays under [nostr-01.yakihonne.com](https://nostr-01.ya
 
 - [x] Paywalled notes and articles, gated at the relay rather than in the client
 - [x] Premium events are tagged protected (NIP-70) and published **exclusively** to relays that advertise support in their NIP-11 document — if none resolve, publishing is refused rather than falling back to the public pool
-- [x] Pre-flight warning when you toggle premium without a premium relay or monetization set up
 - [x] Reader-side access resolved from the gateway's follow list on the premium relays
 
 ## 1.5 Media & relays
