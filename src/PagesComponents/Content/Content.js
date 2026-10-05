@@ -12,16 +12,34 @@ import ScheduledNoteCard from "./ScheduledNoteCard";
 
 const TAB_LABELS = ["Notes", "Articles"];
 
+const EMPTY_LABELS = {
+  "notes-published": "notes",
+  "notes-paid": "paid notes",
+  "notes-premium": "premium notes",
+  "articles-published": "published articles",
+  "articles-drafts": "drafts",
+  "articles-premium": "premium articles",
+};
+
 const NOTE_FILTER_OPTIONS = [
   { value: "published", display_name: "Published" },
   { value: "scheduled", display_name: "Scheduled" },
+  { value: "paid", display_name: "Paid notes" },
+  { value: "premium", display_name: "Premium" },
 ];
+
+// Each article filter maps to the kind it lists plus the hook's tag variant.
+const ARTICLE_FILTERS = {
+  published: { kind: 30023, variant: "all" },
+  drafts: { kind: 30024, variant: "all" },
+  premium: { kind: 30023, variant: "premium" },
+};
 
 export default function Content() {
   const { t } = useTranslation();
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState(0);
-  const [articleKind, setArticleKind] = useState(30023);
+  const [articleFilter, setArticleFilter] = useState("published");
   const [noteFilter, setNoteFilter] = useState("published");
   // Landing here from the publish overlay carries ?tab=, so the author sees the
   // list their content actually went into. Read on router readiness rather than
@@ -33,20 +51,32 @@ export default function Content() {
     else if (tab === "notes") setSelectedTab(0);
   }, [router.isReady, router.query.tab]);
 
-  const { events, loading, hasMore, sentinelRef, refresh } = useUserContent(selectedTab, articleKind);
+  const articleKind = ARTICLE_FILTERS[articleFilter].kind;
+  const contentVariant =
+    selectedTab === 0
+      ? ["paid", "premium"].includes(noteFilter)
+        ? noteFilter
+        : "all"
+      : ARTICLE_FILTERS[articleFilter].variant;
+  const { events, loading, hasMore, sentinelRef, refresh } = useUserContent(
+    selectedTab,
+    articleKind,
+    contentVariant,
+  );
   const { scheduledEvents, loading: scheduledLoading } = useScheduledEvents();
   const [deletedIds, setDeletedIds] = useState(new Set());
   const [cancelledJobIds, setCancelledJobIds] = useState(new Set());
 
-  const articleKindOptions = [
-    { value: 30023, display_name: t("ACnt001") },
-    { value: 30024, display_name: t("ACnt002") },
+  const articleFilterOptions = [
+    { value: "published", display_name: t("ACnt001") },
+    { value: "drafts", display_name: t("ACnt002") },
+    { value: "premium", display_name: "Premium" },
   ];
 
   const handleTabChange = (tab) => {
     setSelectedTab(tab);
     // Reset to published when switching back to the articles tab
-    if (tab === 1) setArticleKind(30023);
+    if (tab === 1) setArticleFilter("published");
     if (tab === 0) setNoteFilter("published");
   };
 
@@ -81,9 +111,9 @@ export default function Content() {
         </div>
         {selectedTab === 1 && (
           <Select
-            options={articleKindOptions}
-            value={articleKind}
-            onChange={(val) => setArticleKind(Number(val))}
+            options={articleFilterOptions}
+            value={articleFilter}
+            onChange={setArticleFilter}
           />
         )}
         {selectedTab === 0 && (
@@ -120,7 +150,7 @@ export default function Content() {
           <>
             {visible.length === 0 && !loading && (
               <p className="p-secondary-c" style={{ textAlign: "center", padding: "32px 0" }}>
-                No {selectedTab === 0 ? "notes" : articleKind === 30023 ? "published articles" : "drafts"} found.
+                No {EMPTY_LABELS[selectedTab === 0 ? `notes-${noteFilter}` : `articles-${articleFilter}`]} found.
               </p>
             )}
 

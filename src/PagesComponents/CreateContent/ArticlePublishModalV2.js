@@ -120,17 +120,20 @@ export default function ArticlePublishModalV2({
       dispatch(setToast({ type: 2, desc: "Article content is empty." }));
       return;
     }
-    const premiumRelays = await resolvePremiumRelays(userRelays);
+    // Loading starts before the relay check so the button reacts on click; the
+    // NIP-11 lookups can take a few seconds when a relay is slow.
+    setIsLoading(true);
+
+    const premiumRelays = isPremium ? await resolvePremiumRelays(userRelays) : [];
 
     // The prerequisites warning fires on the toggle, not here. This remains a hard
     // stop though: an empty relay list would fall back to the default pool and
     // leak paywalled content.
     if (isPremium && premiumRelays.length === 0) {
       dispatch(setToast({ type: 2, desc: t("AsXohpb") }));
+      setIsLoading(false);
       return;
     }
-
-    setIsLoading(true);
 
     const created_at = Math.floor(Date.now() / 1000);
     const dTag = editId || nanoid();

@@ -136,6 +136,28 @@ export const deleteBlossomFile = async ({ sha256, serversList, eventHash }) => {
   }
 };
 
+// How long a relay still opening its socket is waited for once another relay
+// has already answered the query.
+const CONNECTING_GRACE_MS = 800;
+
+// Timing diagnostics, off by default. Enable in the console with
+// localStorage.setItem("debugSubData", "1") and reload.
+const logSubData = (sub, startedAt, reason, count) => {
+  try {
+    if (typeof localStorage === "undefined") return;
+    if (!localStorage.getItem("debugSubData")) return;
+    const relays = Array.from(sub?.relayFilters?.keys() || []).map((url) => {
+      const relay = sub?.ndk?.pool?.relays?.get(url);
+      return `${url} [${relay?.status}${sub?.eosesSeen?.has(relay) ? " eose" : ""}]`;
+    });
+    console.log(
+      `[getSubData] ${Date.now() - startedAt}ms · ${reason} · ${count} events`,
+      JSON.stringify(sub?.filters),
+      relays,
+    );
+  } catch {}
+};
+
 export const getSubData = async ({
   filter,
   timeout = 1000,
@@ -173,7 +195,85 @@ export const getSubData = async ({
       resolve({ data: [], pubkeys: [] });
       return;
     }
-    let sub = ndk.subscribe(
+    const startedAt = Date.now();
+    let settled = false;
+    let firstEoseAt;
+    let timer;
+    let graceTimer;
+    let sub;
+    const finish = (reason = "idle") => {
+      if (settled) return;
+      settled = true;
+      logSubData(sub, startedAt, reason, events.length);
+      clearTimeout(timer);
+      clearTimeout(graceTimer);
+      clearTimeout(hardCap);
+      sub?.stop();
+      resolve({
+        data: sortEvents(events),
+        pubkeys: [...new Set(pubkeys)],
+      });
+    };
+    // Fallback: resolve once `timeout` passes with no new event. On its own this
+    // made every query cost at least `timeout` after the last event, even when
+    // every relay had already said it was done.
+    const startTimer = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => finish("idle"), timeout);
+    };
+    // A query where no relay ever answers (no EOSE, no event) would otherwise
+    // never settle. Queries that are receiving events keep the idle timer.
+    const hardCap = setTimeout(() => {
+      if (events.length === 0) finish("hard-cap");
+    }, Math.max(timeout, 1000) + 8000);
+
+    // Resolve as soon as every relay that can still answer has sent EOSE. NDK's
+    // own "eose" can't be used for this: it also fires once half the relays are
+    // done, which is how the fastest relay used to end a query before the one
+    // holding the data replied. Relays that are down are left out so they can't
+    // hold the query open; one still connecting, or mid-AUTH, is pending,
+    // since a premium relay can send an empty EOSE before the handshake and its
+    // real results after.
+    const allLiveRelaysDone = () => {
+      const relayFilters = sub?.relayFilters;
+      if (!relayFilters || relayFilters.size === 0) return false;
+      for (const url of relayFilters.keys()) {
+        // pool.relays rather than getRelay(), which would create a missing one.
+        const relay = ndk.pool?.relays?.get(url);
+        // Unknown relay: can't tell, so keep waiting (the idle timer still ends it).
+        if (!relay) return false;
+        const status = relay.status;
+        // Relays that are down are skipped: DISCONNECTING (0), DISCONNECTED (1),
+        // FLAPPING (3).
+        if (status === 0 || status === 1 || status === 3) continue;
+        // A relay still CONNECTING (4) / RECONNECTING (2) may yet deliver, so it
+        // gets a short window after the first relay answered. Without one, a
+        // relay that never finishes its handshake held every query open until the
+        // idle timer.
+        if (status === 2 || status === 4) {
+          if (firstEoseAt && Date.now() - firstEoseAt >= CONNECTING_GRACE_MS)
+            continue;
+          return false;
+        }
+        if (status === 6 || status === 7) return false;
+        if (!sub.eosesSeen?.has(relay)) return false;
+      }
+      return true;
+    };
+    const checkDone = () => {
+      if (!firstEoseAt) {
+        firstEoseAt = Date.now();
+        setTimeout(checkDone, CONNECTING_GRACE_MS + 10);
+      }
+      if (settled || !allLiveRelaysDone()) return;
+      // A short grace lets events still being processed land before resolving.
+      clearTimeout(graceTimer);
+      graceTimer = setTimeout(() => {
+        if (allLiveRelaysDone()) finish("all-eose");
+      }, 150);
+    };
+
+    sub = ndk.subscribe(
       filter_,
       {
         groupable: false,
@@ -188,33 +288,35 @@ export const getSubData = async ({
             pubkeys.push(event.pubkey);
             if (event.id) events.push(raw ? event.rawEvent() : event);
             if (maxEvents === 1) {
-              // sub.removeAllListeners();
-              sub.stop();
-              resolve({
-                data: sortEvents(events),
-                pubkeys: [...new Set(pubkeys)],
-              });
+              finish("first-event");
+              return;
             }
             startTimer();
           }
         },
         onEose() {
           if (events.length === 0) startTimer();
+          checkDone();
         },
       },
     );
-    let timer;
-    const startTimer = () => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        // sub.removeAllListeners();
-        sub.stop();
-        resolve({
-          data: sortEvents(events),
-          pubkeys: [...new Set(pubkeys)],
-        });
-      }, timeout);
-    };
+
+    // finish() can run during subscribe() when the cache answers synchronously,
+    // before `sub` was assigned to stop.
+    if (settled) {
+      sub?.stop();
+      return;
+    }
+
+    // NDK reports EOSE per relay only through this method; wrapping it on this
+    // instance is how each relay's completion is observed.
+    if (typeof sub?.eoseReceived === "function") {
+      const eoseReceived = sub.eoseReceived.bind(sub);
+      sub.eoseReceived = (relay) => {
+        eoseReceived(relay);
+        checkDone();
+      };
+    }
   });
 };
 
@@ -487,12 +589,18 @@ export const saveRelayMetadata = async (relays) => {
   return relaysMetadata;
 };
 
+// A relay that accepts the connection but never answers would otherwise hang
+// every caller (premium publish included) indefinitely. Past this, the relay is
+// treated as unresolved and simply left out.
+const RELAY_METADATA_TIMEOUT = 3000;
+
 const fetchRelayMetadata = async (relay) => {
   try {
     const info = await axios.get(relay.replace("wss", "https"), {
       headers: {
         Accept: "application/nostr+json",
       },
+      timeout: RELAY_METADATA_TIMEOUT,
     });
     if (typeof info.data !== "object") return false;
     return { url: relay, ...info.data };

@@ -81,9 +81,9 @@ function isRelayUrl(el) {
   return /^wss?:\/\/.+/.test(el);
 }
 
-function RenderImage({ src, key }) {
+function RenderImage({ src }) {
   return (
-    <Fragment key={key}>
+    <Fragment>
       <img
         src={src}
         alt=""
@@ -99,9 +99,9 @@ function RenderImage({ src, key }) {
   );
 }
 
-function RenderVideo({ src, key }) {
+function RenderVideo({ src }) {
   return (
-    <Fragment key={key}>
+    <Fragment>
       <video
         src={src}
         controls
@@ -120,9 +120,9 @@ function RenderVideo({ src, key }) {
   );
 }
 
-function RenderYouTube({ videoId, key }) {
+function RenderYouTube({ videoId }) {
   return (
-    <Fragment key={key}>
+    <Fragment>
       <div
         style={{
           position: "relative",
@@ -144,9 +144,9 @@ function RenderYouTube({ videoId, key }) {
   );
 }
 
-function RenderVimeo({ videoId, key }) {
+function RenderVimeo({ videoId }) {
   return (
-    <Fragment key={key}>
+    <Fragment>
       <div
         style={{
           position: "relative",
@@ -168,9 +168,9 @@ function RenderVimeo({ videoId, key }) {
   );
 }
 
-function RenderAudio({ src, key }) {
+function RenderAudio({ src }) {
   return (
-    <Fragment key={key}>
+    <Fragment>
       <audio
         controls
         src={src}
@@ -180,9 +180,9 @@ function RenderAudio({ src, key }) {
   );
 }
 
-function RenderNostrEntity({ addr, key }) {
+function RenderNostrEntity({ addr }) {
   return (
-    <Fragment key={key}>
+    <Fragment>
       <span style={{ display: "inline-block", verticalAlign: "middle" }}>
         <Nip19Preview addr={addr} />
       </span>{" "}
@@ -190,17 +190,17 @@ function RenderNostrEntity({ addr, key }) {
   );
 }
 
-function RenderLink({ url, key }) {
+function RenderLink({ url }) {
   return (
-    <Fragment key={key}>
+    <Fragment>
       <LinkPreview url={url} />
     </Fragment>
   );
 }
 
-function RenderHashtag({ text, key }) {
+function RenderHashtag({ text }) {
   return (
-    <Fragment key={key}>
+    <Fragment>
       <a
         href={`/search?tab=notes&keyword=${encodeURIComponent(text.replace(/^#+/, ""))}`}
         onClick={(e) => e.stopPropagation()}
@@ -217,9 +217,9 @@ function RenderHashtag({ text, key }) {
   );
 }
 
-function RenderRelayUrl({ url, key }) {
+function RenderRelayUrl({ url }) {
   return (
-    <Fragment key={key}>
+    <Fragment>
       <span
         style={{
           display: "inline-flex",
@@ -239,9 +239,9 @@ function RenderRelayUrl({ url, key }) {
   );
 }
 
-function RenderLnbc({ lnbc, key }) {
+function RenderLnbc({ lnbc }) {
   return (
-    <Fragment key={key}>
+    <Fragment>
       <span
         style={{
           display: "inline-block",
@@ -262,9 +262,9 @@ function RenderLnbc({ lnbc, key }) {
   );
 }
 
-function RenderText({ text, key }) {
+function RenderText({ text }) {
   return (
-    <Fragment key={key}>
+    <Fragment>
       <span style={{ wordBreak: "break-word", verticalAlign: "middle" }}>{text} </span>
     </Fragment>
   );

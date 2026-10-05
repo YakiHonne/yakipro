@@ -9,6 +9,7 @@ import RawEventDisplay from "@/Components/RawEventDisplay";
 import { setToast } from "@/Store/Slices/Extras";
 import { InitEvent } from "@/Helpers/Encryptions";
 import { publishEvent, removeEventFromCache } from "@/Helpers/Helpers";
+import { isPaidNote } from "@/Helpers/ContentTags";
 
 function formatDate(ts) {
   return new Date(ts * 1000).toLocaleDateString(undefined, {
@@ -46,6 +47,7 @@ function OptionItem({ icon, label, danger, onClick }) {
 export default function NoteCard({ event, onDelete }) {
   const dispatch = useDispatch();
   const premium = isPremium(event.tags);
+  const paid = isPaidNote(event);
   const [showRaw, setShowRaw] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
 
@@ -147,6 +149,11 @@ export default function NoteCard({ event, onDelete }) {
             {formatDate(event.created_at)}
           </span>
           <div className="fx-centered" style={{ gap: 6 }}>
+            {paid && (
+              <span className="sticker sticker-small sticker-gst-orange">
+                Paid
+              </span>
+            )}
             {premium && (
               <span
                 style={{

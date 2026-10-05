@@ -132,7 +132,12 @@ export default function NoteEditor() {
       return;
     }
 
-    const premiumRelays = await resolvePremiumRelays(userRelays);
+    // Loading starts before the relay check so the button reacts on click (and
+    // can't be clicked twice); the NIP-11 lookups can take a few seconds when a
+    // relay is slow.
+    setIsLoading(true);
+
+    const premiumRelays = isPremium ? await resolvePremiumRelays(userRelays) : [];
 
     // The prerequisites warning fires when the toggle is switched on, not here —
     // finding out at publish time is too late to be useful. This remains a hard
@@ -140,10 +145,9 @@ export default function NoteEditor() {
     // default pool, broadcasting paywalled content to every public relay.
     if (isPremium && premiumRelays.length === 0) {
       dispatch(setToast({ type: 2, desc: t("AsXohpb") }));
+      setIsLoading(false);
       return;
     }
-
-    setIsLoading(true);
 
     const { content, tags: contentTags } = extractNip19(note);
     const filteredImetas = filterImetas({ note, imetas });

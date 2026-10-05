@@ -2,6 +2,7 @@ import React from "react";
 import { useSelector } from "react-redux";
 import KeysSection from "./KeysSection";
 import PreferencesSection from "./PreferencesSection";
+import BlossomServersSection from "./BlossomServersSection";
 import PagePlaceholder from "@/Components/PlaceholderScreens/PagePlaceholder";
 import { pphValues } from "@/Content/PagesPlaceholdersValues";
 
@@ -59,6 +60,15 @@ export default function Settings() {
                   <h4>Preferences</h4>
                 </div>
                 <PreferencesSection />
+              </div>
+              <div
+                className="fx-centered fx-col fit-container"
+                style={{ rowGap: "16px" }}
+              >
+                <div className="fit-container border-bottom" style={{ paddingBottom: "8px" }}>
+                  <h4>Media servers</h4>
+                </div>
+                <BlossomServersSection />
               </div>
             </div>
           </div>
