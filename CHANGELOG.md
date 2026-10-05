@@ -1,4 +1,11 @@
-# (v1.0.0) 25/08/2026
+# (v1.0.2) 25/08/2026
+
+* Fixed issues related to publishing premium content.
+* Added BLOSSOM servers managements in settings.
+* Added more filters on content page for notes and articles.
+* General bug fixes.
+
+# (v1.0.1) 25/08/2026
 
 * Fixed several issues affecting the AI Assistant and Second Reader.
 * Added direct redirection to the YakiPro mobile app.
