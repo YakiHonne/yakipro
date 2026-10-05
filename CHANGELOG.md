@@ -1,4 +1,4 @@
-# (v1.0.2) 25/08/2026
+# (v1.0.2) 05/010/2026
 
 * Fixed issues related to publishing premium content.
 * Added BLOSSOM servers managements in settings.
