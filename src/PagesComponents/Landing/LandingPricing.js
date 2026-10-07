@@ -78,18 +78,18 @@ function Nav() {
 
 function useCompareRows(t) {
   return [
-    { label: t("APrc035"), creator: true, pro: true },
-    { label: t("APrc036"), creator: true, pro: true },
-    { label: t("APrc037"), creator: true, pro: true },
-    { label: t("APrc015"), creator: true, pro: true },
-    { label: t("APrc016"), creator: true, pro: true },
-    { label: t("APrc038"), creator: t("APrc057"), pro: t("APrc058") },
-    { label: t("APrc039"), creator: t("APrc059"), pro: t("APrc060") },
-    { label: t("APrc040"), creator: false, pro: true },
-    { label: t("ALPg021"), creator: t("APrc061"), pro: t("APrc062") },
-    { label: t("APrc041"), creator: t("APrc061"), pro: t("APrc062") },
-    { label: t("APrc042"), creator: t("APrc061"), pro: t("APrc062") },
-    { label: t("APrc043"), creator: true, pro: true },
+    { label: t("APrc035"), basic: true, premium: true },
+    { label: t("APrc036"), basic: true, premium: true },
+    { label: t("APrc037"), basic: true, premium: true },
+    { label: t("APrc015"), basic: true, premium: true },
+    { label: t("APrc016"), basic: true, premium: true },
+    { label: t("APrc038"), basic: t("APrc057"), premium: t("APrc058") },
+    { label: t("APrc039"), basic: t("APrc059"), premium: t("APrc060") },
+    { label: t("APrc040"), basic: false, premium: true },
+    { label: t("ALPg021"), basic: t("APrc061"), premium: t("APrc062") },
+    { label: t("APrc041"), basic: t("APrc061"), premium: t("APrc062") },
+    { label: t("APrc042"), basic: t("APrc061"), premium: t("APrc062") },
+    { label: t("APrc043"), basic: true, premium: true },
   ];
 }
 
@@ -258,10 +258,10 @@ export default function LandingPricing() {
               <div key={row.label} className="lp-compare-row">
                 <div className="lp-compare-cell">{row.label}</div>
                 <div className="lp-compare-cell center">
-                  <CellValue value={row.creator} />
+                  <CellValue value={row.basic} />
                 </div>
                 <div className="lp-compare-cell center">
-                  <CellValue value={row.pro} />
+                  <CellValue value={row.premium} />
                 </div>
               </div>
             ))}
