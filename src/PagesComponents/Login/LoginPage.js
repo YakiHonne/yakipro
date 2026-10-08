@@ -23,8 +23,6 @@ import {
   NDKPrivateKeySigner,
 } from "@nostr-dev-kit/ndk";
 import {
-  saveAccountLocally,
-  fetchUserMetadata,
   applySignerToNDK,
   createAccount,
 } from "@/Helpers/AccountInit";
@@ -37,31 +35,15 @@ import PomegranateLoginOverlay from "@/PagesComponents/Login/GoogleLoginOverlay"
 
 // ── Shared backend login helper ───────────────────────────────────────────────
 async function doBackendLogin(dispatch, keys) {
-  const { login: apiLogin, checkUserConnected } =
-    await import("@/Endpoionts/Auth");
-  const { setIsConnected, setNostrUser } = await import("@/Store/Slices/User");
-  const { activateAccount } = await import("@/Helpers/AccountInit");
+  const { activateAccount, bootAccount } = await import("@/Helpers/AccountInit");
 
   // Every LoginPage sign-in path funnels through here, and none of them reload the page —
   // so this is where the in-memory caches left by the previous account have to be dropped.
   activateAccount(keys.pub);
 
-  const check = await checkUserConnected();
-  // Only trust the existing session when it belongs to the account being signed in:
-  // a leftover cookie from a previous account otherwise answers here and signs the
-  // user straight back into the OLD account's data.
-  if (check && check !== false && check.pubkey === keys.pub) {
-    dispatch(setNostrUser(check));
-    dispatch(setIsConnected(true));
-    return true;
-  }
-  const res = await apiLogin({ publicKey: keys.pub, userKeys: keys });
-  if (res && res !== false) {
-    dispatch(setNostrUser(res));
-    dispatch(setIsConnected(true));
-    return true;
-  }
-  return false;
+  // Relay-side state (profile, relay list) loads in the background: waiting on
+  // it here put several relay timeouts in front of the backend login.
+  return bootAccount(keys, { interactive: true });
 }
 
 const downloadAsFile = (text, type, name) => {
@@ -103,8 +85,6 @@ function KeyMethod({ onBack, onSuccess }) {
           await applySignerToNDK(keys);
           dispatch(setUserKeys(keys));
           localStorage.setItem("_nostruserkeys", JSON.stringify(keys));
-          const meta = await fetchUserMetadata(keys.pub);
-          saveAccountLocally(keys.pub, keys, meta);
           const ok = await doBackendLogin(dispatch, keys);
           if (ok) onSuccess?.();
           else dispatch(setToast({ type: 2, desc: t("ALog014") }));
@@ -117,8 +97,6 @@ function KeyMethod({ onBack, onSuccess }) {
         await applySignerToNDK(keys);
         dispatch(setUserKeys(keys));
         localStorage.setItem("_nostruserkeys", JSON.stringify(keys));
-        const meta = await fetchUserMetadata(keys.pub);
-        saveAccountLocally(keys.pub, keys, meta);
         const ok = await doBackendLogin(dispatch, keys);
         if (ok) onSuccess?.();
         else dispatch(setToast({ type: 2, desc: t("ALog014") }));
@@ -128,8 +106,6 @@ function KeyMethod({ onBack, onSuccess }) {
         const keys = { pub: input };
         dispatch(setUserKeys(keys));
         localStorage.setItem("_nostruserkeys", JSON.stringify(keys));
-        const meta = await fetchUserMetadata(keys.pub);
-        saveAccountLocally(keys.pub, keys, meta);
         const ok = await doBackendLogin(dispatch, keys);
         if (ok) onSuccess?.();
         else dispatch(setToast({ type: 2, desc: t("ALog014") }));
@@ -199,8 +175,6 @@ function BunkerMethod({ onBack, onSuccess }) {
     };
     dispatch(setUserKeys(keys));
     localStorage.setItem("_nostruserkeys", JSON.stringify(keys));
-    const meta = await fetchUserMetadata(keys.pub);
-    saveAccountLocally(keys.pub, keys, meta);
     const ok = await doBackendLogin(dispatch, keys);
     if (ok) onSuccess?.();
     else dispatch(setToast({ type: 2, desc: t("ALog016") }));
@@ -320,8 +294,6 @@ function GoogleLoginOverlay({ onClose, onSuccess }) {
   // (local store, backend session) stays here with the rest of LoginPage.
   const persistAccount = async (keys) => {
     localStorage.setItem("_nostruserkeys", JSON.stringify(keys));
-    const meta = await fetchUserMetadata(keys.pub);
-    saveAccountLocally(keys.pub, keys, meta);
     const ok = await doBackendLogin(dispatch, keys);
     if (ok) onSuccess?.();
   };
@@ -507,8 +479,6 @@ export default function LoginPage() {
       await applySignerToNDK(keys);
       dispatch(setUserKeys(keys));
       localStorage.setItem("_nostruserkeys", JSON.stringify(keys));
-      const meta = await fetchUserMetadata(keys.pub);
-      saveAccountLocally(keys.pub, keys, meta);
       const ok = await doBackendLogin(dispatch, keys);
       if (ok) handleSuccess();
       else dispatch(setToast({ type: 2, desc: t("ALog015") }));

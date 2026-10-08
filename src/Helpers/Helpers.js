@@ -139,6 +139,11 @@ export const deleteBlossomFile = async ({ sha256, serversList, eventHash }) => {
 // How long a relay still opening its socket is waited for once another relay
 // has already answered the query.
 const CONNECTING_GRACE_MS = 800;
+// Longest the idle timer is held open for relays that are up but have not sent
+// EOSE yet, measured from the start of the query.
+const RELAY_WAIT_CAP_MS = 2500;
+// Relays that held a query to that cap without answering.
+const unresponsiveRelays = new Set();
 
 // Timing diagnostics, off by default. Enable in the console with
 // localStorage.setItem("debugSubData", "1") and reload.
@@ -217,9 +222,24 @@ export const getSubData = async ({
     // Fallback: resolve once `timeout` passes with no new event. On its own this
     // made every query cost at least `timeout` after the last event, even when
     // every relay had already said it was done.
-    const startTimer = () => {
+    //
+    // It must not cut off a relay that is up and simply slower: a fast relay's
+    // events used to start this timer and end the query before the relay holding
+    // the rest (the account's own, or the premium one mid-AUTH) had answered, so
+    // right after load a page showed only part of an author's content. The idle
+    // window is therefore held open, up to RELAY_WAIT_CAP_MS from the start, for
+    // relays that can still answer.
+    const startTimer = (delay = timeout) => {
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => finish("idle"), timeout);
+      timer = setTimeout(() => {
+        const remaining = RELAY_WAIT_CAP_MS - (Date.now() - startedAt);
+        if (remaining > 0 && cacheUsage !== "ONLY_CACHE" && relaysStillOwed()) {
+          startTimer(Math.min(timeout, remaining));
+          return;
+        }
+        noteUnresponsiveRelays();
+        finish("idle");
+      }, delay);
     };
     // A query where no relay ever answers (no EOSE, no event) would otherwise
     // never settle. Queries that are receiving events keep the idle timer.
@@ -259,6 +279,30 @@ export const getSubData = async ({
         if (!sub.eosesSeen?.has(relay)) return false;
       }
       return true;
+    };
+    // Relays the idle timer should still wait for. A relay that already sat out a
+    // full wait without answering is not waited on again until it does answer —
+    // otherwise one that never sends EOSE (or never completes AUTH, as for a
+    // watch-only account) would add the whole cap to every query.
+    const pendingRelays = () => {
+      const pending = [];
+      const relayFilters = sub?.relayFilters;
+      if (!relayFilters) return pending;
+      for (const url of relayFilters.keys()) {
+        const relay = ndk.pool?.relays?.get(url);
+        if (!relay) continue;
+        const status = relay.status;
+        if (status === 0 || status === 1 || status === 3) continue;
+        if (sub.eosesSeen?.has(relay)) continue;
+        pending.push(url);
+      }
+      return pending;
+    };
+    const relaysStillOwed = () =>
+      pendingRelays().some((url) => !unresponsiveRelays.has(url));
+    const noteUnresponsiveRelays = () => {
+      if (Date.now() - startedAt < RELAY_WAIT_CAP_MS) return;
+      for (const url of pendingRelays()) unresponsiveRelays.add(url);
     };
     const checkDone = () => {
       if (!firstEoseAt) {
@@ -314,6 +358,7 @@ export const getSubData = async ({
       const eoseReceived = sub.eoseReceived.bind(sub);
       sub.eoseReceived = (relay) => {
         eoseReceived(relay);
+        if (relay?.url) unresponsiveRelays.delete(relay.url);
         checkDone();
       };
     }

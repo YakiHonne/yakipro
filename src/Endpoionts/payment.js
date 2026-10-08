@@ -11,17 +11,43 @@ export const enableStripe = async ({ country = "" }) => {
   }
 };
 let _plansCache = null;
+let _plansRequest = null;
+
+const PLANS_TIMEOUT_MS = 12000;
+const PLANS_RETRY_DELAYS_MS = [1500, 4000];
+
+// Callers render whatever this resolves with once, on mount, so a single failed
+// request used to leave the plan cards empty until the component remounted.
+// Transient failures are retried here instead, concurrent callers share one
+// request, and an empty answer is never cached as if it were the plan list.
+const requestPlans = async () => {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const { data } = await axiosInstance.get("/api/v1/plans", {
+        timeout: PLANS_TIMEOUT_MS,
+      });
+      const plans = data?.plans ?? [];
+      if (plans.length > 0) _plansCache = plans;
+      return plans;
+    } catch (err) {
+      console.log(err);
+      const retryable = !err?.response || err.response.status >= 500;
+      if (!retryable || attempt >= PLANS_RETRY_DELAYS_MS.length) return [];
+      await new Promise((resolve) =>
+        setTimeout(resolve, PLANS_RETRY_DELAYS_MS[attempt]),
+      );
+    }
+  }
+};
 
 export const getPlans = async () => {
   if (_plansCache) return _plansCache;
-  try {
-    const data = await axiosInstance.get("/api/v1/plans");
-    _plansCache = data.data?.plans ?? [];
-    return _plansCache;
-  } catch (err) {
-    console.log(err);
-    return [];
+  if (!_plansRequest) {
+    _plansRequest = requestPlans().finally(() => {
+      _plansRequest = null;
+    });
   }
+  return _plansRequest;
 };
 
 export const clearPlansCache = () => {
@@ -43,13 +69,16 @@ export const getStripeAccount = async () => {
 // The creator's per-method subscription plans (fiat/crypto) with their pricing
 // and active flag. /provider only returns the Stripe account (no pricing), so
 // this is the authoritative source for the fiat/crypto price lists.
+//
+// Resolves null when the request failed, which is not the same answer as a
+// creator with no plans.
 export const getSubPlans = async () => {
   try {
     const data = await axiosInstance.get("/api/v1/subplans");
     return Array.isArray(data.data) ? data.data : [];
   } catch (err) {
     console.log(err);
-    return [];
+    return null;
   }
 };
 export const getProviderLogin = async () => {

@@ -18,11 +18,7 @@ import {
   NDKPrivateKeySigner,
 } from "@nostr-dev-kit/ndk";
 
-import {
-  saveAccountLocally,
-  fetchUserMetadata,
-  applySignerToNDK,
-} from "@/Helpers/AccountInit";
+import { applySignerToNDK, bootAccount } from "@/Helpers/AccountInit";
 import { SelectTabs } from "./SelectTabs";
 import Overlay from "./Overlay";
 import Button from "./UI/Button";
@@ -88,24 +84,8 @@ const KeyLoginScreen = ({ exit }) => {
           await applySignerToNDK(keys);
           dispatch(setUserKeys(keys));
           localStorage.setItem("_nostruserkeys", JSON.stringify(keys));
-          const meta = await fetchUserMetadata(keys.pub);
-          saveAccountLocally(keys.pub, keys, meta);
 
-          const { login: apiLogin, checkUserConnected } =
-            await import("@/Endpoionts/Auth");
-          const { setIsConnected } = await import("@/Store/Slices/User");
-          const check = await checkUserConnected();
-          if (check && check.success && check.pubkey === keys.pub) {
-            dispatch(setIsConnected(true));
-          } else {
-            const loginRes = await apiLogin({
-              publicKey: keys.pub,
-              userKeys: keys,
-            });
-            if (loginRes && loginRes.success) {
-              dispatch(setIsConnected(true));
-            }
-          }
+          await bootAccount(keys, { interactive: true });
 
           exit?.();
           return;
@@ -118,24 +98,8 @@ const KeyLoginScreen = ({ exit }) => {
         await applySignerToNDK(keys);
         dispatch(setUserKeys(keys));
         localStorage.setItem("_nostruserkeys", JSON.stringify(keys));
-        const meta = await fetchUserMetadata(keys.pub);
-        saveAccountLocally(keys.pub, keys, meta);
 
-        const { login: apiLogin, checkUserConnected } =
-          await import("@/Endpoionts/Auth");
-        const { setIsConnected } = await import("@/Store/Slices/User");
-        const check = await checkUserConnected();
-        if (check && check.success && check.pubkey === keys.pub) {
-          dispatch(setIsConnected(true));
-        } else {
-          const loginRes = await apiLogin({
-            publicKey: keys.pub,
-            userKeys: keys,
-          });
-          if (loginRes && loginRes.success) {
-            dispatch(setIsConnected(true));
-          }
-        }
+        await bootAccount(keys, { interactive: true });
 
         exit?.();
         return;
@@ -145,24 +109,8 @@ const KeyLoginScreen = ({ exit }) => {
         const keys = { pub: input };
         dispatch(setUserKeys(keys));
         localStorage.setItem("_nostruserkeys", JSON.stringify(keys));
-        const meta = await fetchUserMetadata(keys.pub);
-        saveAccountLocally(keys.pub, keys, meta);
 
-        const { login: apiLogin, checkUserConnected } =
-          await import("@/Endpoionts/Auth");
-        const { setIsConnected } = await import("@/Store/Slices/User");
-        const check = await checkUserConnected();
-        if (check && check.success && check.pubkey === keys.pub) {
-          dispatch(setIsConnected(true));
-        } else {
-          const loginRes = await apiLogin({
-            publicKey: keys.pub,
-            userKeys: keys,
-          });
-          if (loginRes && loginRes.success) {
-            dispatch(setIsConnected(true));
-          }
-        }
+        await bootAccount(keys, { interactive: true });
 
         exit?.();
         return;
@@ -215,24 +163,8 @@ const ExtensionLoginScreen = ({ exit }) => {
       await applySignerToNDK(keys);
       dispatch(setUserKeys(keys));
       localStorage.setItem("_nostruserkeys", JSON.stringify(keys));
-      const meta = await fetchUserMetadata(keys.pub);
-      saveAccountLocally(keys.pub, keys, meta);
 
-      const { login: apiLogin, checkUserConnected } =
-        await import("@/Endpoionts/Auth");
-      const { setIsConnected } = await import("@/Store/Slices/User");
-      const check = await checkUserConnected();
-      if (check && check.success && check.pubkey === keys.pub) {
-        dispatch(setIsConnected(true));
-      } else {
-        const loginRes = await apiLogin({
-          publicKey: keys.pub,
-          userKeys: keys,
-        });
-        if (loginRes && loginRes.success) {
-          dispatch(setIsConnected(true));
-        }
-      }
+      await bootAccount(keys, { interactive: true });
 
       exit?.();
     } catch (err) {
@@ -316,24 +248,8 @@ const BunkerLoginScreen = ({ exit }) => {
       };
       dispatch(setUserKeys(keys));
       localStorage.setItem("_nostruserkeys", JSON.stringify(keys));
-      const meta = await fetchUserMetadata(keys.pub);
-      saveAccountLocally(keys.pub, keys, meta);
 
-      const { login: apiLogin, checkUserConnected } =
-        await import("@/Endpoionts/Auth");
-      const { setIsConnected } = await import("@/Store/Slices/User");
-      const check = await checkUserConnected();
-      if (check && check.success && check.pubkey === keys.pub) {
-        dispatch(setIsConnected(true));
-      } else {
-        const loginRes = await apiLogin({
-          publicKey: keys.pub,
-          userKeys: keys,
-        });
-        if (loginRes && loginRes.success) {
-          dispatch(setIsConnected(true));
-        }
-      }
+      await bootAccount(keys, { interactive: true });
 
       exit?.();
     } catch (err) {

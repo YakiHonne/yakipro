@@ -17,11 +17,9 @@ import {
   setUserBlossomServers,
 } from "@/Store/Slices/UserData";
 import { store } from "@/Store/Store";
-import {
-  login as apiLogin,
-  logout as apiLogout,
-  checkUserConnected,
-} from "@/Endpoionts/Auth";
+import { login as apiLogin, logout as apiLogout } from "@/Endpoionts/Auth";
+import axiosInstance from "@/Helpers/HTTP_Client";
+import { getLoginsParams } from "@/Helpers/Encryptions";
 import { setIsConnected, setLoadingConnectedUser, setNostrUser } from "@/Store/Slices/User";
 import { setUserRelaysCache } from "@/Cache/userRelaysCache";
 import {
@@ -29,7 +27,6 @@ import {
   clearSubscriptionStatus,
   seedAccountFields,
 } from "@/Store/Slices/Subscription";
-import { getSubscriptionStatus } from "@/Endpoionts/subscription";
 import { resetAccountScopedCaches } from "@/Cache/accountScope";
 
 const ACCOUNTS_KEY = "yaki-accounts";
@@ -245,57 +242,63 @@ export const fetchUserMetadata = async (pubkey) => {
   try {
     const user = ndkInstance.getUser({ pubkey });
 
-    const [, followEvent, relayEvent] = await Promise.all([
-      withTimeout(user?.fetchProfile(), METADATA_FETCH_TIMEOUT_MS),
-      withTimeout(
-        ndkInstance.fetchEvent({ kinds: [3], authors: [pubkey] }),
-        METADATA_FETCH_TIMEOUT_MS,
-      ),
-      readEvent(
-        ndkInstance.fetchEvent({ kinds: [10002], authors: [pubkey] }),
-        METADATA_FETCH_TIMEOUT_MS,
-      ),
-    ]);
+    // Each read is stored as soon as it lands. Waiting on all three first held the
+    // relay list — which every content query needs — behind the slowest of the
+    // profile and contact-list reads.
+    const profileRead = withTimeout(
+      user?.fetchProfile(),
+      METADATA_FETCH_TIMEOUT_MS,
+    ).then(() => {
+      const metadata = toRawMetadata(user?.profile);
+      store.dispatch(setUserMetadata(metadata));
+      return metadata;
+    });
 
-    const metadata = toRawMetadata(user?.profile);
-    store.dispatch(setUserMetadata(metadata));
-
-    if (followEvent) {
+    const followsRead = withTimeout(
+      ndkInstance.fetchEvent({ kinds: [3], authors: [pubkey] }),
+      METADATA_FETCH_TIMEOUT_MS,
+    ).then((followEvent) => {
+      if (!followEvent) return;
       const followings = followEvent.tags
         .filter((t) => t[0] === "p")
         .map((t) => t[1]);
       store.dispatch(setUserFollowings(followings));
-    }
+    });
 
-    // A null relayEvent is a real answer — the account publishes no kind 10002 —
-    // and must seed defaults. Only TIMED_OUT means "we could not read it", which
-    // is the case where seeding would clobber a list that does exist.
-    const relayReadSucceeded = relayEvent !== TIMED_OUT;
-    const existingRelays =
-      relayEvent && relayEvent !== TIMED_OUT
-        ? relayEvent.tags
-            .filter((t) => t[0] === "r" && t[1])
-            .map((t) => ({
-              url: t[1],
-              read: t[2] === "read" || !t[2],
-              write: t[2] === "write" || !t[2],
-            }))
-        : [];
+    const relaysRead = readEvent(
+      ndkInstance.fetchEvent({ kinds: [10002], authors: [pubkey] }),
+      METADATA_FETCH_TIMEOUT_MS,
+    ).then(async (relayEvent) => {
+      // A null relayEvent is a real answer — the account publishes no kind 10002 —
+      // and must seed defaults. Only TIMED_OUT means "we could not read it", which
+      // is the case where seeding would clobber a list that does exist.
+      const relayReadSucceeded = relayEvent !== TIMED_OUT;
+      const existingRelays =
+        relayEvent && relayEvent !== TIMED_OUT
+          ? relayEvent.tags
+              .filter((t) => t[0] === "r" && t[1])
+              .map((t) => ({
+                url: t[1],
+                read: t[2] === "read" || !t[2],
+                write: t[2] === "write" || !t[2],
+              }))
+          : [];
 
-    const relays = await ensureRelayList(existingRelays, relayReadSucceeded);
+      const relays = await ensureRelayList(existingRelays, relayReadSucceeded);
+      if (relays.length === 0) return;
 
-    if (relays.length > 0) {
       store.dispatch(setUserRelays(relays));
       setUserRelaysCache(relays);
 
       // NDK is constructed with only the platform defaults, so until the account's
-      // own relays are added to the pool every read still goes to those five —
+      // own relays are added to the pool every read still goes to those —
       // which is why an author whose notes live elsewhere sees an empty feed.
       // Awaited so the sockets are actually open (and AUTH answered) before the
       // content page starts querying.
       await addExplicitRelays(relays.map((r) => r.url));
-    }
+    });
 
+    const [metadata] = await Promise.all([profileRead, followsRead, relaysRead]);
     return metadata;
   } catch (err) {
     console.error("[AccountInit] Failed to fetch metadata:", err);
@@ -408,89 +411,183 @@ const seedBlossomServers = async (pubkey, blossomRead, session) => {
   }
 };
 
-export const initAppAccount = async () => {
-  try {
-    const authRaw = localStorage.getItem(AUTH_KEY);
-    if (!authRaw) {
-      store.dispatch(setLoadingConnectedUser(false));
+const REQUEST_TIMEOUT_MS = 12000;
+const RETRY_DELAYS_MS = [2000, 6000, 15000];
+// A sign-in the user is watching gets one retry; the rest would only keep the
+// button spinning.
+const INTERACTIVE_RETRY_DELAYS_MS = [2000];
+const SIGNER_READY_TIMEOUT_MS = 8000;
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const isRetryable = (err) => !err?.response || err.response.status >= 500;
+const isCurrentAccount = (pubkey) =>
+  store.getState().userKeys?.pub === pubkey;
+
+// The status endpoint is the authority on the paywall, but it is a second round
+// trip behind /online and the whole app waits on it. The session payload is the
+// same account document, so when it already shows access the app opens on it
+// straight away. It is never used to block: /login answers for a brand-new
+// account with the document as it was before the trial was granted.
+const refreshSubscriptionStatus = async (pubkey, provisional) => {
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    if (!isCurrentAccount(pubkey)) return;
+    try {
+      const { data } = await axiosInstance.get("/api/v1/subscription-status", {
+        timeout: REQUEST_TIMEOUT_MS,
+      });
+      if (isCurrentAccount(pubkey)) store.dispatch(setSubscriptionStatus(data));
       return;
+    } catch (err) {
+      if (!isRetryable(err)) break;
+      if (attempt < RETRY_DELAYS_MS.length) await wait(RETRY_DELAYS_MS[attempt]);
+    }
+  }
+  // Out of attempts. An account already opened on the session payload keeps it;
+  // otherwise release the gate, as a failed status read always has.
+  if (!provisional && isCurrentAccount(pubkey))
+    store.dispatch(setSubscriptionStatus(null));
+};
+
+const applySession = (pubkey, session) => {
+  store.dispatch(setNostrUser(session));
+  store.dispatch(seedAccountFields(session));
+  const hasAccess = Boolean(session.active || session.in_trial);
+  if (hasAccess)
+    store.dispatch(setSubscriptionStatus({ ...session, access_blocked: false }));
+  store.dispatch(setIsConnected(true));
+  refreshSubscriptionStatus(pubkey, hasAccess);
+};
+
+// Signs a login without retrying the signer itself: a refused or missing
+// signer must not turn into repeated extension prompts or bunker popups.
+const loginQuietly = async (keys) => {
+  // Extensions inject window.nostr after the page's own scripts start, so a
+  // reload can reach this point before it exists.
+  if (keys.ext && !window.nostr) {
+    for (let i = 0; i < 10 && !window.nostr; i++) await wait(500);
+    if (!window.nostr) return { retry: false };
+  }
+  const { pubkey, password } = await getLoginsParams(keys.pub, keys);
+  if (!(pubkey && password)) return { retry: false };
+  try {
+    const { data } = await axiosInstance.post(
+      "/api/v1/login",
+      { password, pubkey },
+      { timeout: REQUEST_TIMEOUT_MS },
+    );
+    return { data };
+  } catch (err) {
+    return { retry: isRetryable(err) || !!keys.sec };
+  }
+};
+
+// Resolves with the backend session for `keys`, or null. An existing session is
+// reused only when it belongs to this account: the cookie may still be bound to
+// a previously signed-in pubkey, and /online answers for whoever it names.
+//
+// `onFirstAttempt` fires once the first pass has an outcome, so a caller can
+// stop blocking on it while the retries carry on.
+const connectSession = async (
+  keys,
+  { retryDelays = RETRY_DELAYS_MS, onFirstAttempt } = {},
+) => {
+  const pubkey = keys.pub;
+  let sessionInvalid = false;
+
+  for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
+    if (!isCurrentAccount(pubkey)) return null;
+
+    if (!sessionInvalid) {
+      try {
+        const { data } = await axiosInstance.get("/api/v1/online", {
+          timeout: REQUEST_TIMEOUT_MS,
+        });
+        if (!isCurrentAccount(pubkey)) return null;
+        if (data?.pubkey === pubkey) {
+          applySession(pubkey, data);
+          return data;
+        }
+        sessionInvalid = true;
+      } catch (err) {
+        if (!isCurrentAccount(pubkey)) return null;
+        if (!isRetryable(err)) sessionInvalid = true;
+      }
     }
 
-    const keys = JSON.parse(authRaw);
-    if (!keys || !keys.pub) {
-      store.dispatch(setLoadingConnectedUser(false));
-      return;
+    const login = await loginQuietly(keys);
+    if (!isCurrentAccount(pubkey)) return null;
+    if (login.data) {
+      applySession(pubkey, login.data);
+      return login.data;
     }
+    if (!login.retry) break;
+    if (attempt === 0) onFirstAttempt?.();
+    if (attempt < retryDelays.length) await wait(retryDelays[attempt]);
+  }
+
+  return null;
+};
+
+// Everything an account needs once its keys are in the store: relay-side state
+// in the background, the backend session in the foreground. Every sign-in path
+// and the session restore run through here, so none of them can skip a step —
+// the login page used to leave the subscription status unloaded, which held the
+// app behind its spinner until a manual reload.
+//
+// `signerReady` is only for a signer that is still handshaking (bunker): relay
+// reads may publish a seeded list, so they wait for it, bounded. The backend
+// session does not — its login payload is signed separately.
+export const bootAccount = async (
+  keys,
+  { interactive = false, signerReady, onFirstAttempt } = {},
+) => {
+  Promise.race([
+    Promise.resolve(signerReady).catch(() => null),
+    wait(SIGNER_READY_TIMEOUT_MS),
+  ])
+    .then(() => fetchUserMetadata(keys.pub))
+    .then((metadata) => saveAccountLocally(keys.pub, keys, metadata))
+    .catch((err) => console.error("[AccountInit] metadata load error:", err));
+
+  // The list itself is read immediately — nothing about fetching it depends on
+  // the session. Only the seeding decision below needs `onboarded`.
+  const blossomRead = fetchBlossomServers(keys.pub);
+
+  const session = await connectSession(keys, {
+    retryDelays: interactive ? INTERACTIVE_RETRY_DELAYS_MS : RETRY_DELAYS_MS,
+    onFirstAttempt,
+  });
+  if (session) seedBlossomServers(keys.pub, blossomRead, session);
+  return Boolean(session);
+};
+
+export const initAppAccount = async () => {
+  const releaseGate = () => store.dispatch(setLoadingConnectedUser(false));
+  try {
+    const authRaw = localStorage.getItem(AUTH_KEY);
+    if (!authRaw) return;
+
+    const keys = JSON.parse(authRaw);
+    if (!keys || !keys.pub) return;
 
     // Before anything reads cached state: if this is a different account than the one the
     // in-memory caches were filled for, drop them now.
     activateAccount(keys.pub);
 
-    await applySignerToNDK(keys);
+    // Not awaited: a bunker that is slow to answer would otherwise hold the whole
+    // app behind its spinner before the session check had even been sent. The
+    // signer object itself is assigned synchronously.
+    const signerReady = applySignerToNDK(keys);
 
     store.dispatch(setUserKeys(keys));
 
-    // Metadata comes from relays; the backend session below doesn't depend on it. Awaiting it
-    // here kept `loadingConnectedUser` (which gates the whole app behind a spinner) true for the
-    // full relay round-trip — worst on a new account, where there is no profile to find. Let it
-    // resolve in the background and store it whenever it lands.
-    fetchUserMetadata(keys.pub).then((metadata) => {
-      saveAccountLocally(keys.pub, keys, metadata);
-    });
-
-    // The list itself is read immediately — nothing about fetching it depends on
-    // the session. Only the seeding decision below needs `onboarded`.
-    const blossomRead = fetchBlossomServers(keys.pub);
-
-    try {
-      const res = await checkUserConnected();
-      // The server session cookie may still be bound to a PREVIOUSLY logged-in
-      // pubkey (account switch, stale session). /online returns whoever the
-      // session says — so only trust it when it matches the locally-selected
-      // account; otherwise rebind the session via apiLogin before trusting it.
-      const sessionMatchesLocal =
-        res && res !== false && res.pubkey === keys.pub;
-
-      let session = null;
-
-      if (sessionMatchesLocal) {
-        session = res;
-        store.dispatch(setNostrUser(res));
-        store.dispatch(seedAccountFields(res));
-        store.dispatch(setIsConnected(true));
-      } else {
-        const loginRes = await apiLogin({ publicKey: keys.pub, userKeys: keys });
-        if (loginRes && loginRes !== false) {
-          session = loginRes;
-          store.dispatch(setNostrUser(loginRes));
-          store.dispatch(seedAccountFields(loginRes));
-          store.dispatch(setIsConnected(true));
-        }
-      }
-
-      // Seeding waits on the session, since the decision depends on `onboarded`.
-      seedBlossomServers(keys.pub, blossomRead, session);
-    } catch {
-      try {
-        const loginRes = await apiLogin({ publicKey: keys.pub, userKeys: keys });
-        if (loginRes && loginRes !== false) {
-          store.dispatch(setNostrUser(loginRes));
-          store.dispatch(seedAccountFields(loginRes));
-          store.dispatch(setIsConnected(true));
-          seedBlossomServers(keys.pub, blossomRead, loginRes);
-        }
-      } catch (err) {
-        console.error("[AccountInit] backend login error:", err);
-      }
-    } finally {
-      store.dispatch(setLoadingConnectedUser(false));
-      getSubscriptionStatus()
-        .then((data) => store.dispatch(setSubscriptionStatus(data)))
-        .catch(() => store.dispatch(setSubscriptionStatus(null)));
-    }
+    // The spinner covers the first attempt only. If the backend is unreachable
+    // the retries continue behind the rendered app rather than behind it.
+    await bootAccount(keys, { signerReady, onFirstAttempt: releaseGate });
   } catch (err) {
     console.error("[AccountInit] initAppAccount error:", err);
-    store.dispatch(setLoadingConnectedUser(false));
+  } finally {
+    releaseGate();
   }
 };
 
@@ -556,14 +653,8 @@ export const createAccount = async ({ keys, name, picture }) => {
   if (!loginRes || loginRes === false) {
     return false;
   }
-  store.dispatch(setNostrUser(loginRes));
-  store.dispatch(seedAccountFields(loginRes));
-  store.dispatch(setIsConnected(true));
+  applySession(keys.pub, loginRes);
   store.dispatch(setLoadingConnectedUser(false));
-
-  getSubscriptionStatus()
-    .then((data) => store.dispatch(setSubscriptionStatus(data)))
-    .catch(() => store.dispatch(setSubscriptionStatus(null)));
 
   return true;
 };

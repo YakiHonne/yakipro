@@ -5,7 +5,6 @@ const DEFAULT_RELAYS = [
   "wss://nostr-01.yakihonne.com",
   "wss://relay.damus.io",
   "wss://relay.primal.net",
-  "wss://nos.lol",
   "wss://offchain.pub",
 ];
 
@@ -14,15 +13,25 @@ export const relaysOnPlatform = DEFAULT_RELAYS;
 const ndkInstance = new NDK({
   explicitRelayUrls: relaysOnPlatform,
   enableOutboxModel: true,
+  // NDK's own default pairs purplepag.es with a relay that no longer answers,
+  // which every outbox lookup then waits on.
+  outboxRelayUrls: ["wss://purplepag.es", "wss://nostr-01.yakihonne.com"],
 });
-
-await ndkInstance.connect(1000);
 
 if (typeof window !== "undefined") {
   ndkInstance.cacheAdapter = new NDKCacheAdapterDexie({
     dbName: "yakipro-ndk-store",
     expirationTime: 3600 * 24 * 7,
     profileCacheSize: 200,
+  });
+
+  // Not awaited. This module is imported by `_app`, so a top-level await here
+  // held every page — the landing page included — until all relays had
+  // connected or the timeout passed, and one unreachable relay made that the
+  // full timeout on every load. Subscriptions opened before a socket is up are
+  // sent once it connects.
+  ndkInstance.connect().catch((err) => {
+    console.error("[NDK] connect error:", err);
   });
 }
 
